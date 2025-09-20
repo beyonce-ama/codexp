@@ -1,0 +1,18 @@
+[
+  {
+    "difficulty": "medium",
+    "language": "Python",
+    "title": "Check Palindrome",
+    "description": "Determine if a string is a palindrome.",
+    "buggy_code": "s = 'level'\nif s = s[::-1]:\n    print('Palindrome')",
+    "fixed_code": "s = 'level'\nif s == s[::-1]:\n    print('Palindrome')"
+  },
+  {
+    "difficulty": "medium",
+    "language": "Python",
+    "title": "Reverse Dictionary",
+    "description": "Reverse the key-value pairs in a dictionary.",
+    "buggy_code": "d = {'a':1, 'b':2}\nrev = {k:v for v,k in d.items()}\nprint(rev)",
+    "fixed_code": "d = {'a':1, 'b':2}\nrev = {v:k for k,v in d.items()}\nprint(rev)"
+  }
+]

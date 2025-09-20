@@ -1,0 +1,16 @@
+[
+  {
+    "title": "1v1: Broken QuickSort",
+    "description": "Find and fix 5 bugs in this QuickSort implementation.",
+    "language": "Python",
+    "buggy_code": "def quicksort(arr):\n    if len(arr) <= 0:  # BUG 1: Should be <= 1\n        return arr\n    pivot = arr[len(arr)]  # BUG 2: Index out of range\n    left = [x for x in arr if x < pivot]\n    middle = [x for x in arr if x = pivot]  # BUG 3: Assignment instead of equality\n    right = [x for x in arr if x > pivot]\n    return quicksort(left) + middle + quicksort(right)  # BUG 4: Missing list concatenation\n    # BUG 5: Not handling empty partitions",
+    "fixed_code": "def quicksort(arr):\n    if len(arr) <= 1:  # FIX 1: Base case\n        return arr\n    pivot = arr[len(arr)//2]  # FIX 2: Proper pivot selection\n    left = [x for x in arr if x < pivot]\n    middle = [x for x in arr if x == pivot]  # FIX 3: Correct equality check\n    right = [x for x in arr if x > pivot]\n    return quicksort(left) + middle + quicksort(right)  # FIX 4: Proper concatenation\n    # FIX 5: No need for special empty list handling"
+  },
+  {
+    "title": "1v1: Faulty MergeSort",
+    "description": "Find and fix 5 bugs in this MergeSort implementation.",
+    "language": "Python",
+    "buggy_code": "def merge_sort(arr):\n    if len(arr) > 1:  # BUG 1: Should be <= 1\n        mid = len(arr) // 2\n        left = arr[mid:]  # BUG 2: Wrong split\n        right = arr[:mid]\n        merge_sort(left)\n        merge_sort(right)\n        i = j = k = 1  # BUG 3: Wrong initial index\n        while i < len(left) or j < len(right):  # BUG 4: Should be and\n            if left[i] < right[j]:\n                arr[k] = left[i]\n                i += 1\n            else:\n                arr[k] = right[j]\n                j += 1\n            k += 1\n        # BUG 5: Missing remaining elements",
+    "fixed_code": "def merge_sort(arr):\n    if len(arr) <= 1:  # FIX 1: Base case\n        return arr\n    mid = len(arr) // 2\n    left = arr[:mid]  # FIX 2: Correct split\n    right = arr[mid:]\n    merge_sort(left)\n    merge_sort(right)\n    i = j = k = 0  # FIX 3: Proper initialization\n    while i < len(left) and j < len(right):  # FIX 4: Correct loop condition\n        if left[i] < right[j]:\n            arr[k] = left[i]\n            i += 1\n        else:\n            arr[k] = right[j]\n            j += 1\n        k += 1\n    while i < len(left):  # FIX 5: Handle remaining elements\n        arr[k] = left[i]\n        i += 1\n        k += 1\n    while j < len(right):\n        arr[k] = right[j]\n        j += 1\n        k += 1"
+  }
+]

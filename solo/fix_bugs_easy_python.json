@@ -1,0 +1,18 @@
+[
+  {
+    "difficulty": "easy",
+    "language": "Python",
+    "title": "Add Two Numbers",
+    "description": "The code is supposed to take two numbers as input and print their sum.",
+    "buggy_code": "def add_numbers(a, b)\n    result = a + b\n    print(\"The sum is: \" result)\n\nadd_numbers(5 7)",
+    "fixed_code": "def add_numbers(a, b):\n    result = a + b\n    print(\"The sum is:\", result)\n\nadd_numbers(5, 7)"
+  },
+  {
+    "difficulty": "easy",
+    "language": "Python",
+    "title": "Check Even or Odd",
+    "description": "This code should check whether a number is even or odd.",
+    "buggy_code": "number = 10\n\nif number % 2 = 0:\n    print(\"Even\")\nelse\n    print(\"Odd\")",
+    "fixed_code": "number = 10\n\nif number % 2 == 0:\n    print(\"Even\")\nelse:\n    print(\"Odd\")"
+  }
+]

@@ -1,0 +1,702 @@
+[
+  {
+    "category": "Arrays",
+    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
+    "choices": [
+      "new",
+      "create",
+      "make",
+      "array"
+    ],
+    "answer": "new",
+    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
+    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "id": 1
+  },
+  {
+    "category": "Conditionals",
+    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
+    "choices": [
+      "==",
+      "=",
+      "!=",
+      "equals"
+    ],
+    "answer": "==",
+    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
+    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "id": 2
+  },
+  {
+    "category": "Arrays",
+    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
+    "choices": [
+      "new",
+      "create",
+      "make",
+      "array"
+    ],
+    "answer": "new",
+    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
+    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "id": 3
+  },
+  {
+    "category": "Arrays",
+    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
+    "choices": [
+      "new",
+      "create",
+      "make",
+      "array"
+    ],
+    "answer": "new",
+    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
+    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "id": 4
+  },
+  {
+    "category": "Conditionals",
+    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
+    "choices": [
+      "==",
+      "=",
+      "!=",
+      "equals"
+    ],
+    "answer": "==",
+    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
+    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "id": 5
+  },
+  {
+    "category": "Strings",
+    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
+    "choices": [
+      "length",
+      "len",
+      "size",
+      "count"
+    ],
+    "answer": "length",
+    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
+    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "id": 6
+  },
+  {
+    "category": "Functions",
+    "question": "Fill in the blank to define a method that returns an integer:\n\npublic ____ int add(int a, int b) {\n    return a + b;\n}",
+    "choices": [
+      "static",
+      "final",
+      "private",
+      "public"
+    ],
+    "answer": "static",
+    "explanation_correct": "\u2705 Correct! 'static' allows the method to be called without an object.",
+    "explanation_wrong": "\u274c Incorrect. 'static' is needed to call the method without an instance.",
+    "id": 7
+  },
+  {
+    "category": "Functions",
+    "question": "Fill in the blank to define a method that returns an integer:\n\npublic ____ int add(int a, int b) {\n    return a + b;\n}",
+    "choices": [
+      "static",
+      "final",
+      "private",
+      "public"
+    ],
+    "answer": "static",
+    "explanation_correct": "\u2705 Correct! 'static' allows the method to be called without an object.",
+    "explanation_wrong": "\u274c Incorrect. 'static' is needed to call the method without an instance.",
+    "id": 8
+  },
+  {
+    "category": "Loops",
+    "question": "Fill in the blank to create a for loop that prints numbers 0 to 4:\n\nfor (int i = 0; i < 5; ____)\n    System.out.println(i);",
+    "choices": [
+      "i++",
+      "i+1",
+      "++i",
+      "i += 2"
+    ],
+    "answer": "i++",
+    "explanation_correct": "\u2705 Correct! 'i++' increments i by 1 after each loop iteration.",
+    "explanation_wrong": "\u274c Incorrect. Use 'i++' to increment the loop variable.",
+    "id": 9
+  },
+  {
+    "category": "Loops",
+    "question": "Fill in the blank to create a for loop that prints numbers 0 to 4:\n\nfor (int i = 0; i < 5; ____)\n    System.out.println(i);",
+    "choices": [
+      "i++",
+      "i+1",
+      "++i",
+      "i += 2"
+    ],
+    "answer": "i++",
+    "explanation_correct": "\u2705 Correct! 'i++' increments i by 1 after each loop iteration.",
+    "explanation_wrong": "\u274c Incorrect. Use 'i++' to increment the loop variable.",
+    "id": 10
+  },
+  {
+    "category": "Strings",
+    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
+    "choices": [
+      "length",
+      "len",
+      "size",
+      "count"
+    ],
+    "answer": "length",
+    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
+    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "id": 11
+  },
+  {
+    "category": "Strings",
+    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
+    "choices": [
+      "length",
+      "len",
+      "size",
+      "count"
+    ],
+    "answer": "length",
+    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
+    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "id": 12
+  },
+  {
+    "category": "Strings",
+    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
+    "choices": [
+      "length",
+      "len",
+      "size",
+      "count"
+    ],
+    "answer": "length",
+    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
+    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "id": 13
+  },
+  {
+    "category": "Arrays",
+    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
+    "choices": [
+      "new",
+      "create",
+      "make",
+      "array"
+    ],
+    "answer": "new",
+    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
+    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "id": 14
+  },
+  {
+    "category": "Strings",
+    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
+    "choices": [
+      "length",
+      "len",
+      "size",
+      "count"
+    ],
+    "answer": "length",
+    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
+    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "id": 15
+  },
+  {
+    "category": "Arrays",
+    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
+    "choices": [
+      "new",
+      "create",
+      "make",
+      "array"
+    ],
+    "answer": "new",
+    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
+    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "id": 16
+  },
+  {
+    "category": "Conditionals",
+    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
+    "choices": [
+      "==",
+      "=",
+      "!=",
+      "equals"
+    ],
+    "answer": "==",
+    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
+    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "id": 17
+  },
+  {
+    "category": "Strings",
+    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
+    "choices": [
+      "length",
+      "len",
+      "size",
+      "count"
+    ],
+    "answer": "length",
+    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
+    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "id": 18
+  },
+  {
+    "category": "Arrays",
+    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
+    "choices": [
+      "new",
+      "create",
+      "make",
+      "array"
+    ],
+    "answer": "new",
+    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
+    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "id": 19
+  },
+  {
+    "category": "Arrays",
+    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
+    "choices": [
+      "new",
+      "create",
+      "make",
+      "array"
+    ],
+    "answer": "new",
+    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
+    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "id": 20
+  },
+  {
+    "category": "Functions",
+    "question": "Fill in the blank to define a method that returns an integer:\n\npublic ____ int add(int a, int b) {\n    return a + b;\n}",
+    "choices": [
+      "static",
+      "final",
+      "private",
+      "public"
+    ],
+    "answer": "static",
+    "explanation_correct": "\u2705 Correct! 'static' allows the method to be called without an object.",
+    "explanation_wrong": "\u274c Incorrect. 'static' is needed to call the method without an instance.",
+    "id": 21
+  },
+  {
+    "category": "Strings",
+    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
+    "choices": [
+      "length",
+      "len",
+      "size",
+      "count"
+    ],
+    "answer": "length",
+    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
+    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "id": 22
+  },
+  {
+    "category": "Strings",
+    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
+    "choices": [
+      "length",
+      "len",
+      "size",
+      "count"
+    ],
+    "answer": "length",
+    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
+    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "id": 23
+  },
+  {
+    "category": "Strings",
+    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
+    "choices": [
+      "length",
+      "len",
+      "size",
+      "count"
+    ],
+    "answer": "length",
+    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
+    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "id": 24
+  },
+  {
+    "category": "Arrays",
+    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
+    "choices": [
+      "new",
+      "create",
+      "make",
+      "array"
+    ],
+    "answer": "new",
+    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
+    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "id": 25
+  },
+  {
+    "category": "Conditionals",
+    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
+    "choices": [
+      "==",
+      "=",
+      "!=",
+      "equals"
+    ],
+    "answer": "==",
+    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
+    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "id": 26
+  },
+  {
+    "category": "Strings",
+    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
+    "choices": [
+      "length",
+      "len",
+      "size",
+      "count"
+    ],
+    "answer": "length",
+    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
+    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "id": 27
+  },
+  {
+    "category": "Conditionals",
+    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
+    "choices": [
+      "==",
+      "=",
+      "!=",
+      "equals"
+    ],
+    "answer": "==",
+    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
+    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "id": 28
+  },
+  {
+    "category": "Conditionals",
+    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
+    "choices": [
+      "==",
+      "=",
+      "!=",
+      "equals"
+    ],
+    "answer": "==",
+    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
+    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "id": 29
+  },
+  {
+    "category": "Strings",
+    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
+    "choices": [
+      "length",
+      "len",
+      "size",
+      "count"
+    ],
+    "answer": "length",
+    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
+    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "id": 30
+  },
+  {
+    "category": "Strings",
+    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
+    "choices": [
+      "length",
+      "len",
+      "size",
+      "count"
+    ],
+    "answer": "length",
+    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
+    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "id": 31
+  },
+  {
+    "category": "Conditionals",
+    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
+    "choices": [
+      "==",
+      "=",
+      "!=",
+      "equals"
+    ],
+    "answer": "==",
+    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
+    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "id": 32
+  },
+  {
+    "category": "Arrays",
+    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
+    "choices": [
+      "new",
+      "create",
+      "make",
+      "array"
+    ],
+    "answer": "new",
+    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
+    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "id": 33
+  },
+  {
+    "category": "Conditionals",
+    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
+    "choices": [
+      "==",
+      "=",
+      "!=",
+      "equals"
+    ],
+    "answer": "==",
+    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
+    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "id": 34
+  },
+  {
+    "category": "Conditionals",
+    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
+    "choices": [
+      "==",
+      "=",
+      "!=",
+      "equals"
+    ],
+    "answer": "==",
+    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
+    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "id": 35
+  },
+  {
+    "category": "Arrays",
+    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
+    "choices": [
+      "new",
+      "create",
+      "make",
+      "array"
+    ],
+    "answer": "new",
+    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
+    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "id": 36
+  },
+  {
+    "category": "Arrays",
+    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
+    "choices": [
+      "new",
+      "create",
+      "make",
+      "array"
+    ],
+    "answer": "new",
+    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
+    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "id": 37
+  },
+  {
+    "category": "Conditionals",
+    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
+    "choices": [
+      "==",
+      "=",
+      "!=",
+      "equals"
+    ],
+    "answer": "==",
+    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
+    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "id": 38
+  },
+  {
+    "category": "Conditionals",
+    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
+    "choices": [
+      "==",
+      "=",
+      "!=",
+      "equals"
+    ],
+    "answer": "==",
+    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
+    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "id": 39
+  },
+  {
+    "category": "Loops",
+    "question": "Fill in the blank to create a for loop that prints numbers 0 to 4:\n\nfor (int i = 0; i < 5; ____)\n    System.out.println(i);",
+    "choices": [
+      "i++",
+      "i+1",
+      "++i",
+      "i += 2"
+    ],
+    "answer": "i++",
+    "explanation_correct": "\u2705 Correct! 'i++' increments i by 1 after each loop iteration.",
+    "explanation_wrong": "\u274c Incorrect. Use 'i++' to increment the loop variable.",
+    "id": 40
+  },
+  {
+    "category": "Arrays",
+    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
+    "choices": [
+      "new",
+      "create",
+      "make",
+      "array"
+    ],
+    "answer": "new",
+    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
+    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "id": 41
+  },
+  {
+    "category": "Conditionals",
+    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
+    "choices": [
+      "==",
+      "=",
+      "!=",
+      "equals"
+    ],
+    "answer": "==",
+    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
+    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "id": 42
+  },
+  {
+    "category": "Functions",
+    "question": "Fill in the blank to define a method that returns an integer:\n\npublic ____ int add(int a, int b) {\n    return a + b;\n}",
+    "choices": [
+      "static",
+      "final",
+      "private",
+      "public"
+    ],
+    "answer": "static",
+    "explanation_correct": "\u2705 Correct! 'static' allows the method to be called without an object.",
+    "explanation_wrong": "\u274c Incorrect. 'static' is needed to call the method without an instance.",
+    "id": 43
+  },
+  {
+    "category": "Strings",
+    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
+    "choices": [
+      "length",
+      "len",
+      "size",
+      "count"
+    ],
+    "answer": "length",
+    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
+    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "id": 44
+  },
+  {
+    "category": "Loops",
+    "question": "Fill in the blank to create a for loop that prints numbers 0 to 4:\n\nfor (int i = 0; i < 5; ____)\n    System.out.println(i);",
+    "choices": [
+      "i++",
+      "i+1",
+      "++i",
+      "i += 2"
+    ],
+    "answer": "i++",
+    "explanation_correct": "\u2705 Correct! 'i++' increments i by 1 after each loop iteration.",
+    "explanation_wrong": "\u274c Incorrect. Use 'i++' to increment the loop variable.",
+    "id": 45
+  },
+  {
+    "category": "Loops",
+    "question": "Fill in the blank to create a for loop that prints numbers 0 to 4:\n\nfor (int i = 0; i < 5; ____)\n    System.out.println(i);",
+    "choices": [
+      "i++",
+      "i+1",
+      "++i",
+      "i += 2"
+    ],
+    "answer": "i++",
+    "explanation_correct": "\u2705 Correct! 'i++' increments i by 1 after each loop iteration.",
+    "explanation_wrong": "\u274c Incorrect. Use 'i++' to increment the loop variable.",
+    "id": 46
+  },
+  {
+    "category": "Functions",
+    "question": "Fill in the blank to define a method that returns an integer:\n\npublic ____ int add(int a, int b) {\n    return a + b;\n}",
+    "choices": [
+      "static",
+      "final",
+      "private",
+      "public"
+    ],
+    "answer": "static",
+    "explanation_correct": "\u2705 Correct! 'static' allows the method to be called without an object.",
+    "explanation_wrong": "\u274c Incorrect. 'static' is needed to call the method without an instance.",
+    "id": 47
+  },
+  {
+    "category": "Loops",
+    "question": "Fill in the blank to create a for loop that prints numbers 0 to 4:\n\nfor (int i = 0; i < 5; ____)\n    System.out.println(i);",
+    "choices": [
+      "i++",
+      "i+1",
+      "++i",
+      "i += 2"
+    ],
+    "answer": "i++",
+    "explanation_correct": "\u2705 Correct! 'i++' increments i by 1 after each loop iteration.",
+    "explanation_wrong": "\u274c Incorrect. Use 'i++' to increment the loop variable.",
+    "id": 48
+  },
+  {
+    "category": "Loops",
+    "question": "Fill in the blank to create a for loop that prints numbers 0 to 4:\n\nfor (int i = 0; i < 5; ____)\n    System.out.println(i);",
+    "choices": [
+      "i++",
+      "i+1",
+      "++i",
+      "i += 2"
+    ],
+    "answer": "i++",
+    "explanation_correct": "\u2705 Correct! 'i++' increments i by 1 after each loop iteration.",
+    "explanation_wrong": "\u274c Incorrect. Use 'i++' to increment the loop variable.",
+    "id": 49
+  },
+  {
+    "category": "Loops",
+    "question": "Fill in the blank to create a for loop that prints numbers 0 to 4:\n\nfor (int i = 0; i < 5; ____)\n    System.out.println(i);",
+    "choices": [
+      "i++",
+      "i+1",
+      "++i",
+      "i += 2"
+    ],
+    "answer": "i++",
+    "explanation_correct": "\u2705 Correct! 'i++' increments i by 1 after each loop iteration.",
+    "explanation_wrong": "\u274c Incorrect. Use 'i++' to increment the loop variable.",
+    "id": 50
+  }
+]

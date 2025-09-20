@@ -1,0 +1,16 @@
+[
+    {
+        "title": "1v1: Broken QuickSort Implementation",
+        "description": "Find and fix 5 bugs in this QuickSort implementation.",
+        "language": "Java",
+        "buggy_code": "public void quickSort(int[] arr, int low, int high) {\n    if (low >= high) return;\n    int pivot = arr[high];\n    int i = low;\n    for (int j = low; j < high; j++) {\n        if (arr[j] < pivot) {\n            swap(arr, i, j);\n            i++;\n        }\n    }\n    swap(arr, i, high);  // BUG 1: Missing pivot placement\n    quickSort(arr, low, i);  // BUG 2: Should be i-1\n    quickSort(arr, i + 1, high);\n}  // BUG 3: Missing swap method\n  // BUG 4: Doesn't handle empty array\n  // BUG 5: No check for null array",
+        "fixed_code": "// BUG 1: Add pivot placement (fixed in code)\n// BUG 2: quickSort(arr, low, i) → quickSort(arr, low, i-1)\n// BUG 3: Add swap method\n// BUG 4: Add check for empty array\n// BUG 5: Add null check"
+    },
+    {
+        "title": "1v1: Faulty Dijkstra's Algorithm",
+        "description": "Find and fix 5 bugs in this Dijkstra's implementation.",
+        "language": "Java",
+        "buggy_code": "public int[] dijkstra(int[][] graph, int src) {\n    int V = graph.length;\n    int[] dist = new int[V];\n    boolean[] visited = new boolean[V];\n    Arrays.fill(dist, Integer.MAX_VALUE);\n    dist[src] = 0;\n    for (int count = 0; count < V-1; count++) {\n        int u = minDistance(dist, visited);\n        visited[u] = true;\n        for (int v = 0; v < V; v++) {\n            if (!visited[v] && graph[u][v] != 0 && dist[u] + graph[u][v] < dist[v]) {\n                dist[v] = dist[u] + graph[u][v];  // BUG 1: No overflow check\n            }\n        }\n    }\n    return dist;  // BUG 2: Missing negative weight check\n}  // BUG 3: Missing minDistance method\n  // BUG 4: Doesn't handle disconnected nodes\n  // BUG 5: No check for negative edges",
+        "fixed_code": "// BUG 1: Add overflow check\n// BUG 2: Add negative weight check\n// BUG 3: Implement minDistance helper\n// BUG 4: Handle disconnected nodes\n// BUG 5: Add check for negative edges"
+    }
+]

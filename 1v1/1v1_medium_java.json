@@ -1,0 +1,16 @@
+[
+    {
+        "title": "1v1: Broken Binary Search",
+        "description": "Find and fix 3 bugs in this binary search implementation.",
+        "language": "Java",
+        "buggy_code": "public int binarySearch(int[] nums, int target) {\n    int left = 0, right = nums.length;\n    while (left <= right) {\n        int mid = (left + right) / 2;\n        if (nums[mid] == target) {\n            return mid;\n        }\n        if (nums[mid] < target) {\n            left = mid + 1;\n        } else {\n            right = mid;  // BUG 1: Should be mid-1\n        }\n    }\n    return 0;  // BUG 2: Should return -1\n}",
+        "fixed_code": "// BUG 1: right = mid → right = mid-1\n// BUG 2: Initial right = nums.length → nums.length-1\n// BUG 3: return 0 → return -1"
+    },
+    {
+        "title": "1v1: Faulty Palindrome Checker",
+        "description": "Find and fix 3 bugs in this palindrome checker.",
+        "language": "Java",
+        "buggy_code": "public boolean isPalindrome(String s) {\n    s = s.toLowerCase();\n    int left = 0, right = s.length();  // BUG 1: Should be s.length()-1\n    while (left < right) {\n        if (s.charAt(left) != s.charAt(right)) {\n            return false;\n        }\n        left++;\n        right--;  // BUG 2: Missing non-alphanumeric check\n    }\n    return true;  // BUG 3: Doesn't handle empty string properly\n}",
+        "fixed_code": "// BUG 1: right = s.length() → s.length()-1\n// BUG 2: Add checks for Character.isLetterOrDigit()\n// BUG 3: Add early return for empty string"
+    }
+]

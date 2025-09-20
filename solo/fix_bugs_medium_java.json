@@ -1,0 +1,18 @@
+[
+    {
+        "difficulty": "medium",
+        "language": "Java",
+        "title": "Reverse Array",
+        "description": "The program should reverse the elements of an array.",
+        "buggy_code": "public class ReverseArray {\n    public static void main(String[] args) {\n        int[] arr = {1, 2, 3, 4, 5};\n        reverse(arr);\n        for (int num : arr) {\n            System.out.print(num + \" \");\n        }\n    }\n    \n    public static void reverse(int[] arr) {\n        for (int i = 0; i < arr.length; i++) {\n            int temp = arr[i];\n            arr[i] = arr[arr.length - i];\n            arr[arr.length - i] = temp;\n        }\n    }\n}",
+        "fixed_code": "public class ReverseArray {\n    public static void main(String[] args) {\n        int[] arr = {1, 2, 3, 4, 5};\n        reverse(arr);\n        for (int num : arr) {\n            System.out.print(num + \" \");\n        }\n    }\n    \n    public static void reverse(int[] arr) {\n        for (int i = 0; i < arr.length / 2; i++) {\n            int temp = arr[i];\n            arr[i] = arr[arr.length - 1 - i];\n            arr[arr.length - 1 - i] = temp;\n        }\n    }\n}"
+    },
+    {
+        "difficulty": "medium",
+        "language": "Java",
+        "title": "Find Missing Number",
+        "description": "The program should find the missing number in an array of 1 to n.",
+        "buggy_code": "public class MissingNumber {\n    public static void main(String[] args) {\n        int[] arr = {1, 2, 4, 5, 6};\n        System.out.println(\"Missing number: \" + findMissing(arr));\n    }\n    \n    public static int findMissing(int[] arr) {\n        int n = arr.length;\n        int total = (n + 1) * (n + 2) / 2;\n        for (int num : arr) {\n            total -= num;\n        }\n        return total;\n    }\n}",
+        "fixed_code": "public class MissingNumber {\n    public static void main(String[] args) {\n        int[] arr = {1, 2, 4, 5, 6};\n        System.out.println(\"Missing number: \" + findMissing(arr));\n    }\n    \n    public static int findMissing(int[] arr) {\n        int n = arr.length + 1;\n        int total = n * (n + 1) / 2;\n        for (int num : arr) {\n            total -= num;\n        }\n        return total;\n    }\n}"
+    }
+]

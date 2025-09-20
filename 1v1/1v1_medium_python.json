@@ -1,0 +1,16 @@
+[
+  {
+    "title": "1v1: Broken Binary Search",
+    "description": "Find and fix 3 bugs in this binary search implementation.",
+    "language": "Python",
+    "buggy_code": "def search(nums, target):\n    left, right = 0, len(nums)\n    while left <= right:\n        mid = (left + right) // 2\n        if nums[mid] == target:\n            return mid\n        if nums[mid] < target:\n            left = mid + 1\n        else:\n            right = mid  # BUG 1: Should be mid-1\n    return 0  # BUG 2: Should return -1",
+    "fixed_code": "def search(nums, target):\n    left, right = 0, len(nums)-1  # FIX 1: right should start at len(nums)-1\n    while left <= right:\n        mid = (left + right) // 2\n        if nums[mid] == target:\n            return mid\n        if nums[mid] < target:\n            left = mid + 1\n        else:\n            right = mid - 1  # FIX 2: right should be mid-1\n    return -1  # FIX 3: Return -1 for not found"
+  },
+  {
+    "title": "1v1: Faulty Fibonacci",
+    "description": "Find and fix 3 bugs in this Fibonacci sequence generator.",
+    "language": "Python",
+    "buggy_code": "def fibonacci(n):\n    if n == 0 or n == 1:\n        return 1  # BUG 1: Should return n\n    a, b = 0, 1\n    for i in range(n):\n        a = b\n        b = a + b  # BUG 2: Swapped assignment order\n    return a  # BUG 3: Should return b",
+    "fixed_code": "def fibonacci(n):\n    if n == 0 or n == 1:\n        return n  # FIX 1: Base case should return n\n    a, b = 0, 1\n    for i in range(n-1):  # FIX 2: Need range(n-1) iterations\n        a, b = b, a + b  # FIX 3: Parallel assignment needed\n    return b"
+  }
+]

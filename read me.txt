@@ -1,0 +1,40 @@
+
+1. Dispatcher (Primary User - Main Focus)
+
+Dashboard - Centralized view of operations
+Driver Management - Driver profiles, grading system, performance monitoring
+Vehicle Tracking (GPS) - Real-time GPS tracking and mapping
+Taxi Maintenance - Vehicle condition tracking and maintenance schedules
+Driver Schedules - Prevent overtime, manage breaks for safer work schedules
+Lost & Found QR - QR code system for passenger reports
+Emergency Response - Quick access during incidents
+Real-time Updates - Real-time status tracking of all drivers
+
+2. Driver (Secondary User - Receives Instructions)
+
+Dashboard - Personal overview
+My Schedule - Receive schedules from dispatcher
+Dispatcher Instructions - Clear instructions and updates
+Vehicle Status - Check assignments and track performance
+Working Hours - Monitor working hours and break times
+Performance Tracking - View performance metrics
+Lost & Found Reports - Report lost items via QR system
+______________________________________
+Additional features in the future
+
+3. Admin (Basic System Management)
+
+System Dashboard - Overall system overview
+User Management - Manage dispatcher and driver accounts
+System Monitoring - Monitor system performance
+Data Security - Strong data security measures (mentioned in research)
+System Settings - Basic system configuration
+
+
+✅ Comprehensive driver management module with grading and performance monitoring
+✅ Real-time GPS tracking and mapping for all vehicles
+✅ Driver working hours and break monitoring to prevent overworking
+✅ Centralized dashboard with real-time updates
+✅ Lost & Found QR code system for passengers
+✅ Strong data security and privacy measures
+✅ User-friendly interface accessible on multiple devices

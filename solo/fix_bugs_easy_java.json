@@ -1,0 +1,18 @@
+[
+    {
+    "difficulty": "easy",
+    "language": "Java",
+    "title": "Sum of Two Numbers",
+    "description": "The program should take two integers as input and print their sum.",
+    "buggy_code": "public class Sum {\n    public static void main(String[] args) {\n        int a = 5;\n        int b = 7;\n        int sum = a + b\n        System.out.println(\"Sum is: \" + sum);\n    }\n}",
+    "fixed_code": "public class Sum {\n    public static void main(String[] args) {\n        int a = 5;\n        int b = 7;\n        int sum = a + b;\n        System.out.println(\"Sum is: \" + sum);\n    }\n}"
+},
+{
+    "difficulty": "easy",
+    "language": "Java",
+    "title": "Check Even or Odd",
+    "description": "The program should check if a number is even or odd.",
+    "buggy_code": "public class EvenOdd {\n    public static void main(String[] args) {\n        int num = 10;\n        if (num % 2 = 0) {\n            System.out.println(\"Even\");\n        } else {\n            System.out.println(\"Odd\");\n        }\n    }\n}",
+    "fixed_code": "public class EvenOdd {\n    public static void main(String[] args) {\n        int num = 10;\n        if (num % 2 == 0) {\n            System.out.println(\"Even\");\n        } else {\n            System.out.println(\"Odd\");\n        }\n    }\n}"
+}
+]

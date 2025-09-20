@@ -1,0 +1,18 @@
+[
+    {
+        "difficulty": "hard",
+        "language": "Java",
+        "title": "Regular Expression Matching",
+        "description": "Implement regular expression matching with support for '.' and '*' where '.' matches any single character and '*' matches zero or more of the preceding element.",
+        "buggy_code": "public class RegexMatching {\n    public boolean isMatch(String s, String p) {\n        if (p.isEmpty()) return s.isEmpty();\n        \n        boolean firstMatch = (!s.isEmpty() && (p.charAt(0) == s.charAt(0) || p.charAt(0) == '.');\n        \n        if (p.length() >= 2 && p.charAt(1) == '*') {\n            return isMatch(s, p.substring(2)) || (firstMatch && isMatch(s.substring(1), p));\n        } else {\n            return firstMatch && isMatch(s.substring(1), p.substring(1));\n        }\n    }\n}",
+        "fixed_code": "public class RegexMatching {\n    public boolean isMatch(String s, String p) {\n        if (p.isEmpty()) return s.isEmpty();\n        \n        boolean firstMatch = (!s.isEmpty() && (p.charAt(0) == s.charAt(0) || p.charAt(0) == '.');\n        \n        if (p.length() >= 2 && p.charAt(1) == '*') {\n            return isMatch(s, p.substring(2)) || (firstMatch && isMatch(s.substring(1), p));\n        } else {\n            return firstMatch && isMatch(s.substring(1), p.substring(1));\n        }\n    }\n}"
+    },
+    {
+        "difficulty": "hard",
+        "language": "Java",
+        "title": "Merge k Sorted Lists",
+        "description": "Merge k sorted linked lists and return it as one sorted list.",
+        "buggy_code": "public ListNode mergeKLists(ListNode[] lists) {\n    if (lists == null || lists.length == 0) return null;\n    \n    PriorityQueue<ListNode> queue = new PriorityQueue<>(lists.length, (a, b) -> a.val - b.val);\n    \n    ListNode dummy = new ListNode(0);\n    ListNode tail = dummy;\n    \n    for (ListNode node : lists) {\n        if (node != null) {\n            queue.add(node);\n        }\n    }\n    \n    while (!queue.isEmpty()) {\n        tail.next = queue.poll();\n        tail = tail.next;\n        \n        if (tail.next != null) {\n            queue.add(tail.next);\n        }\n    }\n    return dummy.next;\n}",
+        "fixed_code": "import java.util.PriorityQueue;\n\npublic class MergeKSortedLists {\n    public ListNode mergeKLists(ListNode[] lists) {\n        if (lists == null || lists.length == 0) return null;\n        \n        PriorityQueue<ListNode> queue = new PriorityQueue<>(lists.length, (a, b) -> a.val - b.val);\n        \n        ListNode dummy = new ListNode(0);\n        ListNode tail = dummy;\n        \n        for (ListNode node : lists) {\n            if (node != null) {\n                queue.add(node);\n            }\n        }\n        \n        while (!queue.isEmpty()) {\n            tail.next = queue.poll();\n            tail = tail.next;\n            \n            if (tail.next != null) {\n                queue.add(tail.next);\n            }\n        }\n        return dummy.next;\n    }\n}"
+    }
+]
