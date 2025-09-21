@@ -10,6 +10,7 @@ import {
   Calendar, Award, Code, ArrowRight,
   Crown, Cpu, Brain, Medal
 } from 'lucide-react';
+import AnimatedBackground from '@/components/AnimatedBackground';
 
 const breadcrumbs: BreadcrumbItem[] = [
   { title: 'Home', href: '/dashboard' },
@@ -277,7 +278,9 @@ export default function ParticipantDashboard() {
 
   /* ---------------- Layout ---------------- */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950">
+     <div className="min-h-screen relative overflow-hidden">
+      {/* Background */}
+      <AnimatedBackground />
       <AppLayout breadcrumbs={breadcrumbs}>
         <Head title="Dashboard" />
 

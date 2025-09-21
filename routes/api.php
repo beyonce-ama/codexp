@@ -108,6 +108,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/match/{match}/ready', [MatchplayController::class, 'markReady']); // optional
         Route::post('/match/{match}/submit', [MatchplayController::class, 'submit']);
         Route::post('/match/{match}/surrender', [MatchplayController::class, 'surrender']);
+         Route::post('/match/{match}/leave',  [MatchRuntimeController::class, 'leave']);
+    Route::get ('/match/{match}/status', [MatchRuntimeController::class, 'status']); 
     });
 
     Route::prefix('challenges')->group(function () {

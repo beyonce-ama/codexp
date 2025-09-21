@@ -33,13 +33,18 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
 
 
     Route::get('/play/matchmaking', fn() => Inertia::render('Participant/Matchmaking'))->name('participant.matchmaking');
-
+Route::get('/play/m/{slug}', [MatchRuntimeController::class, 'show'])
+                ->name('match.show');
     Route::prefix('api')->group(function () {
         Route::post('/matchmaking/join',   [MatchmakingController::class, 'join']);
+
+        
         Route::post('/matchmaking/poll',   [MatchmakingController::class, 'poll']);
         Route::post('/matchmaking/cancel', [MatchmakingController::class, 'cancel']);
-         Route::post('/match/{match}/submit', [\App\Http\Controllers\MatchRuntimeController::class, 'submit'])
+         Route::post('/match/{match}/submit', [MatchRuntimeController::class, 'submit'])
          ->whereNumber('match');
+         Route::post('/match/{match}/leave', [MatchRuntimeController::class, 'leave']);
+    Route::get ('/match/{match}/status', [MatchRuntimeController::class, 'status']); 
     });
 
   Route::get('/play/match/{matchId}', [MatchRuntimeController::class, 'show'])->whereNumber('matchId');
@@ -411,16 +416,6 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
 
         });
 
-
-            Route::prefix('api')->group(function () {
-        Route::post('/matchmaking/join',   [MatchmakingController::class, 'join']);
-        Route::post('/matchmaking/poll',   [MatchmakingController::class, 'poll']);
-        Route::post('/matchmaking/cancel', [MatchmakingController::class, 'cancel']);
-
-        // When the board loads, each player pings "ready"
-        Route::post('/match/{match}/ready', [MatchRuntimeController::class, 'ready'])
-             ->whereNumber('match');
-    });
     /**
      * PARTICIPANT PAGES
      */

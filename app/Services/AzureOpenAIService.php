@@ -195,36 +195,4 @@ Make sure:
         return $topics;
     }
 
-     public function generateFixBugsChallenge(string $language, string $difficulty): array
-    {
-        if ($language === 'python') {
-            return [
-                'title'       => 'Fix add()',
-                'description' => 'Make tests pass.',
-                'language'    => 'python',
-                'difficulty'  => $difficulty,
-                'buggy_code'  => "def add(a,b):\n    return a-b\n",
-                'tests'       => [
-                    ['in' => [2,3], 'out' => 5],
-                    ['in' => [10,1], 'out' => 11],
-                ],
-            ];
-        }
-        // simple fallback for other langs
-        return [
-            'title'       => 'Fix sum()',
-            'description' => 'Return a + b correctly.',
-            'language'    => $language,
-            'difficulty'  => $difficulty,
-            'buggy_code'  => null,
-            'tests'       => [],
-        ];
-    }
-    public function repairCode(string $language, string $buggyCode, array $tests, string $title, string $desc): string
-{
-    // If you already have a method that returns a corrected solution, call that instead.
-    // This is a stub you can route to your existing prompt logic.
-    // Return a STRING of the corrected code in the target language.
-    return $this->generateFixedSolution($language, $buggyCode, $tests, $title, $desc);
-}
-}
+ }

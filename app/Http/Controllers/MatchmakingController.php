@@ -1,116 +1,237 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\MatchSearch;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
+use App\Events\MatchFound;
 use App\Models\MatchModel;
 use App\Models\MatchParticipant;
 
 class MatchmakingController extends Controller
 {
-   public function join(Request $r)
+    /**
+     * Join matchmaking: queue, try to pair, create match, generate challenge,
+     * and return { slug, token } when ready. Mode is fixed to "aigenerated".
+     */
+    public function join(Request $r)
     {
         $u = $r->user();
+
+        // Validate only these fields; mode is fixed server-side.
         $data = $r->validate([
             'language'   => 'required|in:python,java',
             'difficulty' => 'required|in:easy,medium,hard',
-            'mode'       => 'required|in:aigenerated',
+            'resume'     => 'sometimes|boolean',
         ]);
+        $mode = 'aigenerated';
 
-        // If I’m already in a running/matched game, just return it (prevents reusing old tickets)
-        $existing = MatchParticipant::query()
-            ->where('user_id', $u->id)
-            ->whereHas('match', fn($q) => $q->whereIn('status', ['matched','running']))
-            ->latest('id')
-            ->value('match_id');
+        // === Optional resume: only if I already have a token for an ACTIVE match ===
+        if ($data['resume'] ?? false) {
+            $mp = MatchParticipant::query()
+                ->where('user_id', $u->id)
+                ->when(Schema::hasColumn('match_participants', 'join_secret'), fn ($q) => $q->whereNotNull('join_secret'))
+                ->whereHas('match', fn ($q) => $q->where('status', 'active'))
+                ->latest('id')
+                ->first();
 
-        if ($existing) {
-            return response()->json(['match_id' => $existing]);
+            if ($mp) {
+                $slug = MatchModel::where('id', $mp->match_id)->value('public_id');
+                return response()->json(['slug' => $slug, 'token' => $mp->join_secret ?? null]);
+            }
         }
 
-        // Ensure I only have one active queue ticket
-        MatchSearch::where('user_id', $u->id)
-            ->where('status', 'searching')
-            ->update(['status' => 'cancelled']);
-
-        // Create fresh ticket
-        $mine = MatchSearch::create([
-            'user_id'    => $u->id,
+        // === Ensure my queue ticket exists (and is up-to-date) ===
+        $searchHasMode = Schema::hasColumn('match_searches', 'mode');
+        $update = [
+            'status'     => 'searching',
             'language'   => $data['language'],
             'difficulty' => $data['difficulty'],
-            'mode'       => $data['mode'],
-            'status'     => 'searching',
-        ]);
+            'updated_at' => now(),
+            'created_at' => now(),
+        ];
+        if ($searchHasMode) {
+            $update['mode'] = $mode;
+        }
 
-        // Try to pair strictly on language+difficulty+mode, atomically
-        $matchId = DB::transaction(function () use ($u, $data, $mine) {
-            // lock me
-            $meLocked = MatchSearch::whereKey($mine->id)->lockForUpdate()->first();
-            if (!$meLocked || $meLocked->status !== 'searching') return null;
+        // This guarantees a row exists for me.
+        DB::table('match_searches')->updateOrInsert(['user_id' => $u->id], $update);
 
-            // lock an opponent with the exact same filters
-            $opponent = MatchSearch::query()
+        // === Try to pick an opponent atomically & decide a single creator ===
+        $pair = DB::transaction(function () use ($u, $data, $searchHasMode, $mode) {
+            $q = DB::table('match_searches')
                 ->where('status', 'searching')
                 ->where('user_id', '<>', $u->id)
-                ->where('language',   $data['language'])
+                ->where('language', $data['language'])
                 ->where('difficulty', $data['difficulty'])
-                ->where('mode',       $data['mode'])
-                ->orderBy('id')
+                ->when($searchHasMode, fn ($qq) => $qq->where('mode', $mode))
+                ->orderBy('id', 'asc')
                 ->lockForUpdate()
                 ->first();
 
-            if (!$opponent) return null;
+            if (!$q) {
+                return null;
+            }
 
-            // Freeze a single challenge (unique per match)
-            // generateFor1v1 should always return a NEW frozen challenge array/json
-            $frozen = app(\App\Http\Controllers\AIChallengeController::class)
-                        ->generateFor1v1($data['language'], $data['difficulty'], $data['mode']);
+            // Remove both tickets from queue
+            DB::table('match_searches')->whereIn('user_id', [$u->id, $q->user_id])->delete();
 
-            $match = MatchModel::create([
-                'language'       => $data['language'],
-                'difficulty'     => $data['difficulty'],
-                'mode'           => $data['mode'],
-                'status'         => 'matched', // the board will flip this to 'running' once both are ready
-                 'challenge_json' => json_encode($frozen), 
-            ]);
-
-            MatchParticipant::create(['match_id' => $match->id, 'user_id' => $u->id]);
-            MatchParticipant::create(['match_id' => $match->id, 'user_id' => $opponent->user_id]);
-
-            $meLocked->update(['status' => 'paired',   'matched_at' => now()]);
-            $opponent->update(['status' => 'paired',   'matched_at' => now()]);
-
-            return $match->id;
+            $opp = (int) $q->user_id;
+            return ['opponent' => $opp, 'creator' => min($u->id, $opp)];
         });
 
-        if ($matchId) {
-            return response()->json(['match_id' => $matchId, 'ticket_id' => (string)$mine->id]);
+        if (!$pair) {
+            // Nobody else yet; frontend will continue polling.
+            return response()->json(['queued' => true]);
         }
 
-        return response()->json(['ticket_id' => (string)$mine->id]);
+        // === Non-creator: briefly wait for the creator to finish, then return slug+token ===
+        if ($u->id !== $pair['creator']) {
+            $hasJoinSecret = Schema::hasColumn('match_participants', 'join_secret');
+
+            $deadline = microtime(true) + 4.5; // up to ~4.5s
+            do {
+                $mp = MatchParticipant::query()
+                    ->where('user_id', $u->id)
+                    ->when($hasJoinSecret, fn ($q) => $q->whereNotNull('join_secret'))
+                    ->whereHas('match', fn ($q) =>
+                        $q->where('status', 'active')
+                          ->where('created_at', '>=', now()->subMinutes(2))
+                    )
+                    ->latest('id')
+                    ->first();
+
+                if ($mp) {
+                    $m = MatchModel::find($mp->match_id);
+                    if ($m && empty($m->public_id)) {
+                        $m->public_id = (string) Str::uuid();
+                        $m->save();
+                    }
+                    if ($m) {
+                        return response()->json([
+                            'slug'  => $m->public_id,
+                            'token' => $hasJoinSecret ? $mp->join_secret : null,
+                        ]);
+                    }
+                }
+
+                usleep(250_000); // 250ms
+            } while (microtime(true) < $deadline);
+
+            // Creator is still building the match; frontend keeps polling.
+            return response()->json(['paired' => true]);
+        }
+
+        // === Creator: create match, tokens, challenge; then return slug+my token ===
+        $result = DB::transaction(function () use ($u, $pair, $data) {
+            $match = MatchModel::create([
+                'language'   => $data['language'],
+                'difficulty' => $data['difficulty'],
+                'status'     => 'active',
+            ]);
+
+            // Ensure slug exists even if model boot didn't set it
+            if (empty($match->public_id)) {
+                $match->public_id = (string) Str::uuid();
+                $match->save();
+            }
+
+            $hasJoinSecret = Schema::hasColumn('match_participants', 'join_secret');
+            $myToken  = $hasJoinSecret ? Str::random(32) : null;
+            $oppToken = $hasJoinSecret ? Str::random(32) : null;
+
+            $meAttrs = ['match_id' => $match->id, 'user_id' => $u->id];
+            $opAttrs = ['match_id' => $match->id, 'user_id' => $pair['opponent']];
+            if ($hasJoinSecret) {
+                $meAttrs['join_secret'] = $myToken;
+                $opAttrs['join_secret'] = $oppToken;
+            }
+
+            MatchParticipant::create($meAttrs);
+            MatchParticipant::create($opAttrs);
+
+            // Generate challenge (same path as Solo)
+            $svc = app(\App\Services\AzureOpenAIService::class);
+            $raw = $svc->generateChallenge($data['language'], $data['difficulty'], null);
+
+            $challenge = [
+                'title'          => $raw['title'] ?? "Fix the Bug: {$data['language']} ({$data['difficulty']})",
+                'description'    => $raw['description'] ?? 'Repair the function to satisfy all tests.',
+                'language'       => $data['language'],
+                'difficulty'     => $data['difficulty'],
+                'buggy_code'     => $raw['buggy_code'] ?? '',
+                'fixed_code'     => $raw['fixed_code'] ?? ($raw['corrected_code'] ?? ''),
+                'corrected_code' => $raw['corrected_code'] ?? ($raw['fixed_code'] ?? ''),
+                'tests'          => is_array($raw['tests'] ?? null) ? $raw['tests'] : [],
+                'hint'           => $raw['hint'] ?? null,
+                'explanation'    => $raw['explanation'] ?? null,
+            ];
+
+            $match->challenge_json = json_encode(['challenge' => $challenge], JSON_UNESCAPED_UNICODE);
+            $match->save();
+
+            return [
+                'match_id' => $match->id,
+                'slug'     => $match->public_id,
+                'my_token' => $myToken,
+                'opp_id'   => $pair['opponent'],
+            ];
+        });
+
+        // Let both clients know (frontend also polls as fallback)
+        event(new MatchFound(
+            match_id: $result['match_id'],
+            participants: [(int) $u->id, (int) $result['opp_id']],
+            language: $data['language'],
+            difficulty: $data['difficulty']
+        ));
+
+        return response()->json([
+            'slug'  => $result['slug'],
+            'token' => $result['my_token'],
+        ]);
     }
-     public function poll(Request $r)
+
+    /**
+     * Poll while searching; returns { slug, token } when assigned.
+     */
+    public function poll(Request $r)
     {
         $u = $r->user();
+        $hasJoinSecret = Schema::hasColumn('match_participants', 'join_secret');
 
-        $matchId = MatchParticipant::query()
+        $mp = MatchParticipant::query()
             ->where('user_id', $u->id)
-            ->whereHas('match', fn($q) =>
-                $q->whereIn('status', ['matched','running']) // exclude finished/abandoned
+            ->when($hasJoinSecret, fn ($q) => $q->whereNotNull('join_secret'))
+            ->whereHas('match', fn ($q) =>
+                $q->where('status', 'active')
+                  ->where('created_at', '>=', now()->subMinutes(10))
             )
             ->latest('id')
-            ->value('match_id');
+            ->first();
 
-        if ($matchId) {
-            return response()->json(['match_id' => $matchId]);
+        if (!$mp) {
+            return response()->json(['slug' => null]);
         }
-        return response()->json(['searching' => true]);
+
+        $m = MatchModel::find($mp->match_id);
+        if ($m && empty($m->public_id)) {
+            $m->public_id = (string) Str::uuid();
+            $m->save();
+        }
+
+        return response()->json([
+            'slug'  => $m?->public_id,
+            'token' => $hasJoinSecret ? $mp->join_secret : null,
+        ]);
     }
 
-  public function cancel(Request $r)
-  {
-    MatchSearch::where('user_id',$r->user()->id)->where('status','searching')->update(['status'=>'cancelled']);
-    return response()->json(['ok'=>true]);
-  }
+    /** Cancel my search */
+    public function cancel(Request $r)
+    {
+        DB::table('match_searches')->where('user_id', $r->user()->id)->delete();
+        return response()->json(['ok' => true]);
+    }
 }

@@ -1,180 +1,229 @@
 import { Head, useForm } from '@inertiajs/react';
-import { Eye, EyeOff, Zap, Users, Code, Star,ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, Users, Code, Star, ArrowLeft } from 'lucide-react';
 import React, { useState, useEffect, FormEventHandler } from 'react';
 
-export default function Login({ status, canResetPassword }: { status?: string, canResetPassword: boolean }) {
-    const [showPassword, setShowPassword] = useState(false);
-    const [isLoaded, setIsLoaded] = useState(false);
+export default function Login({ status, canResetPassword }: { status?: string; canResetPassword: boolean }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-    const { data, setData, post, processing, errors, reset } = useForm({
-        email: '',
-        password: '',
-        remember: false,
-    });
+  const { data, setData, post, processing, errors, reset } = useForm({
+    email: '',
+    password: '',
+    remember: false,
+  });
 
-    useEffect(() => {
-        setIsLoaded(true);
-    }, []);
+  useEffect(() => setIsLoaded(true), []);
 
-    const submit: FormEventHandler = (e) => {
-        e.preventDefault();
-        post(route('login'), {
-            onFinish: () => reset('password'),
-        });
-    };
+  const submit: FormEventHandler = (e) => {
+    e.preventDefault();
+    post(route('login'), { onFinish: () => reset('password') });
+  };
 
-    return (
-        <div className="min-h-screen bg-black relative overflow-hidden flex items-center justify-center p-4">
-            <Head title="CODEXP AI: A Gamified Competitive Coding Web-Based Platform, Using AI-Generated Challenges and Real-Time Performance Analytics" />
+  return (
+    <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4 text-white">
+      <Head title="CODEXP AI: Login" />
 
-            {/* Background Grid + Particles */}
-            <div className="absolute inset-0">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a1f] via-[#0f1a3f] to-[#03121f]" />
-                <div className="absolute inset-0 opacity-10" style={{
-                    backgroundImage: `
-                        linear-gradient(rgba(0,255,255,0.05) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(0,255,255,0.05) 1px, transparent 1px)
-                    `,
-                    backgroundSize: '40px 40px'
-                }} />
-                <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" />
-                <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-blue-500/10 rounded-full blur-2xl animate-bounce" />
+      {/* ---- Animated Background (matches welcome) ---- */}
+      {/* Moving blobs */}
+      <div className="pointer-events-none absolute -top-32 -left-20 h-[40rem] w-[40rem] rounded-full blur-3xl bg-orange-500/10 animate-[pulse_12s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute top-1/3 -right-32 h-[36rem] w-[36rem] rounded-full blur-3xl bg-indigo-500/10 animate-[pulse_18s_ease-in-out_infinite]" />
+      {/* Subtle dot mesh */}
+      <div
+        aria-hidden
+        className="absolute inset-0 opacity-[0.16]"
+        style={{
+          backgroundImage:
+            'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.35) 1px, transparent 1px)',
+          backgroundSize: '22px 22px',
+        }}
+      />
+      {/* Slow conic sweep */}
+      <div
+        aria-hidden
+        className="absolute -inset-1 pointer-events-none animate-[spin_80s_linear_infinite]"
+        style={{
+          background:
+            'conic-gradient(from 200deg at 50% 50%, transparent 0deg, rgba(255,179,79,0.06) 90deg, transparent 180deg, rgba(96,165,250,0.06) 270deg, transparent 360deg)',
+        }}
+      />
+
+      {/* Back to Home */}
+    <div className="absolute top-6 left-6 z-10">
+    <button
+        type="button"
+        onClick={() => (window.location.href = route('home'))}
+        className="flex items-center gap-2 hover:scale-105 transition-all text-sm font-semibold"
+    >
+        {/* Visible solid-colored icon */}
+        <ArrowLeft className="w-4 h-4 text-yellow-300" />
+
+        {/* Gradient text only */}
+        <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-300">
+        Back to Home
+        </span>
+    </button>
+    </div>
+
+
+
+      {/* ---- Login Card ---- */}
+      <div
+        className={[
+          'w-full max-w-lg z-10 transition-all duration-700 ease-out',
+          isLoaded ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-6 scale-95',
+        ].join(' ')}
+      >
+        {/* Outer glow frame */}
+        <div className="relative rounded-3xl p-[1px] bg-gradient-to-b from-slate-200/10 via-slate-200/5 to-transparent shadow-[0_40px_120px_-40px_rgba(0,0,0,0.6)]">
+          {/* Accent ring */}
+          <div className="absolute -inset-[1px] rounded-3xl pointer-events-none ring-1 ring-slate-700/50" />
+
+          <form
+            onSubmit={submit}
+            className="relative rounded-3xl bg-slate-950/70 backdrop-blur-xl p-8 sm:p-10"
+          >
+            {/* Top glow divider */}
+            <div className="absolute left-6 right-6 -top-[1px] h-[2px] rounded-full bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+
+            {/* Title */}
+            <div className="text-center mb-6">
+              <div className="flex items-center justify-center mb-2">
+                <span className="mr-2 grid place-items-center rounded-lg w-8 h-8 bg-gradient-to-br from-cyan-500/20 to-violet-500/20 ring-1 ring-slate-700/60">
+                  <Code className="w-4 h-4 text-cyan-300" />
+                </span>
+                <h1 className="text-2xl font-extrabold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-cyan-300">
+                  PLAYER LOGIN
+                </h1>
+              </div>
+              <p className="text-sm text-slate-300/90">Access your competitive dashboard</p>
             </div>
 
-            {/* Floating Dots */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-                {[...Array(18)].map((_, i) => (
-                    <div
-                        key={i}
-                        className="absolute w-2 h-2 bg-cyan-400 rounded-full opacity-50 animate-pulse"
-                        style={{
-                            left: `${Math.random() * 100}%`,
-                            top: `${Math.random() * 100}%`,
-                            animationDelay: `${Math.random() * 3}s`,
-                            animationDuration: `${2 + Math.random() * 2}s`
-                        }}
-                    />
-                ))}
+            {/* Email */}
+            <div className="space-y-2 mb-4">
+              <label className="block text-cyan-300 font-semibold text-xs tracking-[0.12em]">
+                EMAIL ADDRESS
+              </label>
+              <div className="relative group">
+                <input
+                  type="email"
+                  value={data.email}
+                  onChange={(e) => setData('email', e.target.value)}
+                  required
+                  placeholder="admin@example.com"
+                  className="peer w-full rounded-xl px-4 py-3 bg-slate-50 text-slate-900 border-2 border-transparent focus:border-cyan-500/70 outline-none transition"
+                />
+                <Star className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 peer-focus:text-cyan-500 transition" />
+                <div className="pointer-events-none absolute -inset-[1px] rounded-xl opacity-0 peer-focus:opacity-100 transition bg-gradient-to-r from-cyan-300/10 via-violet-300/10 to-transparent" />
+              </div>
+              {errors.email && <p className="text-xs text-red-400">{errors.email}</p>}
             </div>
-            {/* Home Button */}
-            <div className="absolute top-6 left-6 z-10">
+
+            {/* Password */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-cyan-300 font-semibold text-xs tracking-[0.12em]">
+                  PASSWORD
+                </label>
+                {canResetPassword && (
+                  <a
+                    href={route('password.request')}
+                    className="text-xs text-cyan-400 hover:text-cyan-300 hover:underline transition"
+                  >
+                    Forgot password?
+                  </a>
+                )}
+              </div>
+              <div className="relative group">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={data.password}
+                  onChange={(e) => setData('password', e.target.value)}
+                  required
+                  placeholder="Enter your password"
+                  className="peer w-full rounded-xl px-4 py-3 bg-slate-50 text-slate-900 border-2 border-transparent focus:border-cyan-500/70 outline-none transition pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-cyan-500 transition"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+                <div className="pointer-events-none absolute -inset-[1px] rounded-xl opacity-0 peer-focus:opacity-100 transition bg-gradient-to-r from-cyan-300/10 via-violet-300/10 to-transparent" />
+              </div>
+              {errors.password && <p className="text-xs text-red-400">{errors.password}</p>}
+            </div>
+
+            {/* Remember Me */}
+            <div className="flex items-center gap-3 mt-3 mb-1">
+              <input
+                id="remember"
+                type="checkbox"
+                checked={data.remember}
+                onChange={(e) => setData('remember', e.target.checked)}
+                className="h-4 w-4 text-cyan-500 focus:ring-cyan-400 border-slate-600 rounded bg-black/60"
+              />
+              <label htmlFor="remember" className="text-slate-300 text-sm">
+                REMEMBER ME
+              </label>
+            </div>
+
+            {/* Login CTA */}
             <button
-                type="button"
-                onClick={() => window.location.href = route('home')}
-                className="flex items-center space-x-2 text-cyan-300 hover:text-white hover:scale-105 transition-all text-sm font-semibold"
+              type="submit"
+              disabled={processing}
+              className={[
+                'mt-3 w-full rounded-xl py-3 font-extrabold tracking-wide',
+                'text-white shadow-lg transition-all duration-300',
+                'bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500',
+                'hover:from-cyan-400 hover:via-blue-400 hover:to-indigo-400 hover:shadow-cyan-500/35',
+                'active:scale-[0.98] disabled:opacity-70',
+                'relative overflow-hidden',
+              ].join(' ')}
             >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Back to Home</span>
+              <span className="relative z-10">{processing ? 'CONNECTING...' : 'LOGIN'}</span>
+              {/* soft sheen */}
+              <span className="pointer-events-none absolute inset-0 opacity-0 hover:opacity-100 transition duration-500"
+                style={{
+                  background:
+                    'linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.18) 20%, transparent 40%)',
+                  backgroundSize: '200% 100%',
+                }}
+              />
             </button>
+
+            {/* Status */}
+            {status && (
+              <div className="mt-3 text-center text-sm text-orange-400 bg-orange-500/10 border border-orange-500/20 rounded-md p-3 animate-pulse">
+                {status}
+              </div>
+            )}
+
+            {/* Divider */}
+            <div className="my-6 h-px bg-gradient-to-r from-transparent via-slate-700/70 to-transparent" />
+
+            {/* Create Account */}
+            <div className="text-center">
+              <p className="text-sm text-slate-400 mb-3">Don&apos;t have an account?</p>
+              <button
+                type="button"
+                onClick={() => (window.location.href = route('register'))}
+                className="w-full neo-pill justify-center hover:ring-1 hover:ring-slate-600 transition"
+              >
+                <Users className="w-5 h-5" />
+                <span>CREATE ACCOUNT</span>
+              </button>
             </div>
-            {/* Login Card */}
-            <div className={`w-full max-w-md z-10 transition-all duration-1000 ease-out ${isLoaded ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'}`}>
-                <form onSubmit={submit} className="bg-[#0e0e1c]/90 backdrop-blur-md border border-cyan-500/20 rounded-2xl p-8 shadow-2xl shadow-cyan-500/10 space-y-6">
-
-                    {/* Title */}
-                    <div className="text-center mb-4">
-                        <div className="flex items-center justify-center mb-3">
-                            <Code className="w-6 h-6 text-cyan-400 mr-2" />
-                            <h1 className="text-xl font-bold text-white tracking-wide">PLAYER LOGIN</h1>
-                        </div>
-                        <p className="text-sm text-gray-400">Access your competitive dashboard</p>
-                    </div>
-
-                    {/* Email */}
-                    <div>
-                        <label className="block text-cyan-300 font-semibold text-sm mb-2 tracking-wide">EMAIL ADDRESS</label>
-                        <div className="relative">
-                            <input
-                                type="email"
-                                value={data.email}
-                                onChange={(e) => setData('email', e.target.value)}
-                                required
-                                placeholder="admin@jti.com"
-                                className="w-full bg-[#f8f9fa] text-gray-900 border-2 border-transparent rounded-xl px-4 py-3 focus:border-cyan-500 transition-all duration-300"
-                            />
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                                <Star className="w-4 h-4 text-gray-400" />
-                            </div>
-                        </div>
-                        {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email}</p>}
-                    </div>
-
-                    {/* Password */}
-                    <div>
-                        <div className="flex justify-between mb-2">
-                            <label className="text-cyan-300 font-semibold text-sm tracking-wide">PASSWORD</label>
-                            {canResetPassword && (
-                                <a href={route('password.request')} className="text-xs text-cyan-400 hover:text-cyan-300 hover:underline transition">Forgot password?</a>
-                            )}
-                        </div>
-                        <div className="relative">
-                            <input
-                                type={showPassword ? 'text' : 'password'}
-                                value={data.password}
-                                onChange={(e) => setData('password', e.target.value)}
-                                required
-                                placeholder="Enter your password"
-                                className="w-full bg-[#f8f9fa] text-gray-900 border-2 border-transparent rounded-xl px-4 py-3 focus:border-cyan-500 transition-all duration-300 pr-12"
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-cyan-500 transition"
-                            >
-                                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                            </button>
-                        </div>
-                        {errors.password && <p className="text-sm text-red-500 mt-1">{errors.password}</p>}
-                    </div>
-
-                    {/* Remember Me */}
-                    <div className="flex items-center space-x-3">
-                        <input
-                            type="checkbox"
-                            id="remember"
-                            checked={data.remember}
-                            onChange={(e) => setData('remember', e.target.checked)}
-                            className="h-4 w-4 text-cyan-500 focus:ring-cyan-400 border-gray-600 rounded bg-black/60"
-                        />
-                        <label htmlFor="remember" className="text-gray-300 text-sm">REMEMBER ME</label>
-                    </div>
-
-                    {/* Login Button */}
-                    <button
-                        type="submit"
-                        disabled={processing}
-                        className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-cyan-500/40"
-                    >
-                        {processing ? 'CONNECTING...' : 'LOGIN'}
-                    </button>
-
-                    {/* Status */}
-                    {status && (
-                        <div className="text-center text-sm text-orange-400 bg-orange-500/10 border border-orange-500/20 rounded-md p-3 animate-pulse">
-                            {status}
-                        </div>
-                    )}
-
-                    {/* Divider */}
-                    <div className="border-t border-gray-700/60 pt-6 text-center">
-                        <p className="text-sm text-gray-400 mb-4">Don't have an account?</p>
-                        <button
-                            type="button"
-                            onClick={() => window.location.href = route('register')}
-                            className="w-full bg-black/60 hover:bg-black/80 text-cyan-300 font-bold py-3 rounded-xl border border-gray-700 hover:border-cyan-500/60 transition flex items-center justify-center space-x-2"
-                        >
-                            <Users className="w-5 h-5" />
-                            <span>CREATE ACCOUNT</span>
-                        </button>
-                    </div>
-                </form>
-
-                {/* Footer */}
-                <div className="text-center mt-6 text-xs text-gray-500">
-                    <p>CODEXP AI | GAMIFIED CODING PLATFORM v2.0</p>
-                    <p className="mt-1">© 2025 All rights reserved</p>
-                </div>
-            </div>
+          </form>
         </div>
-    );
+
+        {/* Footer */}
+        <div className="text-center mt-6 text-xs text-slate-400">
+          <p>CODEXP AI | GAMIFIED CODING PLATFORM v2.0</p>
+          <p className="mt-1">© 2025 All rights reserved</p>
+        </div>
+      </div>
+    </div>
+  );
 }

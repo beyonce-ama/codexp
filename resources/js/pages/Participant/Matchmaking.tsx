@@ -1,13 +1,13 @@
-// resources/js/Pages/Participant/Matchmaking.tsx
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import AppLayout from '@/layouts/app-layout';
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { apiClient } from '@/utils/api';
 import type { BreadcrumbItem } from '@/types';
 import {
   Swords, Users, Brain, Loader2, Clock, ShieldCheck, X,
   CheckCircle2, Code2, Trophy, Zap,
 } from 'lucide-react';
+import AnimatedBackground from '@/components/AnimatedBackground';
 
 type Lang = 'python' | 'java';
 type Diff = 'easy' | 'medium' | 'hard';
@@ -31,106 +31,121 @@ const difficulties = [
   { value: 'hard' as const,   label: 'Hard',   hint: 'Deep problem-solving' },
 ];
 
+type JoinResponse =
+  | { slug: string; token?: string | null }
+  | { queued: true }
+  | { paired: true }
+  | { ticket_id?: number | string };
+
+type PollResponse =
+  | { slug: string; token?: string | null }
+  | { slug: null };
+
 const Matchmaking: React.FC = () => {
   const { props } = usePage<PageProps>();
   const user = props?.auth?.user;
+
   const [language, setLanguage] = useState<Lang>('python');
   const [difficulty, setDifficulty] = useState<Diff>('easy');
   const [searching, setSearching] = useState(false);
   const [queueCount, setQueueCount] = useState<number>(1);
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const startedRef = useRef<number | null>(null);
 
   const queueChannelName = useMemo(
     () => `presence-queue.${language}.${difficulty}`,
     [language, difficulty]
   );
 
-  // Presence queue: live count + (option A) MatchFound
+  const goToMatch = (slug: string, token?: string | null) => {
+    const url = token ? `/play/m/${slug}?t=${encodeURIComponent(token)}` : `/play/m/${slug}`;
+    window.location.href = url;
+  };
+
+  async function postJSON<T = any>(url: string, body?: any): Promise<T> {
+    const res: any = body ? await apiClient.post(url, body) : await apiClient.post(url);
+    return (res && typeof res === 'object' && 'data' in res) ? res.data : res;
+  }
+
+  // Presence + private listeners (nudge; poll is still authoritative)
   useEffect(() => {
     if (!searching) return;
     const Echo = (window as any).Echo;
     if (!Echo) return;
 
-    Echo.join(queueChannelName)
+    const presence = Echo.join(queueChannelName)
       .here((members: any[]) => setQueueCount(members.length))
-      .joining(() => setQueueCount((c) => c + 1))
-      .leaving(() => setQueueCount((c) => Math.max(1, c - 1)))
-      // presence listener (keep your queueCount code)
-      .listen('MatchFound', (payload:any) => {
-        console.log('[Echo/presence] MatchFound', payload);
-        const ids:number[] = payload?.participants ?? [payload?.player1_id, payload?.player2_id].filter(Boolean);
-        if (ids?.includes?.(user.id) && payload?.match_id) {
-          window.location.href = `/play/match/${payload.match_id}`;
-        }
+      .joining(() => setQueueCount((c: number) => c + 1))
+      .leaving(() => setQueueCount((c: number) => Math.max(1, c - 1)))
+      .listen('MatchFound', async () => {
+        try {
+          const data = await postJSON<PollResponse>('/api/matchmaking/poll', { language, difficulty });
+          if ('slug' in data && data.slug) goToMatch(data.slug, data.token);
+        } catch {}
       });
 
-      // private listener
-      Echo.private(`user.${user.id}`).listen('MatchFound', (payload:any) => {
-        console.log('[Echo/private] MatchFound', payload);
-        if (payload?.match_id) window.location.href = `/play/match/${payload.match_id}`;
-      });
-
-    return () => { try { (window as any).Echo.leave(queueChannelName); } catch {} };
-  }, [searching, queueChannelName, user?.id]);
-
-  // Private user channel: (option B) MatchFound
-  useEffect(() => {
-    if (!searching) return;
-    const Echo = (window as any).Echo;
-    if (!Echo || !user?.id) return;
-
-    Echo.private(`user.${user.id}`).listen('MatchFound', (payload: any) => {
-      if (payload?.match_id) router.visit(`/play/match/${payload.match_id}`);
+    const priv = Echo.private(`user.${user.id}`).listen('MatchFound', async () => {
+      try {
+        const data = await postJSON<PollResponse>('/api/matchmaking/poll', { language, difficulty });
+        if ('slug' in data && data.slug) goToMatch(data.slug, data.token);
+      } catch {}
     });
 
-    return () => { try { (window as any).Echo.leave(`user.${user.id}`); } catch {} };
-  }, [searching, user?.id]);
-async function postJSON(url: string, body: any) {
-  const res: any = await apiClient.post(url, body);
-  const json = (res && typeof res === 'object' && 'data' in res) ? res.data : res;
-  console.log('[RAW]', res, '[JSON]', json);
-  return json;
-}
+    return () => {
+      try { (window as any).Echo.leave(queueChannelName); } catch {}
+      try { (window as any).Echo.leave(`user.${user.id}`); } catch {}
+    };
+  }, [searching, queueChannelName, user?.id, language, difficulty]);
 
-const joinQueue = async () => {
-  setError(null);
-  setSearching(true);
-  try {
-    const data = await postJSON('/api/matchmaking/join', { language, difficulty, mode: 'aigenerated' });
-    if (data?.match_id) {
-      window.location.href = `/play/match/${data.match_id}`;
-      return;
-    }
-    if (data?.ticket_id) setTicketId(data.ticket_id);
-  } catch (e: any) {
-    console.error('[JOIN ERROR]', e?.response?.data || e);
-    setError(e?.response?.data?.message || 'Failed to join matchmaking.');
-    setSearching(false);
-  }
-};
+  // Join queue
+  const joinQueue = async () => {
+    setError(null);
+    setSearching(true);
+    setTicketId(null);
 
-useEffect(() => {
-  if (!searching) return;
-  let cancelled = false;
-  const tick = async () => {
     try {
-      const data = await postJSON('/api/matchmaking/poll', { language, difficulty, mode: 'aigenerated' });
-      console.log('[POLL JSON]', data);
-      if (!cancelled && data?.match_id) {
-        window.location.href = `/play/match/${data.match_id}`;
+      const data = await postJSON<JoinResponse>('/api/matchmaking/join', {
+        language, difficulty, resume: false,
+      });
+
+      if ('slug' in data && data.slug) {
+        goToMatch(data.slug, (data as any).token);
         return;
       }
-    } catch (e) {
-      console.warn('[POLL ERROR]', e);
-    }
-    if (!cancelled) setTimeout(tick, 1200);
-  };
-  const id = setTimeout(tick, 800);
-  return () => { cancelled = true; clearTimeout(id as any); };
-}, [searching, language, difficulty]);
 
+      if ('queued' in data && data.queued) {
+        setTicketId(String(user.id));
+      } else if ('paired' in data && data.paired) {
+        setTicketId(String(user.id)); // wait; event/poll will deliver {slug,token}
+      } else if ('ticket_id' in data && data.ticket_id) {
+        setTicketId(String(data.ticket_id));
+      }
+    } catch (e: any) {
+      console.error('[JOIN ERROR]', e?.response?.data || e);
+      setError(e?.response?.data?.message || 'Failed to join matchmaking.');
+      setSearching(false);
+    }
+  };
+
+  // Poll fallback until we get { slug, token }
+  useEffect(() => {
+    if (!searching) return;
+    let cancelled = false;
+
+    const tick = async () => {
+      try {
+        const data = await postJSON<PollResponse>('/api/matchmaking/poll', { language, difficulty });
+        if (!cancelled && 'slug' in data && data.slug) {
+          goToMatch(data.slug, data.token);
+          return;
+        }
+      } catch {}
+      if (!cancelled) setTimeout(tick, 1200);
+    };
+
+    const id = setTimeout(tick, 800);
+    return () => { cancelled = true; clearTimeout(id as any); };
+  }, [searching, language, difficulty]);
 
   const cancelQueue = async () => {
     setError(null);
@@ -143,42 +158,14 @@ useEffect(() => {
     }
   };
 
-  // Poll fallback
-  useEffect(() => {
-    if (!searching) return;
-    let cancelled = false;
-    const body = { language, difficulty, mode: 'aigenerated' as const };
-
-   const tick = async () => {
-  try {
-    const { data } = await apiClient.post('/api/matchmaking/poll', body);
-    console.log('[poll result]', data);   // 👈 add this line
-    if (!cancelled && data?.match_id) {
-      window.location.href = `/play/match/${data.match_id}`;
-      return;
-    }
-  } catch {}
-  if (!cancelled) setTimeout(tick, 1500);
-};
-
-    const id = setTimeout(tick, 1200);
-    return () => { cancelled = true; clearTimeout(id as any); };
-  }, [searching, language, difficulty]);
-
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 relative overflow-hidden">
-      {/* Animated background particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-cyan-400 rounded-full animate-ping opacity-20"></div>
-        <div className="absolute top-1/3 right-1/4 w-1 h-1 bg-blue-400 rounded-full animate-pulse opacity-30"></div>
-        <div className="absolute bottom-1/4 left-1/3 w-3 h-3 bg-cyan-300 rounded-full animate-bounce opacity-10"></div>
+    <div className="min-h-screen relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <AnimatedBackground />
       </div>
-
       <AppLayout breadcrumbs={breadcrumbs}>
         <Head title="1v1 Matchmaking" />
         <div className="max-w-5xl mx-auto px-4 py-8">
-          {/* Header aligned like AI Challenges / Practice */}
           <div className="mb-6">
             <div className="flex items-center gap-3">
               <Swords className="w-7 h-7 text-indigo-400" />
@@ -188,17 +175,13 @@ useEffect(() => {
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 via-fuchsia-400 to-cyan-400 bg-clip-text text-transparent">
                   1V1 MATCHMAKING
                 </h1>
-                <p className="text-zinc-400 text-sm">
-                  Queue by language & difficulty and get paired instantly.
-                </p>
+                <p className="text-zinc-400 text-sm">Queue by language & difficulty and get paired instantly.</p>
               </div>
             </div>
           </div>
 
-          {/* Main card */}
           <div className="rounded-2xl border border-slate-700/60 bg-slate-900/40 shadow-xl">
             <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Language */}
               <div className="md:col-span-1">
                 <label className="text-sm text-zinc-400">Language</label>
                 <div className="mt-2 grid grid-cols-2 gap-2">
@@ -211,9 +194,7 @@ useEffect(() => {
                         disabled={searching}
                         className={[
                           'flex items-center justify-center gap-2 px-4 py-3 rounded-xl border transition',
-                          active
-                            ? 'border-indigo-500/60 bg-indigo-500/10'
-                            : 'border-slate-700/60 hover:border-slate-600',
+                          active ? 'border-indigo-500/60 bg-indigo-500/10' : 'border-slate-700/60 hover:border-slate-600',
                         ].join(' ')}
                         aria-pressed={active}
                       >
@@ -225,7 +206,6 @@ useEffect(() => {
                 </div>
               </div>
 
-              {/* Difficulty */}
               <div className="md:col-span-1">
                 <label className="text-sm text-zinc-400">Difficulty</label>
                 <div className="mt-2 grid grid-cols-3 gap-2">
@@ -238,9 +218,7 @@ useEffect(() => {
                         disabled={searching}
                         className={[
                           'px-3 py-3 rounded-xl border text-sm transition',
-                          active
-                            ? 'border-emerald-500/60 bg-emerald-500/10'
-                            : 'border-slate-700/60 hover:border-slate-600',
+                          active ? 'border-emerald-500/60 bg-emerald-500/10' : 'border-slate-700/60 hover:border-slate-600',
                         ].join(' ')}
                         aria-pressed={active}
                         title={opt.hint}
@@ -252,13 +230,11 @@ useEffect(() => {
                 </div>
               </div>
 
-              {/* Mode (display only) */}
               <div className="md:col-span-1">
                 <label className="text-sm text-zinc-400 flex items-center gap-2">
                   Mode
                   <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
-                    <ShieldCheck className="w-3 h-3" />
-                    Token-safe
+                    <ShieldCheck className="w-3 h-3" /> Token-safe
                   </span>
                 </label>
                 <div className="mt-2">
@@ -267,9 +243,7 @@ useEffect(() => {
                       <Brain className="w-4 h-4" />
                       <span className="font-medium">AI-Generated</span>
                     </div>
-                    <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-zinc-400">
-                      Same prompt for both
-                    </span>
+                    <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-zinc-400">Same prompt for both</span>
                   </div>
                   <p className="mt-2 text-xs text-zinc-500">
                     A single challenge is generated &amp; frozen server-side so both players get the exact same text &amp; tests.
@@ -320,14 +294,13 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* Tips */}
           <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
             <TipCard icon={<Clock className="w-4 h-4" />} title="Speed wins"
-                    text="Winner is the first to submit a correct solution. Ties decided by time to correct."/>
+              text="Winner is the first to submit a correct solution. Ties decided by time to correct." />
             <TipCard icon={<Zap className="w-4 h-4" />} title="No code mirroring"
-                    text="You only see your own editor. Opponent panel shows status/animations only."/>
+              text="You only see your own editor. Opponent panel shows status/animations only." />
             <TipCard icon={<Trophy className="w-4 h-4" />} title="XP rules"
-                    text="Base XP by difficulty; minus 0.5 if you used a hint (server-enforced)."/>
+              text="Base XP by difficulty; minus 0.5 if you used a hint (server-enforced)." />
           </div>
 
           {(error || ticketId) && (

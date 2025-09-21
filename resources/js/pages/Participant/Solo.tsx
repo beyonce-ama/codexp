@@ -13,6 +13,7 @@ import {
 import { apiClient } from '@/utils/api';
 import Swal from 'sweetalert2';
 import { withTheme, svgCircle } from "@/utils/swalTheme";
+import AnimatedBackground from '@/components/AnimatedBackground';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Home', href: '/dashboard' },
@@ -783,8 +784,9 @@ export default function ParticipantSolo() {
     );
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950">
-
+        <div className="min-h-screen relative overflow-hidden">
+              {/* Background */}
+              <AnimatedBackground />
             {/* Enhanced animated background */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-cyan-400 rounded-full animate-ping opacity-20"></div>

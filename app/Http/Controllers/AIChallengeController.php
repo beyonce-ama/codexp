@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\SoloAttempt; 
 
+use Illuminate\Support\Arr;
+
 class AIChallengeController extends Controller
 {
     private $openAIService;
@@ -239,65 +241,6 @@ private function calculateRewardXP(string $difficulty, bool $hintUsed = false): 
 
     return $hintUsed ? $base - 0.5 : $base;
 }
-public function generateFor1v1(string $language, string $difficulty): array
-{
-    // 1) Try your existing generators first
-    if (method_exists($this, 'generateSoloChallenge')) {
-        $c = $this->generateSoloChallenge($language, $difficulty);
-    } elseif (method_exists($this, 'generateFixBugs')) {
-        $c = $this->generateFixBugs($language, $difficulty);
-    } elseif (method_exists($this, 'generateRandom')) {
-        $c = $this->generateRandom($language, $difficulty);
-    } else {
-        // 2) Safe fallback via Azure
-        $c = app(\App\Services\AzureOpenAIService::class)
-                ->generateFixBugsChallenge($language, $difficulty);
-    }
 
-    // Normalize minimal shape
-    $out = [
-        'title'       => $c['title']       ?? 'Coding Challenge',
-        'description' => $c['description'] ?? 'Solve the task.',
-        'language'    => $language,
-        'difficulty'  => $difficulty,
-        'buggy_code'  => $c['buggy_code']  ?? null,
-        'tests'       => $c['tests']       ?? [],
-    ];
 
-    // If your generator already gave us a fixed/corrected reference, keep it
-    if (!empty($c['fixed_code'] ?? $c['corrected_code'])) {
-        $out['fixed_code'] = $c['fixed_code'] ?? $c['corrected_code'];
-        return $out;
-    }
-
-    // Otherwise, ask Azure to produce a minimal fixed solution from the buggy prompt
-    $azure = app(\App\Services\AzureOpenAIService::class);
-    $out['fixed_code'] = $azure->repairCode(
-        $language,
-        $out['buggy_code'] ?? '',
-        $out['tests'] ?? [],
-        $out['title'],
-        $out['description']
-    );
-
-    return $out;
-}
-
-// Judge a 1v1 submission using your Solo judge so both modes share rules.
-// Returns [bool $isCorrect, array|string $feedback]
-public function judgeFor1v1(array $challenge, string $code): array
-{
-    // 1) Prefer your existing Solo judge (rename to your real methods)
-    if (method_exists($this, 'judgeSolo')) {
-        // signature: judgeSolo(array $challenge, string $code): array{0: bool, 1: array|string}
-        return $this->judgeSolo($challenge, $code);
-    }
-    if (method_exists($this, 'judgeFixBugs')) {
-        // signature: judgeFixBugs(array $challenge, string $code): array{0: bool, 1: array|string}
-        return $this->judgeFixBugs($challenge, $code);
-    }
-
-    // 2) Minimal fallback (never throws; tells user judge not wired)
-    return [false, ['message' => 'Judge not wired to Solo yet. Please connect judgeSolo() or judgeFixBugs().']];
-}
 }

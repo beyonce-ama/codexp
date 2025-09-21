@@ -8,6 +8,7 @@ import {
     Eye, EyeOff, Filter, Search, Lightbulb, CheckCircle, X
 } from 'lucide-react';
 import Swal from 'sweetalert2';
+import AnimatedBackground from '@/components/AnimatedBackground';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Home', href: '/dashboard' },
@@ -154,8 +155,9 @@ export default function ParticipantPractice() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 relative overflow-hidden">
-
+         <div className="min-h-screen relative overflow-hidden">
+                             {/* Background */}
+            <AnimatedBackground />
             {/* Animated background elements */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-pink-400 rounded-full animate-ping opacity-20"></div>
