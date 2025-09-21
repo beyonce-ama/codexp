@@ -95,8 +95,19 @@ const RankBadge = ({ rank, stars }: { rank: string; stars: number }) => {
   );
 };
 
-function AppHeader() {
-  const page = usePage() as any;
+type Props = { hidden?: boolean };
+
+export default function AppHeader({ hidden = false }: Props) {
+  // Works both SSR and client
+  const page: any = usePage();
+  const clientPath = typeof window !== 'undefined' ? window.location.pathname : '';
+  const path = clientPath || page?.url || '';
+
+  // Hide for any /play/m/... or /play/match/... page
+  const hideForMatch = /^\/play\/m(atch)?\/.+/i.test(path);
+
+  if (hidden || hideForMatch) return null;
+
   const { auth } = page.props || {};
   const user: GameUser = auth?.user;
 

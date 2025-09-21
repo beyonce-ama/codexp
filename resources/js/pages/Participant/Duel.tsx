@@ -1481,7 +1481,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                         <div className="flex items-center space-x-3">
                             <Swords className="h-8 w-8 text-cyan-400" />
                             <div>
-                                <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                                <h1 className="text-2xl font-bold">
                                     DUEL CHALLENGE
                                 </h1>
                                 <p className="text-gray-400 text-sm">Challenge other participants in timed coding duels</p>

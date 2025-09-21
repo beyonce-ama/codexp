@@ -7,6 +7,7 @@ import {
   RefreshCw, Award, TrendingUp, Swords, CheckCircle, X, Activity, BarChart3
 } from 'lucide-react';
 import { apiClient } from '@/utils/api';
+import AnimatedBackground from '@/components/AnimatedBackground';
 
 const breadcrumbs: BreadcrumbItem[] = [
   { title: 'Home', href: '/dashboard' },
@@ -25,7 +26,7 @@ interface LanguageStat {
   solo_completed: number;
   games_played: number;
   wins: number;
-  winrate: number; // 0..1
+  winrate: number; // fraction 0..1 for UI
 }
 
 interface UserStats {
@@ -33,8 +34,9 @@ interface UserStats {
   successful_attempts: number;
   total_xp: number;
   total_stars: number;
-  duels_played: number;
-  duels_won: number;
+  duels_played: number; // merged PvP played (classic + live)
+  duels_won: number;    // merged PvP won
+  winrate_pct: number;  // merged PvP winrate as percent 0..100
   language_stats: LanguageStat[];
 }
 
@@ -74,7 +76,6 @@ export default function ParticipantProfile() {
   const fetchProfile = async () => {
     try {
       const resp = await apiClient.get('/api/me/profile');
-      // Accept {success,data:{profile}}, {data:{profile}}, or {profile}
       const data = (resp?.data ?? resp) as any;
       const envelope = data?.data ?? data;
       const p = envelope?.profile ?? envelope;
@@ -95,80 +96,101 @@ export default function ParticipantProfile() {
     }
   };
 
-// keep this helper near the top of the file
-const normalizeNumber = (v: any, fallback = 0) =>
-  v === null || v === undefined || v === '' || Number.isNaN(Number(v)) ? fallback : Number(v);
+  // ---------- helpers ----------
+  const normalizeNumber = (v: any, fallback = 0) =>
+    v === null || v === undefined || v === '' || Number.isNaN(Number(v)) ? fallback : Number(v);
 
-const fetchStats = async () => {
-  setRefreshing(true);
-  try {
-    const resp = await apiClient.get(`/api/me/stats?t=${Date.now()}`);
-    const root = (resp?.data?.data ?? resp?.data ?? resp) as any;
+  const fetchStats = async () => {
+    setRefreshing(true);
+    try {
+      const resp = await apiClient.get(`/api/me/stats?t=${Date.now()}`);
+      const root = (resp?.data?.data ?? resp?.data ?? resp) as any;
 
-    // xp & stars are in totals
-    const totals = root?.totals ?? {};
-    const total_xp = normalizeNumber(totals?.xp);
-    const total_stars = normalizeNumber(totals?.stars);
+      // totals (prefer totals.*; allow user.* fallback for stars)
+      const totals = root?.totals ?? {};
+      const total_xp = normalizeNumber(totals?.xp);
+      const total_stars = normalizeNumber(
+        totals?.stars ?? root?.user?.stars ?? 0
+      );
 
-    // solo numbers are at root or in solo_stats
-    const solo_attempts = normalizeNumber(
-      root?.solo_attempts ?? root?.solo_stats?.total_attempts
-    );
-    const successful_attempts = normalizeNumber(
-      root?.successful_attempts ?? root?.solo_stats?.successful_attempts
-    );
+      // solo
+      const solo_attempts = normalizeNumber(
+        root?.solo_attempts ?? root?.solo_stats?.total_attempts
+      );
+      const successful_attempts = normalizeNumber(
+        root?.successful_attempts ?? root?.solo_stats?.successful_attempts
+      );
 
-    // duels are not in this endpoint (default 0)
-    const duels_played = normalizeNumber(root?.duels_played, 0);
-    const duels_won = normalizeNumber(root?.duels_won, 0);
+      // PvP merged (Dashboard-compatible)
+      // Prefer pvp_* from API; else compute from duels_* + (matches_* || live_*)
+      const pvp_played_api = normalizeNumber(root?.pvp_played, NaN);
+      const pvp_won_api = normalizeNumber(root?.pvp_won, NaN);
+      const pvp_winrate_api = normalizeNumber(root?.pvp_winrate, NaN); // percent
 
-    // language stats (collection from DB) - map flexibly
-    const language_stats_raw: any[] = Array.isArray(root?.language_stats) ? root.language_stats : [];
-    const language_stats = language_stats_raw.map((ls) => {
-      const games = normalizeNumber(ls?.games_played ?? (ls?.wins ?? 0) + (ls?.losses ?? 0));
-      const wins = normalizeNumber(ls?.wins);
-      let winrate = ls?.winrate;
-      if (winrate !== null && winrate !== undefined) {
-        winrate = Number(winrate);
-        winrate = winrate > 1 ? winrate / 100 : winrate; // percent or fraction
-      } else {
-        winrate = games > 0 ? wins / games : 0;
-      }
-      return {
-        language: String(ls?.language ?? ls?.lang ?? 'Unknown'),
-        solo_completed: normalizeNumber(ls?.solo_completed ?? 0),
-        games_played: games,
-        wins,
-        winrate: Math.max(0, Math.min(1, winrate)),
-      };
-    });
+      const duels_played_classic = normalizeNumber(root?.duels_played, 0);
+      const duels_won_classic = normalizeNumber(root?.duels_won, 0);
+      const matches_played = normalizeNumber(root?.matches_played ?? root?.live_played, 0);
+      const matches_won = normalizeNumber(root?.matches_won ?? root?.live_won, 0);
 
-    setStats({
-      solo_attempts,
-      successful_attempts,
-      total_xp,
-      total_stars,
-      duels_played,
-      duels_won,
-      language_stats,
-    });
-  } catch (e) {
-    console.error('Error fetching stats:', e);
-    setStats({
-      solo_attempts: 0,
-      successful_attempts: 0,
-      total_xp: 0,
-      total_stars: 0,
-      duels_played: 0,
-      duels_won: 0,
-      language_stats: [],
-    });
-  } finally {
-    setLoading(false);
-    setRefreshing(false);
-  }
-};
+      const merged_played = Number.isNaN(pvp_played_api)
+        ? duels_played_classic + matches_played
+        : pvp_played_api;
+      const merged_won = Number.isNaN(pvp_won_api)
+        ? duels_won_classic + matches_won
+        : pvp_won_api;
+      const merged_winrate_pct = Number.isNaN(pvp_winrate_api)
+        ? (merged_played ? Math.round((merged_won / merged_played) * 100) : 0)
+        : Math.round(pvp_winrate_api);
 
+      // language stats
+      const language_stats_raw: any[] = Array.isArray(root?.language_stats) ? root.language_stats : [];
+      const language_stats: LanguageStat[] = language_stats_raw.map((ls) => {
+        const games = normalizeNumber(ls?.games_played ?? (ls?.wins ?? 0) + (ls?.losses ?? 0));
+        const wins = normalizeNumber(ls?.wins);
+        let winrate = ls?.winrate;
+        if (winrate !== null && winrate !== undefined) {
+          winrate = Number(winrate);
+          // normalize to fraction 0..1 for UI
+          winrate = winrate > 1 ? winrate / 100 : winrate;
+        } else {
+          winrate = games > 0 ? wins / games : 0;
+        }
+        return {
+          language: String(ls?.language ?? ls?.lang ?? 'Unknown'),
+          solo_completed: normalizeNumber(ls?.solo_completed ?? 0),
+          games_played: games,
+          wins,
+          winrate: Math.max(0, Math.min(1, winrate)),
+        };
+      });
+
+      setStats({
+        solo_attempts,
+        successful_attempts,
+        total_xp,
+        total_stars,
+        duels_played: merged_played,
+        duels_won: merged_won,
+        winrate_pct: merged_winrate_pct,
+        language_stats,
+      });
+    } catch (e) {
+      console.error('Error fetching stats:', e);
+      setStats({
+        solo_attempts: 0,
+        successful_attempts: 0,
+        total_xp: 0,
+        total_stars: 0,
+        duels_played: 0,
+        duels_won: 0,
+        winrate_pct: 0,
+        language_stats: [],
+      });
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   const handleSaveProfile = async () => {
     try {
@@ -251,17 +273,11 @@ const fetchStats = async () => {
   }, [message]);
 
   return (
-    <AppLayout breadcrumbs={breadcrumbs}>
-      <Head title="My Profile" />
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 relative overflow-hidden">
-        {/* Background particles */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-cyan-400 rounded-full animate-ping opacity-20"></div>
-          <div className="absolute top-1/3 right-1/4 w-1 h-1 bg-blue-400 rounded-full animate-pulse opacity-30"></div>
-          <div className="absolute bottom-1/4 left-1/3 w-3 h-3 bg-cyan-300 rounded-full animate-bounce opacity-10"></div>
-          <div className="absolute top-2/3 right-1/3 w-2 h-2 bg-blue-400 rounded-full animate-pulse opacity-20"></div>
-          <div className="absolute bottom-1/3 left-1/4 w-1 h-1 bg-cyan-400 rounded-full animate-ping opacity-15"></div>
-        </div>
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Background */}
+      <AnimatedBackground />
+      <AppLayout breadcrumbs={breadcrumbs}>
+        <Head title="My Profile" />
 
         <div className="relative z-10 flex h-full flex-1 flex-col gap-6 p-6">
           {/* Message Notification */}
@@ -400,29 +416,7 @@ const fetchStats = async () => {
                       <h3 className="text-lg font-semibold text-white">Performance Overview</h3>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <StatCard
-                        title="Solo Attempts"
-                        value={stats?.solo_attempts ?? 0}
-                        icon={Target}
-                        color="blue"
-                        trend="up"
-                        description="Total challenges attempted"
-                      />
-                      <StatCard
-                        title="Success Rate"
-                        value={
-                          stats?.solo_attempts
-                            ? Math.round(
-                                ((stats?.successful_attempts ?? 0) / stats.solo_attempts) * 100,
-                              )
-                            : 0
-                        }
-                        icon={Trophy}
-                        color="green"
-                        suffix="%"
-                        trend="up"
-                        description="Challenges completed successfully"
-                      />
+                      
                       <StatCard
                         title="Total XP"
                         value={stats?.total_xp ?? 0}
@@ -438,11 +432,31 @@ const fetchStats = async () => {
                         color="purple"
                         trend="neutral"
                         description="Achievement stars"
+                      /><StatCard
+                        title="Solo Attempts"
+                        value={stats?.solo_attempts ?? 0}
+                        icon={Target}
+                        color="blue"
+                        trend="up"
+                        description="Total challenges attempted"
+                      />
+                      <StatCard
+                        title="Success Rate"
+                        value={
+                          stats?.solo_attempts
+                            ? Math.round(((stats?.successful_attempts ?? 0) / stats.solo_attempts) * 100)
+                            : 0
+                        }
+                        icon={Trophy}
+                        color="green"
+                        suffix="%"
+                        trend="up"
+                        description="Challenges completed successfully"
                       />
                     </div>
                   </div>
 
-                  {/* Duel Stats */}
+                  {/* Duel Stats (merged PvP) */}
                   <div>
                     <div className="flex items-center space-x-2 mb-4">
                       <Swords className="h-5 w-5 text-red-400" />
@@ -450,30 +464,26 @@ const fetchStats = async () => {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <StatCard
-                        title="Duels Played"
+                        title="Matches Played"
                         value={stats?.duels_played ?? 0}
                         icon={Activity}
                         color="red"
-                        description="Total duels participated"
+                        description="Classic + Live"
                       />
                       <StatCard
-                        title="Duels Won"
+                        title="Matches Won"
                         value={stats?.duels_won ?? 0}
                         icon={Award}
                         color="indigo"
-                        description="Victories achieved"
+                        description="All PvP victories"
                       />
                       <StatCard
                         title="Win Rate"
-                        value={
-                          stats?.duels_played
-                            ? Math.round(((stats?.duels_won ?? 0) / stats.duels_played) * 100)
-                            : 0
-                        }
+                        value={stats?.winrate_pct ?? 0}
                         icon={TrendingUp}
                         color="cyan"
                         suffix="%"
-                        description="Overall duel success"
+                        description="Overall PvP success"
                       />
                     </div>
                   </div>
@@ -488,10 +498,9 @@ const fetchStats = async () => {
                       {stats?.language_stats?.length ? (
                         <div className="space-y-4">
                           {stats.language_stats.map((langStat, index) => {
-                            const colors = Object.keys(colorClasses) as Array<
-                              keyof typeof colorClasses
-                            >;
+                            const colors = Object.keys(colorClasses) as Array<keyof typeof colorClasses>;
                             const colorKey = colors[index % colors.length];
+                            const pct = Math.round(langStat.winrate * 100);
                             return (
                               <div
                                 key={`${langStat.language}-${index}`}
@@ -523,16 +532,13 @@ const fetchStats = async () => {
                                     </div>
                                   </div>
                                   <div className="text-right">
-                                    <p className="text-2xl font-bold">
-                                      {Math.round(langStat.winrate * 100)}%
-                                    </p>
+                                    <p className="text-2xl font-bold">{pct}%</p>
                                     <p className="text-sm opacity-80">win rate</p>
                                     <div className="mt-2 w-24 h-2 bg-gray-600/40 rounded-full overflow-hidden">
                                       <div
                                         className="h-2 rounded-full"
                                         style={{
-                                          width: `${Math.round(langStat.winrate * 100)}%`,
-                                          // use current text color so it always matches card color
+                                          width: `${pct}%`,
                                           background: 'currentColor',
                                         }}
                                       />
@@ -559,7 +565,7 @@ const fetchStats = async () => {
             </div>
           </div>
         </div>
-      </div>
-    </AppLayout>
+      </AppLayout>
+    </div>
   );
 }

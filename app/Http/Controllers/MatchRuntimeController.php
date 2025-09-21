@@ -218,4 +218,93 @@ $recentSubmissions = DB::table('match_submissions')
 
         return response()->json(['ok' => true]);
     }
+
+    public function award(Request $r, int $match)
+{
+    return DB::transaction(function () use ($match) {
+        /** @var \App\Models\MatchModel $m */
+        $m = MatchModel::lockForUpdate()->findOrFail($match);
+
+        // must be finished
+        if ($m->status !== 'finished' || empty($m->winner_user_id)) {
+            return response()->json(['ok' => false, 'reason' => 'not_finished'], 409);
+        }
+
+        // idempotency via matches.payload->awarded
+        $meta = is_array($m->payload ?? null) ? $m->payload : [];
+        if (!empty($meta['awarded'])) {
+            return response()->json(['ok' => true, 'already' => true]);
+        }
+
+        // figure winner/loser
+        $p = DB::table('match_participants')->where('match_id', $m->id)->pluck('user_id')->all();
+        $winnerId = (int) $m->winner_user_id;
+        $loserId  = (int) collect($p)->first(fn ($id) => (int)$id !== $winnerId);
+
+        // XP by difficulty
+        $xpMap = ['easy' => 3, 'medium' => 4, 'hard' => 6];
+        $xp    = $xpMap[strtolower((string)$m->difficulty)] ?? 3;
+
+        // users: winner +xp, +1 star; loser -1 star (not below 0)
+        DB::table('users')->where('id', $winnerId)->update([
+            'total_xp' => DB::raw('COALESCE(total_xp,0) + '.$xp),
+            'stars'    => DB::raw('GREATEST(COALESCE(stars,0) + 1, 0)'),
+            'updated_at' => now(),
+        ]);
+
+        if ($loserId) {
+            DB::table('users')->where('id', $loserId)->update([
+                'stars' => DB::raw('GREATEST(COALESCE(stars,0) - 1, 0)'),
+                'updated_at' => now(),
+            ]);
+        }
+
+        // user_language_stats for both players (upsert + recalc winrate)
+        $updateStats = function (int $userId, bool $won) use ($m) {
+            $row = DB::table('user_language_stats')
+                ->lockForUpdate()
+                ->where('user_id', $userId)
+                ->where('language', $m->language)
+                ->first();
+
+            $games  = (int)($row->games_played ?? 0) + 1;
+            $wins   = (int)($row->wins ?? 0) + ($won ? 1 : 0);
+            $losses = (int)($row->losses ?? 0) + ($won ? 0 : 1);
+            $winrate = $games > 0 ? round(($wins / $games) * 100, 3) : 0.0;
+
+            if ($row) {
+                DB::table('user_language_stats')
+                    ->where('id', $row->id)
+                    ->update([
+                        'games_played' => $games,
+                        'wins'         => $wins,
+                        'losses'       => $losses,
+                        'winrate'      => $winrate,
+                        'updated_at'   => now(),
+                    ]);
+            } else {
+                DB::table('user_language_stats')->insert([
+                    'user_id'      => $userId,
+                    'language'     => $m->language,
+                    'games_played' => $games,
+                    'wins'         => $wins,
+                    'losses'       => $losses,
+                    'winrate'      => $winrate,
+                    'created_at'   => now(),
+                    'updated_at'   => now(),
+                ]);
+            }
+        };
+
+        $updateStats($winnerId, true);
+        if ($loserId) $updateStats($loserId, false);
+
+        // mark awarded
+        $meta['awarded'] = true;
+        $m->payload = $meta;
+        $m->save();
+
+        return response()->json(['ok' => true, 'xp' => $xp]);
+    });
+}
 }

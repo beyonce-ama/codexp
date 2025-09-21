@@ -851,7 +851,8 @@ const submitSolution = async () => {
                                 <Cpu className="h-8 w-8 text-cyan-400" />
                             </div>
                             <div>
-                                <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
+                                {/* <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent"> */}
+                                <h1 className="text-2xl font-bold ">
                                     AI CHALLENGES
                                 </h1>
                                 <p className="text-gray-400 text-sm">Unique coding challenges created by artificial intelligence</p>

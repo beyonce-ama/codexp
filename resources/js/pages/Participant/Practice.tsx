@@ -176,7 +176,7 @@ export default function ParticipantPractice() {
                             <Code className="h-6 w-6 text-purple-400" />
                             <Lightbulb className="h-8 w-8 text-yellow-400" />
                             <div>
-                            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
+                            <h1 className="text-2xl font-bold ">
                                 PRACTICE REVIEW
                             </h1>
                             <p className="text-gray-400 text-sm">

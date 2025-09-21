@@ -845,7 +845,7 @@ export default function ParticipantSolo() {
                         <div className="flex items-center space-x-3">
                             <Target className={`h-8 w-8 text-cyan-400 ${celebrationActive ? 'animate-spin' : ''} transition-all duration-300`} />
                             <div>
-                                <h1 className="text-3xl font-bold" style={ui.headerGradStyle}>
+                                <h1 className="text-2xl font-bold" >
                                     SOLO CHALLENGE
                                 </h1>
                                 <p className="text-gray-400 text-sm">Master coding challenges and level up your skills</p>

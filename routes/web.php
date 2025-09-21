@@ -35,10 +35,13 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
     Route::get('/play/matchmaking', fn() => Inertia::render('Participant/Matchmaking'))->name('participant.matchmaking');
 Route::get('/play/m/{slug}', [MatchRuntimeController::class, 'show'])
                 ->name('match.show');
+
     Route::prefix('api')->group(function () {
         Route::post('/matchmaking/join',   [MatchmakingController::class, 'join']);
+Route::post('/match/{match}/award', [MatchRuntimeController::class, 'award'])
+    ->middleware('auth:sanctum');
 
-        
+        Route::post('/match/{match}/surrender', [MatchRuntimeController::class, 'surrender']);
         Route::post('/matchmaking/poll',   [MatchmakingController::class, 'poll']);
         Route::post('/matchmaking/cancel', [MatchmakingController::class, 'cancel']);
          Route::post('/match/{match}/submit', [MatchRuntimeController::class, 'submit'])

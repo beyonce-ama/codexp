@@ -4,11 +4,10 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/utils/api';
 import {
-  Target, Trophy, Star, Zap, Swords, Clock,
+  Target, Trophy, Star, Zap, Swords,
   TrendingUp, CheckCircle, Loader2, RefreshCw,
-  BookOpen, GamepadIcon, Users, Activity,
-  Calendar, Award, Code, ArrowRight,
-  Crown, Cpu, Brain, Medal
+  BookOpen, Users, Activity, ArrowRight,
+  Crown, Cpu, Brain, Medal, Code
 } from 'lucide-react';
 import AnimatedBackground from '@/components/AnimatedBackground';
 
@@ -55,6 +54,8 @@ interface RecentDuel {
   challenger: { name: string };
   opponent: { name: string };
   winner?: { name: string };
+  // optional source tag from API: 'duel' | 'live'
+  source?: 'duel' | 'live';
 }
 
 interface DashboardData {
@@ -73,15 +74,23 @@ interface DashboardData {
     attempts_today: number;
     completed_challenge_ids: number[];
   };
+  // legacy flat fields (kept for compatibility)
   solo_attempts: number;
   successful_attempts: number;
   attempts_today: number;
   completed_challenge_ids: number[];
+  // classic duels
   duels_played: number;
   duels_won: number;
   duels_as_challenger: number;
   duels_as_opponent: number;
   duels_today: number;
+  // OPTIONAL: live matches (any of these may exist)
+  live_played?: number;
+  live_won?: number;
+  matches_played?: number;
+  matches_won?: number;
+
   language_stats: LanguageStat[];
   recent_solo_attempts: RecentAttempt[];
   recent_duels: RecentDuel[];
@@ -118,11 +127,11 @@ export default function ParticipantDashboard() {
 
       const [meRes, lbRes] = await Promise.all([
         apiClient.get('/api/me/stats'),
-        apiClient.get('/api/users/participants'), // ← server route unchanged
+        apiClient.get('/api/users/participants'),
       ]);
 
       if (meRes?.success && meRes.data) {
-        setStats(meRes.data);
+        setStats(meRes.data as DashboardData);
         setLastUpdated(new Date());
       }
 
@@ -132,7 +141,9 @@ export default function ParticipantDashboard() {
           id: number;
           name: string;
           email: string;
+          // stars from USERS TABLE (preferred); API may flatten or nest—support both
           stars?: number;
+          user?: { stars?: number };
           total_xp?: number;
           profile?: { username?: string; avatar_url?: string | null };
           avatar?: string | null;
@@ -141,7 +152,9 @@ export default function ParticipantDashboard() {
         const list = raw
           .map((u) => {
             const xp = Number(u.total_xp ?? 0);
-            const stars = Number(u.stars ?? 0);
+            const starsFromUsers = u.user?.stars;
+            const starsFlat = u.stars;
+            const stars = Number(starsFromUsers ?? starsFlat ?? 0);
             return {
               id: u.id,
               name: u.name,
@@ -152,7 +165,7 @@ export default function ParticipantDashboard() {
               level: Math.floor(xp / 10) + 1, // start at Level 1
             };
           })
-          // backend already sorted, but keep this for safety:
+          // backend might already be sorted; keep this for safety:
           .sort((a, b) => (b.total_xp - a.total_xp) || (b.stars - a.stars))
           .map((u, i) => ({ ...u, rank: i + 1 }));
 
@@ -173,6 +186,55 @@ export default function ParticipantDashboard() {
     } finally {
       setRefreshing(false);
     }
+  };
+
+  /* ---------------- Derived metrics ---------------- */
+
+  // Prefer USERS.stars, fallback to computed totals.stars
+  const myStars =
+    (stats as any)?.user?.stars ??
+    stats?.totals?.stars ??
+    0;
+
+  // Solo success
+  const successRate = stats?.solo_stats?.total_attempts
+    ? Math.round((stats.solo_stats.successful_attempts / stats.solo_stats.total_attempts) * 100)
+    : 0;
+
+  // AI success
+  const aiSuccessRate = stats?.ai_stats?.ai_attempts
+    ? Math.round((stats.ai_stats.ai_successful_attempts / stats.ai_stats.ai_attempts) * 100)
+    : 0;
+
+  // Overall success across solo + AI
+  const totalAttempts = (stats?.solo_stats?.total_attempts || 0) + (stats?.ai_stats?.ai_attempts || 0);
+  const totalSuccessfulAttempts = (stats?.solo_stats?.successful_attempts || 0) + (stats?.ai_stats?.ai_successful_attempts || 0);
+  const overallSuccessRate = totalAttempts > 0 ? Math.round((totalSuccessfulAttempts / totalAttempts) * 100) : 0;
+
+  // ---------- PvP totals (classic duels + live matches) ----------
+  // The backend may expose either live_* or matches_* fields; support both.
+  const duelsPlayed = stats?.duels_played ?? 0;
+  const duelsWon = stats?.duels_won ?? 0;
+
+  const livePlayed = (stats?.live_played ?? stats?.matches_played) ?? 0;
+  const liveWon = (stats?.live_won ?? stats?.matches_won) ?? 0;
+
+  const pvpPlayed = duelsPlayed + livePlayed;
+  const pvpWon = duelsWon + liveWon;
+
+  // Win Rate across all PvP (classic + live)
+  const winRate = pvpPlayed ? Math.round((pvpWon / pvpPlayed) * 100) : 0;
+
+  // Level/Progress from total XP
+  const myLevel = getLevel(stats?.totals?.xp || 0);
+  const myCurrentXP = getCurrentLevelXP(stats?.totals?.xp || 0);
+  const myProgress = calculateProgress(stats?.totals?.xp || 0);
+
+  const medalForRank = (rank: number) => {
+    if (rank === 1) return { label: 'Gold', className: 'text-yellow-400', chip: 'bg-yellow-500/15 border-yellow-700' };
+    if (rank === 2) return { label: 'Silver', className: 'text-slate-200', chip: 'bg-slate-400/10 border-slate-500' };
+    if (rank === 3) return { label: 'Bronze', className: 'text-amber-500', chip: 'bg-amber-500/10 border-amber-600' };
+    return { label: '', className: 'text-slate-300', chip: 'bg-slate-800 border-slate-700' };
   };
 
   /* ---------------- UI Helpers ---------------- */
@@ -240,7 +302,7 @@ export default function ParticipantDashboard() {
     );
   };
 
-  /* ---------------- Derived metrics ---------------- */
+  /* ---------------- Skeleton ---------------- */
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950">
@@ -257,28 +319,9 @@ export default function ParticipantDashboard() {
     );
   }
 
-  const successRate = stats?.solo_stats?.total_attempts ? Math.round((stats.solo_stats.successful_attempts / stats.solo_stats.total_attempts) * 100) : 0;
-  const winRate = stats?.duels_played ? Math.round((stats.duels_won / stats.duels_played) * 100) : 0;
-  const aiSuccessRate = stats?.ai_stats?.ai_attempts ? Math.round((stats.ai_stats.ai_successful_attempts / stats.ai_stats.ai_attempts) * 100) : 0;
-
-  const totalAttempts = (stats?.solo_stats?.total_attempts || 0) + (stats?.ai_stats?.ai_attempts || 0);
-  const totalSuccessfulAttempts = (stats?.solo_stats?.successful_attempts || 0) + (stats?.ai_stats?.ai_successful_attempts || 0);
-  const overallSuccessRate = totalAttempts > 0 ? Math.round((totalSuccessfulAttempts / totalAttempts) * 100) : 0;
-
-  const myLevel = getLevel(stats?.totals?.xp || 0);
-  const myCurrentXP = getCurrentLevelXP(stats?.totals?.xp || 0);
-  const myProgress = calculateProgress(stats?.totals?.xp || 0);
-
-  const medalForRank = (rank: number) => {
-    if (rank === 1) return { label: 'Gold', className: 'text-yellow-400', chip: 'bg-yellow-500/15 border-yellow-700' };
-    if (rank === 2) return { label: 'Silver', className: 'text-slate-200', chip: 'bg-slate-400/10 border-slate-500' };
-    if (rank === 3) return { label: 'Bronze', className: 'text-amber-500', chip: 'bg-amber-500/10 border-amber-600' };
-    return { label: '', className: 'text-slate-300', chip: 'bg-slate-800 border-slate-700' };
-  };
-
   /* ---------------- Layout ---------------- */
   return (
-     <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden">
       {/* Background */}
       <AnimatedBackground />
       <AppLayout breadcrumbs={breadcrumbs}>
@@ -300,7 +343,7 @@ export default function ParticipantDashboard() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <StatPill icon={Star} label="Stars" value={stats?.totals?.stars ?? 0} />
+              <StatPill icon={Star} label="Stars" value={myStars} />
               <StatPill icon={Zap} label="Total XP" value={stats?.totals?.xp ?? 0} />
               <button
                 onClick={handleRefresh}
@@ -331,10 +374,10 @@ export default function ParticipantDashboard() {
                   <span className="text-xs text-slate-400">({myCurrentXP}/10 XP)</span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full md:w-auto">
-                  <StatPill icon={Target} label="Attempts" value={ (stats?.solo_stats?.total_attempts || 0) + (stats?.ai_stats?.ai_attempts || 0) } />
+                  <StatPill icon={Target} label="Attempts" value={(stats?.solo_stats?.total_attempts || 0) + (stats?.ai_stats?.ai_attempts || 0)} />
                   <StatPill icon={CheckCircle} label="Success" value={`${overallSuccessRate}%`} />
-                  <StatPill icon={Swords} label="Duels" value={stats?.duels_played || 0} />
-                  <StatPill icon={Trophy} label="Wins" value={stats?.duels_won || 0} />
+                  <StatPill icon={Swords} label="Duels" value={pvpPlayed} />
+                  <StatPill icon={Trophy} label="Wins" value={pvpWon} />
                 </div>
               </div>
               <ProgressBar value={Math.round(myProgress)} />
@@ -353,17 +396,35 @@ export default function ParticipantDashboard() {
                 <StatCard title="AI Attempts" value={stats?.ai_stats?.ai_attempts || 0} icon={Cpu} tone="cyan" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                <StatCard title="Overall Success" value={`${overallSuccessRate}%`} icon={TrendingUp} description={`${totalSuccessfulAttempts} successful attempts`} tone={overallSuccessRate > 70 ? 'green' : overallSuccessRate > 50 ? 'blue' : 'amber'} />
-                <StatCard title="Solo Success" value={`${successRate}%`} icon={CheckCircle} description={`${stats?.solo_stats?.successful_attempts || 0} successful solo attempts`} tone={successRate > 70 ? 'green' : successRate > 50 ? 'blue' : 'amber'} />
-                <StatCard title="AI Success" value={`${aiSuccessRate}%`} icon={Brain} description={`${stats?.ai_stats?.ai_successful_attempts || 0} successful AI attempts`} tone={aiSuccessRate > 70 ? 'green' : aiSuccessRate > 50 ? 'blue' : 'amber'} />
+                <StatCard
+                  title="Overall Success"
+                  value={`${overallSuccessRate}%`}
+                  icon={TrendingUp}
+                  description={`${totalSuccessfulAttempts} successful attempts`}
+                  tone={overallSuccessRate > 70 ? 'green' : overallSuccessRate > 50 ? 'blue' : 'amber'}
+                />
+                <StatCard
+                  title="Solo Success"
+                  value={`${successRate}%`}
+                  icon={CheckCircle}
+                  description={`${stats?.solo_stats?.successful_attempts || 0} successful solo attempts`}
+                  tone={successRate > 70 ? 'green' : successRate > 50 ? 'blue' : 'amber'}
+                />
+                <StatCard
+                  title="AI Success"
+                  value={`${aiSuccessRate}%`}
+                  icon={Brain}
+                  description={`${stats?.ai_stats?.ai_successful_attempts || 0} successful AI attempts`}
+                  tone={aiSuccessRate > 70 ? 'green' : aiSuccessRate > 50 ? 'blue' : 'amber'}
+                />
               </div>
             </Section>
 
             <Section title="Duel Performance">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard title="Stars Earned" value={stats?.totals?.stars || 0} icon={Star} description="Achievement stars" tone="purple" />
-                <StatCard title="Duels Played" value={stats?.duels_played || 0} icon={Swords} description="Total matches" tone="red" />
-                <StatCard title="Duels Won" value={stats?.duels_won || 0} icon={Trophy} description="Victories" tone="green" />
+                <StatCard title="Stars Earned" value={myStars} icon={Star} description="Achievement stars" tone="purple" />
+                <StatCard title="Duels Played" value={pvpPlayed} icon={Swords} description="Total matches (invite + live)" tone="red" />
+                <StatCard title="Duels Won" value={pvpWon} icon={Trophy} description="Victories (invite + live)" tone="green" />
                 <StatCard title="Win Rate" value={`${winRate}%`} icon={TrendingUp} description="Success percentage" tone="indigo" />
               </div>
             </Section>
@@ -386,7 +447,7 @@ export default function ParticipantDashboard() {
             {/* Language Stats */}
             {stats?.language_stats && stats.language_stats.length > 0 && (
               <Section title="Language Proficiency">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols- gap-4">
                   {stats.language_stats.map((lang) => (
                     <StatCard
                       key={lang.id}
@@ -401,18 +462,22 @@ export default function ParticipantDashboard() {
               </Section>
             )}
 
-            {/* Recents (optional visual candy, pure client-side render from existing data) */}
-            {(stats?.recent_solo_attempts?.length || stats?.recent_duels?.length) && (
+            {/* Recents */}
+            {/* {(stats?.recent_solo_attempts?.length || stats?.recent_duels?.length) && (
               <Section title="Recent Activity">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <p className="text-sm font-medium text-white flex items-center gap-2"><BookOpen className="h-4 w-4 text-cyan-300"/>Recent Solo Attempts</p>
+                    <p className="text-sm font-medium text-white flex items-center gap-2">
+                      <BookOpen className="h-4 w-4 text-cyan-300"/>Recent Solo Attempts
+                    </p>
                     <ul className="space-y-2">
                       {(stats?.recent_solo_attempts || []).slice(0, 6).map((a) => (
                         <li key={a.id} className="flex items-center justify-between gap-3 bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2">
                           <div className="min-w-0">
                             <p className="text-sm text-white truncate" title={a.challenge?.title}>{a.challenge?.title}</p>
-                            <p className="text-[11px] text-slate-400">{a.challenge?.difficulty?.toUpperCase()} • {a.challenge?.mode} • {a.is_correct ? '✅' : '❌'} • {Math.round(a.time_spent_sec)}s</p>
+                            <p className="text-[11px] text-slate-400">
+                              {a.challenge?.difficulty?.toUpperCase()} • {a.challenge?.mode} • {a.is_correct ? '✅' : '❌'} • {Math.round(a.time_spent_sec)}s
+                            </p>
                           </div>
                           <div className="text-xs text-cyan-300 whitespace-nowrap">+{a.xp_earned} XP</div>
                         </li>
@@ -420,13 +485,19 @@ export default function ParticipantDashboard() {
                     </ul>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-sm font-medium text-white flex items-center gap-2"><Swords className="h-4 w-4 text-rose-300"/>Recent Duels</p>
+                    <p className="text-sm font-medium text-white flex items-center gap-2">
+                      <Swords className="h-4 w-4 text-rose-300"/>Recent Duels
+                    </p>
                     <ul className="space-y-2">
                       {(stats?.recent_duels || []).slice(0, 6).map((d) => (
                         <li key={d.id} className="flex items-center justify-between gap-3 bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2">
                           <div className="min-w-0">
-                            <p className="text-sm text-white truncate" title={`${d.challenger?.name} vs ${d.opponent?.name}`}>{d.challenger?.name} vs {d.opponent?.name}</p>
-                            <p className="text-[11px] text-slate-400">{d.language?.toUpperCase()} • {d.status}{d.winner?.name ? ` • Winner: ${d.winner.name}` : ''}</p>
+                            <p className="text-sm text-white truncate" title={`${d.challenger?.name} vs ${d.opponent?.name}`}>
+                              {d.challenger?.name} vs {d.opponent?.name}
+                            </p>
+                            <p className="text-[11px] text-slate-400">
+                              {d.language?.toUpperCase()} • {d.status}{d.winner?.name ? ` • Winner: ${d.winner.name}` : ''}{d.source ? ` • ${d.source}` : ''}
+                            </p>
                           </div>
                           <Link href={`/play/duel/${d.id}`} className="text-xs inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-800">
                             View <ArrowRight className="h-3 w-3"/>
@@ -437,7 +508,7 @@ export default function ParticipantDashboard() {
                   </div>
                 </div>
               </Section>
-            )}
+            )} */}
           </div>
 
           {/* RIGHT: Leaderboard */}
