@@ -9,12 +9,20 @@ class User extends Authenticatable
 {
     use Notifiable;
 
-    protected $fillable = ['name','email','password','role','stars','total_xp'];
+    protected $fillable = ['name','email','password','role','stars','total_xp', 'avatar'];
     protected $hidden = ['password','remember_token'];
     protected $casts = ['email_verified_at' => 'datetime',
          'stars'    => 'integer',
         'total_xp' => 'decimal:2',
     ];
+    // INSERT BELOW your class properties
+    protected $appends = ['avatar_url'];
+
+    // INSERT BELOW other accessors/methods
+    public function getAvatarUrlAttribute(): ?string
+    {
+        return $this->avatar ? '/'.ltrim($this->avatar, '/') : null;
+    }
 
     public function allDuels() { 
         return $this->hasMany(Duel::class, 'challenger_id')
@@ -31,4 +39,17 @@ class User extends Authenticatable
     public function duelsAsChallenger(){ return $this->hasMany(Duel::class, 'challenger_id'); }
     public function duelsAsOpponent(){ return $this->hasMany(Duel::class, 'opponent_id'); }
     public function duelSubmissions(){ return $this->hasMany(DuelSubmission::class); }
+    public function achievements()
+{
+    // Achievements the user has unlocked (with pivot timestamps)
+    return $this->belongsToMany(\App\Models\Achievement::class, 'user_achievements')
+        ->withPivot(['unlocked_at','claimed_at','notified_at','created_at','updated_at']);
+}
+
+public function userAchievements()
+{
+    // Direct access to pivot rows
+    return $this->hasMany(\App\Models\UserAchievement::class);
+}
+
 }

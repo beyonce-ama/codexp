@@ -57,6 +57,18 @@ export default function ParticipantProfile() {
   const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // --- Avatar modal state ---
+  const AVATARS = [
+    'default.png',
+    'girl1.png','girl2.png','girl3.png', 'girl4.png','girl5.png',
+    'boy1.png','boy2.png',
+    'boy3.png','boy4.png',
+    'boy5.png', 'boy6.png',
+   
+  ];
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false);
+  const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
+
   const colorClasses = {
     blue: 'bg-blue-900/30 text-blue-400 border-blue-800',
     green: 'bg-green-900/30 text-green-400 border-green-800',
@@ -106,23 +118,16 @@ export default function ParticipantProfile() {
       const resp = await apiClient.get(`/api/me/stats?t=${Date.now()}`);
       const root = (resp?.data?.data ?? resp?.data ?? resp) as any;
 
-      // totals (prefer totals.*; allow user.* fallback for stars)
+      // totals
       const totals = root?.totals ?? {};
       const total_xp = normalizeNumber(totals?.xp);
-      const total_stars = normalizeNumber(
-        totals?.stars ?? root?.user?.stars ?? 0
-      );
+      const total_stars = normalizeNumber(totals?.stars ?? root?.user?.stars ?? 0);
 
       // solo
-      const solo_attempts = normalizeNumber(
-        root?.solo_attempts ?? root?.solo_stats?.total_attempts
-      );
-      const successful_attempts = normalizeNumber(
-        root?.successful_attempts ?? root?.solo_stats?.successful_attempts
-      );
+      const solo_attempts = normalizeNumber(root?.solo_attempts ?? root?.solo_stats?.total_attempts);
+      const successful_attempts = normalizeNumber(root?.successful_attempts ?? root?.solo_stats?.successful_attempts);
 
-      // PvP merged (Dashboard-compatible)
-      // Prefer pvp_* from API; else compute from duels_* + (matches_* || live_*)
+      // PvP merged
       const pvp_played_api = normalizeNumber(root?.pvp_played, NaN);
       const pvp_won_api = normalizeNumber(root?.pvp_won, NaN);
       const pvp_winrate_api = normalizeNumber(root?.pvp_winrate, NaN); // percent
@@ -150,7 +155,6 @@ export default function ParticipantProfile() {
         let winrate = ls?.winrate;
         if (winrate !== null && winrate !== undefined) {
           winrate = Number(winrate);
-          // normalize to fraction 0..1 for UI
           winrate = winrate > 1 ? winrate / 100 : winrate;
         } else {
           winrate = games > 0 ? wins / games : 0;
@@ -216,6 +220,31 @@ export default function ParticipantProfile() {
   const handleRefresh = async () => {
     await fetchStats();
     setMessage({ type: 'success', text: 'Stats refreshed!' });
+  };
+
+  // Save only avatar_url quickly without toggling other fields
+  const handleSaveAvatar = async () => {
+    if (!selectedAvatar) return;
+    try {
+      setSaving(true);
+      setMessage(null);
+      const newUrl = `/avatars/${selectedAvatar}`;
+      const resp = await apiClient.put('/api/me/profile', { ...profile, avatar_url: newUrl });
+      const ok = (resp?.data?.success ?? resp?.success ?? resp?.status === 200) as boolean;
+      if (ok) {
+        setAvatarModalOpen(false);
+        setSelectedAvatar(null);
+        setMessage({ type: 'success', text: 'Avatar updated!' });
+        await fetchProfile();
+      } else {
+        setMessage({ type: 'error', text: 'Failed to update avatar.' });
+      }
+    } catch (e) {
+      console.error('Error saving avatar:', e);
+      setMessage({ type: 'error', text: 'Failed to update avatar. Please try again.' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const StatCard = ({
@@ -340,14 +369,25 @@ export default function ParticipantProfile() {
                           className="h-24 w-24 rounded-full object-cover"
                         />
                       ) : (
-                        <User className="h-12 w-12 text-white" />
+                        <img
+                          src="/avatars/default.png"
+                          alt="Avatar"
+                          className="h-24 w-24 rounded-full object-cover"
+                        />
                       )}
                     </div>
-                    {editing && (
-                      <button className="absolute bottom-0 right-0 p-2 bg-blue-600 rounded-full shadow-lg hover:bg-blue-700 border-2 border-gray-800/50">
-                        <Camera className="h-4 w-4 text-white" />
-                      </button>
-                    )}
+
+                    {/* Change Avatar button (always visible) */}
+                    <button
+                      className="absolute bottom-0 right-0 p-2 bg-blue-600 rounded-full shadow-lg hover:bg-blue-700 border-2 border-gray-800/50"
+                      onClick={() => {
+                        setSelectedAvatar(null);
+                        setAvatarModalOpen(true);
+                      }}
+                      title="Change Avatar"
+                    >
+                      <Camera className="h-4 w-4 text-white" />
+                    </button>
                   </div>
 
                   <h3 className="text-xl font-bold text-white">{profile.username || user?.name}</h3>
@@ -389,6 +429,17 @@ export default function ParticipantProfile() {
                         {user?.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}
                       </span>
                     </div>
+
+                    {/* Save Profile (for username / toggles if you add later) */}
+                    {editing && (
+                      <button
+                        onClick={handleSaveProfile}
+                        disabled={saving}
+                        className="w-full mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white disabled:opacity-50"
+                      >
+                        {saving ? 'Saving…' : 'Save Changes'}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -416,7 +467,6 @@ export default function ParticipantProfile() {
                       <h3 className="text-lg font-semibold text-white">Performance Overview</h3>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      
                       <StatCard
                         title="Total XP"
                         value={stats?.total_xp ?? 0}
@@ -432,7 +482,8 @@ export default function ParticipantProfile() {
                         color="purple"
                         trend="neutral"
                         description="Achievement stars"
-                      /><StatCard
+                      />
+                      <StatCard
                         title="Solo Attempts"
                         value={stats?.solo_attempts ?? 0}
                         icon={Target}
@@ -537,10 +588,7 @@ export default function ParticipantProfile() {
                                     <div className="mt-2 w-24 h-2 bg-gray-600/40 rounded-full overflow-hidden">
                                       <div
                                         className="h-2 rounded-full"
-                                        style={{
-                                          width: `${pct}%`,
-                                          background: 'currentColor',
-                                        }}
+                                        style={{ width: `${pct}%`, background: 'currentColor' }}
                                       />
                                     </div>
                                   </div>
@@ -564,6 +612,68 @@ export default function ParticipantProfile() {
               )}
             </div>
           </div>
+
+          {/* --- Avatar Selection Modal --- */}
+          {avatarModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              {/* Backdrop */}
+              <div className="absolute inset-0 bg-black/60" onClick={() => setAvatarModalOpen(false)} />
+              {/* Modal */}
+              <div className="relative z-10 w-full max-w-3xl rounded-2xl bg-gray-900 text-gray-100 border border-gray-700 shadow-xl">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700">
+                  <h3 className="text-lg font-semibold">Select an Avatar</h3>
+                  <button
+                    className="text-gray-400 hover:text-white"
+                    onClick={() => setAvatarModalOpen(false)}
+                    title="Close"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="p-5">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                    {AVATARS.map((file) => {
+                      const isActive = selectedAvatar === file;
+                      return (
+                        <button
+                          key={file}
+                          type="button"
+                          onClick={() => setSelectedAvatar(file)}
+                          className={`rounded-xl p-1 border transition
+                            ${isActive ? 'border-blue-500 ring-2 ring-blue-400' : 'border-gray-700 hover:border-gray-500'}`}
+                          title={file.replace('.png', '').replace('_', ' ')}
+                        >
+                          <img
+                            src={`/avatars/${file}`}
+                            alt={file}
+                            className="w-full aspect-square rounded-lg object-cover"
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-6 flex items-center justify-end gap-2">
+                    <button
+                      className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600"
+                      onClick={() => setAvatarModalOpen(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                      disabled={!selectedAvatar || saving}
+                      onClick={handleSaveAvatar}
+                    >
+                      {saving ? 'Saving…' : 'Save Avatar'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* --- /Avatar Selection Modal --- */}
         </div>
       </AppLayout>
     </div>

@@ -152,6 +152,15 @@ export default function ParticipantSolo() {
     const audioRef = useRef<{ [key: string]: HTMLAudioElement }>({});
     const animationFrameRef = useRef<number>();
 
+    const [takenById, setTakenById] = useState<Record<number, 'viewed' | 'started' | 'abandoned' | 'submitted_incorrect' | 'completed'>>({});
+    useEffect(() => {
+    if (showChallengeModal) {
+        document.body.classList.add("modal-open");
+    } else {
+        document.body.classList.remove("modal-open");
+    }
+    }, [showChallengeModal]);
+
     // Initialize sound effects
     useEffect(() => {
         const sounds = {
@@ -202,9 +211,11 @@ export default function ParticipantSolo() {
     const getCurrentLevelXP = (xp: number) => xp % 10;
 
     useEffect(() => {
-        fetchChallenges();
-        fetchUserStats();
+    fetchChallenges();
+    fetchUserStats();
+    fetchTaken();               // <— NEW
     }, [modeFilter, languageFilter, difficultyFilter, searchTerm]);
+
 
     useEffect(() => {
         let interval: NodeJS.Timeout;
@@ -246,6 +257,21 @@ export default function ParticipantSolo() {
             }
         };
     }, [particles.length]);
+    const fetchTaken = async () => {
+    try {
+        const res = await apiClient.get('/api/solo/taken');
+        if (res.success) {
+        const map = (res.data || []).reduce((acc: Record<number, any>, row: any) => {
+            acc[row.challenge_id] = row.status as typeof acc[number];
+            return acc;
+        }, {});
+        setTakenById(map);
+        }
+    } catch (err) {
+        console.error('Error fetching taken rows:', err);
+        setTakenById({});
+    }
+    };
 
     const fetchChallenges = async () => {
         try {
@@ -536,7 +562,17 @@ export default function ParticipantSolo() {
             if (response.success) {
                 const xpEarned = response.data?.xp_earned || (isCorrect ? selectedChallenge.reward_xp : 0);
                 
-                if (isCorrect) {
+                if (isCorrect) { 
+                    await apiClient.post('/api/solo/mark-taken', {
+                        challenge_id: selectedChallenge.id,
+                        language: selectedChallenge.language,
+                        difficulty: selectedChallenge.difficulty,
+                        mode: selectedChallenge.mode,
+                        status: 'completed',
+                        time_spent_sec: timeSpent,
+                        code_submitted: userCode,
+                        earned_xp: xpEarned ?? 0
+                    });
                     const oldTotalXP = userStats?.total_xp || 0;
                     const newTotalXP = oldTotalXP + xpEarned;
                     const oldLevel = calculateLevel(oldTotalXP);
@@ -554,7 +590,7 @@ export default function ParticipantSolo() {
                             xp_to_next_level: calculateXPToNextLevel(newTotalXP)
                         } : null);
                     }
-
+                   
                     playSound('success');
                     setShowSuccess(true);
                     setCelebrationActive(true);
@@ -580,46 +616,71 @@ export default function ParticipantSolo() {
                         playSound('victory');
                     }, 500);
 
-                  await Swal.fire({
-    title: 'PERFECT SOLUTION!',
-    html: `
-      <div class="text-center">
-        <div class="text-5xl mb-4">🏆</div>
-        <p class="mb-3 text-lg font-semibold text-cyan-200">Outstanding! Your code is a perfect 100% match!</p>
-        
-        <div class="bg-blue-900/30 border border-blue-500/40 rounded-lg p-4 mb-4">
-          <div class="text-2xl font-bold text-green-400">100% Perfect Match</div>
-          <div class="text-sm text-gray-200 opacity-80">Exact Database Solution</div>
-        </div>
+                 // inside: if (isCorrect) { ... after sounds/particles/level calc }
 
-        <div class="grid grid-cols-2 gap-4 mb-4">
-          <div class="bg-gray-900/40 rounded-lg p-3">
-            <div class="text-lg font-bold text-yellow-300">+${xpEarned ?? 3}</div>
-            <div class="text-xs text-gray-300">XP Earned</div>
-          </div>
-          <div class="bg-gray-900/40 rounded-lg p-3">
-            <div class="text-lg font-bold text-purple-300">Level ${newLevel ?? 1}</div>
-            <div class="text-xs text-gray-300">Current Level</div>
-          </div>
-        </div>
+const { isConfirmed } = await Swal.fire({
+  title: 'PERFECT SOLUTION!',
+  html: `
+    <div class="text-center">
+      <div class="text-5xl mb-4">🏆</div>
+      <p class="mb-3 text-lg font-semibold text-cyan-200">Outstanding! Your code is a perfect 100% match!</p>
 
-        <div class="text-sm text-gray-300">⏱️ Completed in ${Math.floor(timeSpent / 60)}m ${timeSpent % 60}s</div>
-        ${leveledUp ? `
-          <div class="mt-4 text-center">
-            <div class="text-lg font-bold text-pink-400 animate-pulse">✨ LEVEL UP! ✨</div>
-            <p class="text-sm text-gray-200">You’ve reached Level ${newLevel}! Next: ${calculateXPToNextLevel(newTotalXP)} XP needed.</p>
-          </div>
-        ` : ''}
+      <div class="bg-blue-900/30 border border-blue-500/40 rounded-lg p-4 mb-4">
+        <div class="text-2xl font-bold text-green-400">100% Perfect Match</div>
+        <div class="text-sm text-gray-200 opacity-80">Exact Database Solution</div>
       </div>
-    `,
-    timer: 6000,
-    timerProgressBar: true,
-    showConfirmButton: true,
-    confirmButtonText: 'Continue Coding!',
-    background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
-    color: '#fff',
-    confirmButtonColor: '#10B981',
-  });
+
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div class="bg-gray-900/40 rounded-lg p-3">
+          <div class="text-lg font-bold text-yellow-300">+${xpEarned ?? 3}</div>
+          <div class="text-xs text-gray-300">XP Earned</div>
+        </div>
+        <div class="bg-gray-900/40 rounded-lg p-3">
+          <div class="text-lg font-bold text-purple-300">Level ${newLevel ?? 1}</div>
+          <div class="text-xs text-gray-300">Current Level</div>
+        </div>
+      </div>
+
+      <div class="text-sm text-gray-300">⏱️ Completed in ${Math.floor(timeSpent / 60)}m ${timeSpent % 60}s</div>
+      ${leveledUp ? `
+        <div class="mt-4 text-center">
+          <div class="text-lg font-bold text-pink-400 animate-pulse">✨ LEVEL UP! ✨</div>
+          <p class="text-sm text-gray-200">You’ve reached Level ${newLevel}! Next: ${calculateXPToNextLevel(newTotalXP)} XP needed.</p>
+        </div>
+      ` : ''}
+    </div>
+  `,
+  // IMPORTANT: no timer; force explicit confirm
+  showConfirmButton: true,
+  confirmButtonText: 'Continue Coding!',
+  confirmButtonColor: '#10B981',
+  background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
+  color: '#fff',
+  allowOutsideClick: false,
+  allowEscapeKey: false,
+});
+
+if (isConfirmed) {
+  // stop the celebration visuals
+  setShowSuccess(false);
+  setCelebrationActive(false);
+  setShowLevelUp(false);
+  setIsGlowing(false);
+
+  // close the challenge modal and reset editor state
+  setShowChallengeModal(false);
+  setSelectedChallenge(null);
+  setUserCode('');
+  setStartTime(null);
+  setTimeSpent(0);
+  setHasSubmitted(false);
+  setLastSubmissionResult(null);
+  setShowCorrectAnswer(false);
+
+  // refresh the board immediately
+  await Promise.all([fetchChallenges(), fetchUserStats(), fetchTaken()]);
+}
+
 
 
                     setTimeout(() => {
@@ -670,6 +731,7 @@ export default function ParticipantSolo() {
                     fetchUserStats(),
                     fetchChallenges()
                 ]);
+                await fetchTaken();
             } else {
                 throw new Error(response.message || 'Submission failed');
             }
@@ -688,16 +750,104 @@ export default function ParticipantSolo() {
         }
     };
 
-    const closeModal = () => {
-        playSound('click');
-        setShowChallengeModal(false);
-        setSelectedChallenge(null);
-        setUserCode('');
-        setStartTime(null);
-        setTimeSpent(0);
-        setHasSubmitted(false);
-        setLastSubmissionResult(null);
-        setShowCorrectAnswer(false);
+    const closeModal = async () => {
+        // If the challenge is completed, close immediately
+        if (hasSubmitted && lastSubmissionResult?.isCorrect) {
+            await markChallengeAsTaken('completed');
+            playSound('click');
+            setShowChallengeModal(false);
+            setSelectedChallenge(null);
+            setUserCode('');
+            setStartTime(null);
+            setTimeSpent(0);
+            setHasSubmitted(false);
+            setLastSubmissionResult(null);
+            setShowCorrectAnswer(false);
+            return;
+        }
+
+        // If user has started working (typed or timer ran) but hasn't submitted
+        const userEdited =
+            (selectedChallenge && (userCode.trim() !== (selectedChallenge.buggy_code ?? '').trim())) ||
+            timeSpent > 0;
+
+        if (userEdited) {
+            const result = await Swal.fire({
+                title: 'Leave challenge?',
+                text: 'You have progress. Leaving now will mark this as abandoned.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, leave',
+                cancelButtonText: 'Continue coding',
+                background: '#1f2937',
+                color: '#fff',
+                customClass: {
+                    confirmButton: 'px-4 py-2 rounded-lg',
+                    cancelButton: 'px-4 py-2 rounded-lg'
+                }
+            });
+
+            if (result.isConfirmed) {
+                await markChallengeAsTaken('abandoned');
+            } else {
+                return; // keep modal open
+            }
+        } else {
+            // merely opened and closed with no edits
+            await markChallengeAsTaken('viewed');
+        }
+    };
+
+    const markChallengeAsTaken = async (status: 'viewed' | 'abandoned' | 'completed') => {
+        try {
+            if (selectedChallenge) {
+                const markAsTakenData = {
+                    challenge_id: selectedChallenge.id,
+                    language: selectedChallenge.language,
+                    difficulty: selectedChallenge.difficulty,
+                    mode: selectedChallenge.mode,
+                    status,
+                    time_spent_sec: timeSpent,
+                    code_submitted: userCode || selectedChallenge.buggy_code || '',
+                    earned_xp: status === 'completed' ? (selectedChallenge.reward_xp ?? 0) : 0
+                };
+
+                await apiClient.post('/api/solo/mark-taken', markAsTakenData);
+
+                console.log(`Challenge marked as ${status} in database`);
+            }
+        } catch (error) {
+            console.error('Error marking challenge as taken:', error);
+            // Show error but still proceed
+            Swal.fire({
+                title: 'Warning',
+                text: 'Progress may not have been saved properly.',
+                icon: 'warning',
+                timer: 1500,
+                showConfirmButton: false,
+                background: '#1f2937',
+                color: '#fff'
+            });
+        } finally {
+            // Always reset modal state
+            playSound('click');
+            setShowChallengeModal(false);
+            setSelectedChallenge(null);
+            setUserCode('');
+            setStartTime(null);
+            setTimeSpent(0);
+            setHasSubmitted(false);
+            setLastSubmissionResult(null);
+            setShowCorrectAnswer(false);
+            
+            // Refresh data
+            await fetchChallenges();
+            await fetchUserStats();
+            await fetchTaken();
+        }
+        
     };
 
     const showCorrectAnswerHandler = () => {
@@ -748,11 +898,20 @@ export default function ParticipantSolo() {
         return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
     };
 
-    // Filter out completed challenges - they should NOT appear in the list
+// Hide completed (existing) AND abandoned (new)
+    const excludedStatuses = new Set(['completed', 'abandoned']);
+
     const availableChallenges = challenges.filter(challenge => {
-        const isCompleted = userStats?.completed_challenge_ids.includes(challenge.id);
-        return !isCompleted; // Only show challenges that are NOT completed
+    const isCompleted = userStats?.completed_challenge_ids.includes(challenge.id);
+    const takenStatus = takenById[challenge.id];
+
+    const isExcluded =
+        isCompleted ||
+        (takenStatus && excludedStatuses.has(takenStatus));
+
+    return !isExcluded;
     });
+
 
     const StatCard = ({ title, value, icon: Icon, color, animated = false }: {
         title: string;

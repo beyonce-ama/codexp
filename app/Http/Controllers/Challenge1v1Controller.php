@@ -10,13 +10,63 @@ use Inertia\Inertia;
 
 class Challenge1v1Controller extends Controller
 {
-    public function index(Request $request)
-    {
-        $q = Challenge1v1::query();
-        if ($request->filled('language')) $q->where('language', $request->language);
-        if ($request->filled('difficulty')) $q->where('difficulty', $request->difficulty);
-        return response()->json(['success'=>true,'data'=>$q->latest()->paginate(20)]);
+ public function index(Request $request)
+{
+    $q = \App\Models\Challenge1v1::query();
+
+    // filters already used by the UI
+    if ($request->filled('language'))   $q->where('language', $request->language);
+    if ($request->filled('difficulty')) $q->where('difficulty', $request->difficulty);
+
+    // optional text search (UI sends `search`)
+    if ($request->filled('search')) {
+        $term = $request->string('search')->toString();
+        $q->where(function ($qq) use ($term) {
+            $qq->where('title', 'like', "%{$term}%")
+               ->orWhere('description', 'like', "%{$term}%");
+        });
     }
+
+    // exclude challenges the CURRENT user has already taken (default = true)
+    $excludeTaken = $request->boolean('exclude_taken', true);
+    if ($excludeTaken && $request->user()) {
+        $uid = $request->user()->id;
+
+        // any duel where THIS user submitted + the duel had a challenge_id
+        // (covers finished, surrendered, or still-active where user already answered)
+       $takenChallengeIds = \App\Models\Duel::query()
+            ->join('duel_submissions as ds', 'ds.duel_id', '=', 'duels.id')
+            ->where('ds.user_id', $uid)
+            ->whereIn('duels.status', ['finished','surrendered'])
+            ->whereNotNull('duels.challenge_id')
+            ->distinct()
+            ->pluck('duels.challenge_id');
+
+        if ($takenChallengeIds->isNotEmpty()) {
+            $q->whereNotIn('id', $takenChallengeIds);
+        }
+    }
+    // Optional: also exclude challenges the intended opponent already took
+    if ($request->filled('opponent_id')) {
+        $oppId = (int) $request->opponent_id;
+
+        $opponentTakenIds = \App\Models\Duel::query()
+            ->join('duel_submissions as ds', 'ds.duel_id', '=', 'duels.id')
+            ->where('ds.user_id', $oppId)
+            ->whereNotNull('duels.challenge_id')
+            ->distinct()
+            ->pluck('duels.challenge_id');
+
+        if ($opponentTakenIds->isNotEmpty()) {
+            $q->whereNotIn('id', $opponentTakenIds);
+        }
+    }
+
+    return response()->json([
+        'success' => true,
+        'data'    => $q->latest()->paginate(20),
+    ]);
+}
 
     public function import(Request $request)
     {

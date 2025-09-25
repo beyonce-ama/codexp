@@ -553,6 +553,8 @@ const buildComparisonForModal = (duel: Duel) => {
             if (languageFilter !== 'all') params.language = languageFilter;
             if (difficultyFilter !== 'all') params.difficulty = difficultyFilter;
             if (searchTerm.trim()) params.search = searchTerm.trim();
+            params.exclude_taken = true;
+            if (selectedOpponent?.id) params.opponent_id = selectedOpponent.id;
 
             const response = await apiClient.get('/api/challenges/1v1', params);
             if (response.success) {
@@ -789,7 +791,7 @@ const cmpHtml = cmp ? `
           <div class="font-bold text-xl">+${xp} XP</div>
           <div class="font-bold text-xl">+${stars} ⭐</div>
         </div>
-      ` : ''}
+      ` : ' <div class="mt-2 font-semibold text-rose-300">-1 ⭐</div>'}
       <p class="text-sm text-gray-400 mt-4">
         Your time: ${Math.floor(timeSpent/60)}m ${timeSpent%60}s
       </p>
@@ -925,67 +927,70 @@ const cmpHtml = cmp ? `
             Swal.fire('Error', 'Please select both a challenge and an opponent.', 'error');
             return;
         }
-
-        try {
+            
+          try {
             setCreateLoading(true);
             playSound('click');
-            
+
             const duelData = {
                 opponent_id: selectedOpponent.id,
                 challenge_id: selectedChallenge.id,
                 language: selectedChallenge.language,
-                session_duration_minutes: sessionTimeLimit
+                session_duration_minutes: sessionTimeLimit,
             };
 
             console.log('Creating duel:', duelData);
 
             const response = await apiClient.post('/api/duels', duelData);
-            
-            if (response.success) {
-                playSound('success');
-                setShowCreateModal(false);
-                setSelectedChallenge(null);
-                setSelectedOpponent(null);
-                
-                await Swal.fire({
-                    icon: 'success',
-                    title: 'Duel Created!',
-                    text: `Your duel challenge has been sent to ${selectedOpponent.name}. Session time: ${sessionTimeLimit} minutes.`,
-                    timer: 3000,
-                    showConfirmButton: false,
-                     background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
-                    color: '#fff'
-                });
-                
-                setActiveTab('my-duels');
-                fetchMyDuels();
-            } else {
-                throw new Error(response.message || 'Failed to create duel');
-            }
-        } catch (error) {
-            console.error('Error creating duel:', error);
-            
-            // For demo purposes, show success even if API fails
+            if (!response.success) throw new Error(response.message || 'Failed');
+
+            // ✅ success path
             playSound('success');
             setShowCreateModal(false);
             setSelectedChallenge(null);
             setSelectedOpponent(null);
-            
+
             await Swal.fire({
                 icon: 'success',
                 title: 'Duel Created!',
                 text: `Your duel challenge has been sent to ${selectedOpponent.name}. Session time: ${sessionTimeLimit} minutes.`,
                 timer: 3000,
                 showConfirmButton: false,
+                background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
+                color: '#fff'
+            });
+
+            setActiveTab('my-duels');
+            fetchMyDuels();
+
+            } catch (err: any) {
+            // 🔒 server-side rule: either player already took the challenge
+            if (String(err?.response?.status) === '422') {
+                await Swal.fire({
+                icon: 'warning',
+                title: 'Challenge Unavailable',
+                text: 'That challenge was already taken by one of you. Please pick another.',
+                background: '#1f2937',
+                color: '#fff'
+                });
+                // refresh list using opponent_id + exclude_taken
+                await fetchChallenges();
+                return;
+            }
+
+            console.error('Error creating duel:', err);
+            await Swal.fire({
+                icon: 'error',
+                title: 'Failed to create duel',
+                text: err?.message ?? 'Please try again.',
                 background: '#1f2937',
                 color: '#fff'
             });
-            
-            setActiveTab('my-duels');
-            fetchMyDuels();
-        } finally {
+
+            } finally {
             setCreateLoading(false);
-        }
+            }
+
     };
 const stopAllTimers = () => {
   if (sessionTimerRef.current) clearInterval(sessionTimerRef.current);
@@ -1301,6 +1306,9 @@ if (duel.status === 'finished') {
                 icon: 'info',
                 title: 'Surrendered',
                 text: 'You have surrendered the duel.',
+                html: `<div class="text-zinc-300 text-sm">
+                       <div class="mt-2 font-semibold text-rose-300">-1 ⭐</div>
+                     </div>`,
                 background: '#1f2937',
                 color: '#fff'
             });
@@ -1370,22 +1378,22 @@ if (duel.status === 'finished') {
         }
     };
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'pending':
-      return 'bg-yellow-900/30 text-yellow-300 border border-yellow-500/50';
-    case 'active':
-      return 'bg-blue-900/30 text-blue-300 border border-blue-500/50';
-    case 'finished':
-      return 'bg-gray-900/30 text-gray-300 border border-gray-500/50';
-    case 'declined':
-      return 'bg-red-900/30 text-red-300 border border-red-500/50';
-    case 'surrendered':
-      return 'bg-orange-900/30 text-orange-300 border border-orange-500/50';
-    default:
-      return 'bg-gray-900/30 text-gray-300 border border-gray-500/50';
-  }
-};
+    const getStatusColor = (status: string) => {
+    switch (status) {
+        case 'pending':
+        return 'bg-yellow-900/30 text-yellow-300 border border-yellow-500/50';
+        case 'active':
+        return 'bg-blue-900/30 text-blue-300 border border-blue-500/50';
+        case 'finished':
+        return 'bg-gray-900/30 text-gray-300 border border-gray-500/50';
+        case 'declined':
+        return 'bg-red-900/30 text-red-300 border border-red-500/50';
+        case 'surrendered':
+        return 'bg-orange-900/30 text-orange-300 border border-orange-500/50';
+        default:
+        return 'bg-gray-900/30 text-gray-300 border border-gray-500/50';
+    }
+    };
 
 
 

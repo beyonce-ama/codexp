@@ -236,6 +236,9 @@
   color: #9ec5ff;
   line-height: 1.3;
 }
+body.modal-open header {
+  display: none !important;
+}
 
 
 /* Improve modal look for dashboard theme */

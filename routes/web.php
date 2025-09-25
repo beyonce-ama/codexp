@@ -21,7 +21,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AIChallengeController;
 use App\Http\Controllers\MatchmakingController;
 use App\Http\Controllers\MatchRuntimeController;
-
+use App\Http\Controllers\SoloUsageController;
 
 
 
@@ -31,256 +31,261 @@ Route::get('/', fn () => Inertia::render('welcome'))->name('home');
 // Authenticated and Verified Routes
 Route::middleware(['web', 'auth', 'verified'])->group(function () {
 
+        Route::get('/play/matchmaking', fn() => Inertia::render('Participant/Matchmaking'))->name('participant.matchmaking');
+        Route::get('/play/m/{slug}', [MatchRuntimeController::class, 'show'])
+                        ->name('match.show');
 
-    Route::get('/play/matchmaking', fn() => Inertia::render('Participant/Matchmaking'))->name('participant.matchmaking');
-Route::get('/play/m/{slug}', [MatchRuntimeController::class, 'show'])
-                ->name('match.show');
+        Route::prefix('api')->group(function () {
+        Route::post('/solo/attempts',   [SoloUsageController::class, 'storeAttempt']);
+        Route::post('/solo/mark-taken', [SoloUsageController::class, 'markTaken']);
+        Route::get('/solo/taken',       [SoloUsageController::class, 'listTaken']);
 
-    Route::prefix('api')->group(function () {
+        Route::get('/achievements/progress', [\App\Http\Controllers\AchievementController::class, 'progress']);
+        Route::post('/achievements/claim',    [\App\Http\Controllers\AchievementController::class, 'claim']);
         Route::post('/matchmaking/join',   [MatchmakingController::class, 'join']);
-Route::post('/match/{match}/award', [MatchRuntimeController::class, 'award'])
-    ->middleware('auth:sanctum');
-
+        Route::post('/match/{match}/award', [MatchRuntimeController::class, 'award'])
+            ->middleware('auth:sanctum');
+        
         Route::post('/match/{match}/surrender', [MatchRuntimeController::class, 'surrender']);
         Route::post('/matchmaking/poll',   [MatchmakingController::class, 'poll']);
         Route::post('/matchmaking/cancel', [MatchmakingController::class, 'cancel']);
          Route::post('/match/{match}/submit', [MatchRuntimeController::class, 'submit'])
          ->whereNumber('match');
          Route::post('/match/{match}/leave', [MatchRuntimeController::class, 'leave']);
-    Route::get ('/match/{match}/status', [MatchRuntimeController::class, 'status']); 
-    });
+        Route::get ('/match/{match}/status', [MatchRuntimeController::class, 'status']); 
+        });
+        Route::get('/play/match/{matchId}', [MatchRuntimeController::class, 'show'])->whereNumber('matchId');
 
-  Route::get('/play/match/{matchId}', [MatchRuntimeController::class, 'show'])->whereNumber('matchId');
-    // Dashboard with role-based rendering
-    Route::get('/dashboard', function () {
-        return match (Auth::user()->role ?? 'participant') {
-            'admin' => Inertia::render('Admin/Dashboard'),
-            'participant' => Inertia::render('Participant/Dashboard'),
-            default => Inertia::render('Participant/Dashboard'),
-        };
-    })->name('dashboard');
-    // Dashboard stats API endpoint with error handling
-    Route::get('/dashboard/stats', function () {
-        $user = auth()->user();
-        
-        // Helper function to safely count table records
-        $safeCount = function($table) {
-            try {
-                return DB::table($table)->count();
-            } catch (Exception $e) {
-                return 0;
-            }
-        };
-
-        // Helper function to safely count with conditions
-        $safeCountWhere = function($table, $column, $value) {
-            try {
-                return DB::table($table)->where($column, $value)->count();
-            } catch (Exception $e) {
-                return 0;
-            }
-        };
-
-        // Helper function to safely count with date conditions
-        $safeCountWhereDate = function($table, $column, $date) {
-            try {
-                return DB::table($table)->whereDate($column, $date)->count();
-            } catch (Exception $e) {
-                return 0;
-            }
-        };
-
-        if ($user->role === 'admin') {
-            // Admin dashboard stats with safe queries
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    // User Statistics
-                    'total_users' => $safeCount('users'),
-                    'admin_users' => $safeCountWhere('users', 'role', 'admin'),
-                    'participant_users' => $safeCountWhere('users', 'role', 'participant'),
-                    'new_users_today' => $safeCountWhereDate('users', 'created_at', today()),
-                    
-                    // Challenge Statistics
-                    'total_solo_challenges' => $safeCount('challenges_solo'),
-                    'total_1v1_challenges' => $safeCount('challenges_1v1'),
-                    'fixbugs_challenges' => $safeCountWhere('challenges_solo', 'mode', 'fixbugs'),
-                    'random_challenges' => $safeCountWhere('challenges_solo', 'mode', 'random'),
-                    'ai_generated_challenges' => $safeCountWhere('challenges_solo', 'mode', 'ai_generated'),
-                    
-                    // Activity Statistics
-                    'total_solo_attempts' => $safeCount('solo_attempts'),
-                    'successful_solo_attempts' => $safeCountWhere('solo_attempts', 'is_correct', true),
-                    'total_duels' => $safeCount('duels'),
-                    'completed_duels' => $safeCountWhere('duels', 'status', 'finished'),
-                    'pending_duels' => $safeCountWhere('duels', 'status', 'pending'),
-                    
-                    // Today's Activity
-                    'solo_attempts_today' => $safeCountWhereDate('solo_attempts', 'created_at', today()),
-                    'duels_today' => $safeCountWhereDate('duels', 'created_at', today()),
-                    
-                    // Feedback Statistics (with safe handling)
-                    'total_feedbacks' => $safeCount('feedbacks'),
-                    'open_feedbacks' => $safeCountWhere('feedbacks', 'status', 'open'),
-                    'resolved_feedbacks' => $safeCountWhere('feedbacks', 'status', 'resolved'),
-                    
-                    // Language Statistics
-                    'python_attempts' => $safeCountWhere('solo_attempts', 'language', 'python'),
-                    'java_attempts' => $safeCountWhere('solo_attempts', 'language', 'java'),
-                    
-                    // Characters
-                    'total_characters' => $safeCount('characters'),
-                ]
-            ]);
-        } else {
-            // Participant dashboard stats with safe queries
-            $userId = $user->id;
+        // Dashboard with role-based rendering
+        Route::get('/dashboard', function () {
+            return match (Auth::user()->role ?? 'participant') {
+                'admin' => Inertia::render('Admin/Dashboard'),
+                'participant' => Inertia::render('Participant/Dashboard'),
+                default => Inertia::render('Participant/Dashboard'),
+            };
+                })->name('dashboard');
+        // Dashboard stats API endpoint with error handling
+        Route::get('/dashboard/stats', function () {
+            $user = auth()->user();
             
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    // Personal Statistics
-                    'solo_attempts' => $safeCountWhere('solo_attempts', 'user_id', $userId),
-                    'successful_attempts' => (function() use ($userId) {
-                        try {
-                            return DB::table('solo_attempts')
-                                ->where('user_id', $userId)
-                                ->where('is_correct', true)
-                                ->count();
-                        } catch (Exception $e) {
-                            return 0;
-                        }
-                    })(),
-                    'total_xp' => (function() use ($userId) {
-                        try {
-                            return (float) DB::table('solo_attempts')
-                                ->where('user_id', $userId)
-                                ->sum('xp_earned') ?: 0;
-                        } catch (Exception $e) {
-                            return 0;
-                        }
-                    })(),
-                    'total_stars' => (function() use ($userId) {
-                        try {
-                            return (int) DB::table('solo_attempts')
-                                ->where('user_id', $userId)
-                                ->sum('stars_earned') ?: 0;
-                        } catch (Exception $e) {
-                            return 0;
-                        }
-                    })(),
-                    
-                    // Duel Statistics
-                    'duels_played' => (function() use ($userId) {
-                        try {
-                            return DB::table('duels')
-                                ->where('challenger_id', $userId)
-                                ->orWhere('opponent_id', $userId)
-                                ->count();
-                        } catch (Exception $e) {
-                            return 0;
-                        }
-                    })(),
-                    'duels_won' => $safeCountWhere('duels', 'winner_id', $userId),
-                    'duels_as_challenger' => $safeCountWhere('duels', 'challenger_id', $userId),
-                    'duels_as_opponent' => $safeCountWhere('duels', 'opponent_id', $userId),
-                    
-                    // Default values for missing data
-                    'language_stats' => [],
-                    'recent_solo_attempts' => [],
-                    'recent_duels' => [],
-                    'attempts_today' => (function() use ($userId) {
-                        try {
-                            return DB::table('solo_attempts')
-                                ->where('user_id', $userId)
-                                ->whereDate('created_at', today())
-                                ->count();
-                        } catch (Exception $e) {
-                            return 0;
-                        }
-                    })(),
-                    'duels_today' => (function() use ($userId) {
-                        try {
-                            return DB::table('duels')
-                                ->where(function($query) use ($userId) {
-                                    $query->where('challenger_id', $userId)
-                                          ->orWhere('opponent_id', $userId);
-                                })
-                                ->whereDate('created_at', today())
-                                ->count();
-                        } catch (Exception $e) {
-                            return 0;
-                        }
-                    })(),
-                ]
-            ]);
-        }
-    })->name('dashboard.stats');
+            // Helper function to safely count table records
+            $safeCount = function($table) {
+                try {
+                    return DB::table($table)->count();
+                } catch (Exception $e) {
+                    return 0;
+                }
+            };
+
+            // Helper function to safely count with conditions
+            $safeCountWhere = function($table, $column, $value) {
+                try {
+                    return DB::table($table)->where($column, $value)->count();
+                } catch (Exception $e) {
+                    return 0;
+                }
+            };
+
+            // Helper function to safely count with date conditions
+            $safeCountWhereDate = function($table, $column, $date) {
+                try {
+                    return DB::table($table)->whereDate($column, $date)->count();
+                } catch (Exception $e) {
+                    return 0;
+                }
+            };
+
+            if ($user->role === 'admin') {
+                // Admin dashboard stats with safe queries
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        // User Statistics
+                        'total_users' => $safeCount('users'),
+                        'admin_users' => $safeCountWhere('users', 'role', 'admin'),
+                        'participant_users' => $safeCountWhere('users', 'role', 'participant'),
+                        'new_users_today' => $safeCountWhereDate('users', 'created_at', today()),
+                        
+                        // Challenge Statistics
+                        'total_solo_challenges' => $safeCount('challenges_solo'),
+                        'total_1v1_challenges' => $safeCount('challenges_1v1'),
+                        'fixbugs_challenges' => $safeCountWhere('challenges_solo', 'mode', 'fixbugs'),
+                        'random_challenges' => $safeCountWhere('challenges_solo', 'mode', 'random'),
+                        'ai_generated_challenges' => $safeCountWhere('challenges_solo', 'mode', 'ai_generated'),
+                        
+                        // Activity Statistics
+                        'total_solo_attempts' => $safeCount('solo_attempts'),
+                        'successful_solo_attempts' => $safeCountWhere('solo_attempts', 'is_correct', true),
+                        'total_duels' => $safeCount('duels'),
+                        'completed_duels' => $safeCountWhere('duels', 'status', 'finished'),
+                        'pending_duels' => $safeCountWhere('duels', 'status', 'pending'),
+                        
+                        // Today's Activity
+                        'solo_attempts_today' => $safeCountWhereDate('solo_attempts', 'created_at', today()),
+                        'duels_today' => $safeCountWhereDate('duels', 'created_at', today()),
+                        
+                        // Feedback Statistics (with safe handling)
+                        'total_feedbacks' => $safeCount('feedbacks'),
+                        'open_feedbacks' => $safeCountWhere('feedbacks', 'status', 'open'),
+                        'resolved_feedbacks' => $safeCountWhere('feedbacks', 'status', 'resolved'),
+                        
+                        // Language Statistics
+                        'python_attempts' => $safeCountWhere('solo_attempts', 'language', 'python'),
+                        'java_attempts' => $safeCountWhere('solo_attempts', 'language', 'java'),
+                        
+                        // Characters
+                        'total_characters' => $safeCount('characters'),
+                    ]
+                ]);
+            } else {
+                // Participant dashboard stats with safe queries
+                $userId = $user->id;
+                
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        // Personal Statistics
+                        'solo_attempts' => $safeCountWhere('solo_attempts', 'user_id', $userId),
+                        'successful_attempts' => (function() use ($userId) {
+                            try {
+                                return DB::table('solo_attempts')
+                                    ->where('user_id', $userId)
+                                    ->where('is_correct', true)
+                                    ->count();
+                            } catch (Exception $e) {
+                                return 0;
+                            }
+                        })(),
+                        'total_xp' => (function() use ($userId) {
+                            try {
+                                return (float) DB::table('solo_attempts')
+                                    ->where('user_id', $userId)
+                                    ->sum('xp_earned') ?: 0;
+                            } catch (Exception $e) {
+                                return 0;
+                            }
+                        })(),
+                        'total_stars' => (function() use ($userId) {
+                            try {
+                                return (int) DB::table('solo_attempts')
+                                    ->where('user_id', $userId)
+                                    ->sum('stars_earned') ?: 0;
+                            } catch (Exception $e) {
+                                return 0;
+                            }
+                        })(),
+                        
+                        // Duel Statistics
+                        'duels_played' => (function() use ($userId) {
+                            try {
+                                return DB::table('duels')
+                                    ->where('challenger_id', $userId)
+                                    ->orWhere('opponent_id', $userId)
+                                    ->count();
+                            } catch (Exception $e) {
+                                return 0;
+                            }
+                        })(),
+                        'duels_won' => $safeCountWhere('duels', 'winner_id', $userId),
+                        'duels_as_challenger' => $safeCountWhere('duels', 'challenger_id', $userId),
+                        'duels_as_opponent' => $safeCountWhere('duels', 'opponent_id', $userId),
+                        
+                        // Default values for missing data
+                        'language_stats' => [],
+                        'recent_solo_attempts' => [],
+                        'recent_duels' => [],
+                        'attempts_today' => (function() use ($userId) {
+                            try {
+                                return DB::table('solo_attempts')
+                                    ->where('user_id', $userId)
+                                    ->whereDate('created_at', today())
+                                    ->count();
+                            } catch (Exception $e) {
+                                return 0;
+                            }
+                        })(),
+                        'duels_today' => (function() use ($userId) {
+                            try {
+                                return DB::table('duels')
+                                    ->where(function($query) use ($userId) {
+                                        $query->where('challenger_id', $userId)
+                                            ->orWhere('opponent_id', $userId);
+                                    })
+                                    ->whereDate('created_at', today())
+                                    ->count();
+                            } catch (Exception $e) {
+                                return 0;
+                            }
+                        })(),
+                    ]
+                ]);
+            }
+        })->name('dashboard.stats');
 
     // ====================
     // ADMIN API ROUTES (VIA WEB)
     // ====================
-    
-    // Test route
-    Route::get('/api/test', function () {
-        return response()->json([
-            'success' => true,
-            'user' => auth()->user(),
-            'message' => 'API is working via web routes'
-        ]);
-    });
+        
+        // Test route
+        Route::get('/api/test', function () {
+            return response()->json([
+                'success' => true,
+                'user' => auth()->user(),
+                'message' => 'API is working via web routes'
+            ]);
+        });
 
     // Admin API routes
-    Route::middleware([CheckRole::class . ':admin'])->group(function () {
-        
-        // User management routes
-        Route::prefix('api/users')->group(function () {
-            Route::get('/', [UserController::class, 'index']);
-            Route::post('/', [UserController::class, 'store']);
-            Route::get('/{id}', [UserController::class, 'show'])->whereNumber('id');
-            Route::put('/{id}', [UserController::class, 'update'])->whereNumber('id');
-            Route::delete('/{id}', [UserController::class, 'destroy'])->whereNumber('id');
-            Route::get('/role/{role}', [UserController::class, 'getByRole'])->whereIn('role', ['admin', 'participant']);
-            Route::get('/stats/system', [UserController::class, 'systemStats']);
-        });
-
-        // Challenge management routes
-        Route::prefix('api/challenges')->group(function () {
-            // Read routes
-            Route::get('/solo', [ChallengeSoloController::class, 'index']);
-            Route::get('/1v1', [Challenge1v1Controller::class, 'index']);
+        Route::middleware([CheckRole::class . ':admin'])->group(function () {
             
-            // Import routes (ADMIN ONLY)
-            Route::post('/solo/import', [ChallengeSoloController::class, 'import']);
-            Route::post('/1v1/import', [Challenge1v1Controller::class, 'import']);
-            // SOLO challenge create + update
-            Route::post('/solo', [ChallengeSoloController::class, 'store']);
-            Route::put('/solo/{id}', [ChallengeSoloController::class, 'update'])->whereNumber('id');
+            // User management routes
+            Route::prefix('api/users')->group(function () {
+                Route::get('/', [UserController::class, 'index']);
+                Route::post('/', [UserController::class, 'store']);
+                Route::get('/{id}', [UserController::class, 'show'])->whereNumber('id');
+                Route::put('/{id}', [UserController::class, 'update'])->whereNumber('id');
+                Route::delete('/{id}', [UserController::class, 'destroy'])->whereNumber('id');
+                Route::get('/role/{role}', [UserController::class, 'getByRole'])->whereIn('role', ['admin', 'participant']);
+                Route::get('/stats/system', [UserController::class, 'systemStats']);
+            });
 
-            // 1v1 challenge create + update
-            Route::post('/1v1', [Challenge1v1Controller::class, 'store']);
-            Route::put('/1v1/{id}', [Challenge1v1Controller::class, 'update'])->whereNumber('id');
+            // Challenge management routes
+            Route::prefix('api/challenges')->group(function () {
+                // Read routes
+                Route::get('/solo', [ChallengeSoloController::class, 'index']);
+                Route::get('/1v1', [Challenge1v1Controller::class, 'index']);
+                
+                // Import routes (ADMIN ONLY)
+                Route::post('/solo/import', [ChallengeSoloController::class, 'import']);
+                Route::post('/1v1/import', [Challenge1v1Controller::class, 'import']);
+                // SOLO challenge create + update
+                Route::post('/solo', [ChallengeSoloController::class, 'store']);
+                Route::put('/solo/{id}', [ChallengeSoloController::class, 'update'])->whereNumber('id');
 
-            // Delete routes
-            Route::delete('/solo/{id}', [ChallengeSoloController::class, 'destroy'])->whereNumber('id');
-            Route::delete('/1v1/{id}', [Challenge1v1Controller::class, 'destroy'])->whereNumber('id');
+                // 1v1 challenge create + update
+                Route::post('/1v1', [Challenge1v1Controller::class, 'store']);
+                Route::put('/1v1/{id}', [Challenge1v1Controller::class, 'update'])->whereNumber('id');
+
+                // Delete routes
+                Route::delete('/solo/{id}', [ChallengeSoloController::class, 'destroy'])->whereNumber('id');
+                Route::delete('/1v1/{id}', [Challenge1v1Controller::class, 'destroy'])->whereNumber('id');
+            });
+
+            // AI Challenge management routes (ADMIN ONLY)
+            Route::prefix('api/ai-challenges')->group(function () {
+                Route::post('/generate-and-save', [AIChallengeController::class, 'generateAndSave']);
+            });
+
+            // Feedback management routes
+            Route::prefix('api/feedbacks')->group(function () {
+                Route::get('/', [FeedbackController::class, 'index']);
+                Route::put('/{feedback}', [FeedbackController::class, 'update'])->whereNumber('feedback');
+                Route::delete('/{feedback}', [FeedbackController::class, 'destroy'])->whereNumber('feedback');
+            });
+
+        
+
         });
-
-        // AI Challenge management routes (ADMIN ONLY)
-        Route::prefix('api/ai-challenges')->group(function () {
-            Route::post('/generate-and-save', [AIChallengeController::class, 'generateAndSave']);
-        });
-
-        // Feedback management routes
-        Route::prefix('api/feedbacks')->group(function () {
-            Route::get('/', [FeedbackController::class, 'index']);
-            Route::put('/{feedback}', [FeedbackController::class, 'update'])->whereNumber('feedback');
-            Route::delete('/{feedback}', [FeedbackController::class, 'destroy'])->whereNumber('feedback');
-        });
-
-       
-
-    });
 
     // ====================
     // PARTICIPANT API ROUTES (VIA WEB)
@@ -366,6 +371,7 @@ Route::post('/match/{match}/award', [MatchRuntimeController::class, 'award'])
     }
 
     });
+// Solo tracking routes
 
     /**
      * ADMIN PAGES

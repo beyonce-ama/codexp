@@ -255,7 +255,7 @@ export default function CodexpLandingPage() {
         </div>
       </section>
 
-      {/* --- Leaderboard Preview --- */}
+      {/* --- Leaderboard Preview 
       <section id="leaderboard" className="relative z-10 bg-slate-950/60">
         <div className="max-w-7xl mx-auto px-6 py-16">
           <h2 className="text-center text-3xl md:text-4xl font-bold text-cyan-200">Leaderboard</h2>
@@ -288,7 +288,7 @@ export default function CodexpLandingPage() {
             </div>
           </div>
         </div>
-      </section>
+      </section>--- */}
 
       {/* --- FAQ --- */}
       <section id="faq" className="relative z-10 bg-slate-900/40">

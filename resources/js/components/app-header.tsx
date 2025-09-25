@@ -41,11 +41,35 @@ interface NavItem {
   icon: React.ComponentType<any>;
 }
 
-/* ---------- Small helpers ---------- */
+/* ---------- Helpers ---------- */
 const safeCurrentPath = (pageUrl?: string) => {
   if (pageUrl) return pageUrl.split('?')[0];
   if (typeof window !== 'undefined') return window.location.pathname;
   return '/';
+};
+
+/* ---------- SafeLink wrapper ---------- */
+const SafeLink = ({ href, children, ...props }: any) => {
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) {
+      e.preventDefault(); // prevent opening in new tab
+    }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault(); // disable right-click open
+  };
+
+  return (
+    <Link
+      href={href}
+      {...props}
+      onClick={handleClick}
+      onContextMenu={handleContextMenu}
+    >
+      {children}
+    </Link>
+  );
 };
 
 const XPProgressBar = ({ currentXP, level }: { currentXP: number; level: number }) => {
@@ -98,18 +122,17 @@ const RankBadge = ({ rank, stars }: { rank: string; stars: number }) => {
 type Props = { hidden?: boolean };
 
 export default function AppHeader({ hidden = false }: Props) {
-  // Works both SSR and client
   const page: any = usePage();
   const clientPath = typeof window !== 'undefined' ? window.location.pathname : '';
   const path = clientPath || page?.url || '';
 
-  // Hide for any /play/m/... or /play/match/... page
   const hideForMatch = /^\/play\/m(atch)?\/.+/i.test(path);
 
   if (hidden || hideForMatch) return null;
 
   const { auth } = page.props || {};
   const user: GameUser = auth?.user;
+  const avatarSrc = user?.avatar_url || '/avatars/default.png';
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -159,14 +182,13 @@ export default function AppHeader({ hidden = false }: Props) {
   }, [user?.role]);
 
   const currentPath = safeCurrentPath(page?.url);
-
   const isActive = (href: string) =>
     currentPath === href || (href !== '/' && currentPath?.startsWith(href));
 
   return (
     <header
       className={[
-        'sticky top-0 z-40',
+        'sticky top-0 z-30',
         'backdrop-blur-md bg-gradient-to-r from-slate-950/70 via-slate-900/60 to-slate-950/70',
         'border-b',
         scrolled ? 'border-orange-500/40 shadow-[0_10px_30px_-10px_rgba(255,138,76,0.25)]' : 'border-slate-800/70',
@@ -188,7 +210,7 @@ export default function AppHeader({ hidden = false }: Props) {
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
 
-            <Link href="/dashboard" className="flex items-center gap-2 group">
+            <SafeLink href="/dashboard" className="flex items-center gap-2 group">
               <div className="flex flex-col leading-tight">
                 <span className="text-lg sm:text-xl font-extrabold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-300">
                   CODEXP AI
@@ -197,10 +219,10 @@ export default function AppHeader({ hidden = false }: Props) {
                   COMPETITIVE CODING
                 </span>
               </div>
-            </Link>
+            </SafeLink>
           </div>
 
-          {/* Center: Player strip */}
+          {/* Center: Player strip (now with avatar) */}
           {user?.level ? (
             <div
               className={[
@@ -210,6 +232,9 @@ export default function AppHeader({ hidden = false }: Props) {
                 'shadow-inner shadow-black/30',
               ].join(' ')}
             >
+              <div className="w-8 h-8 rounded-full overflow-hidden ring-1 ring-slate-700/60 shrink-0">
+                <img src={avatarSrc} alt="Me" className="w-full h-full object-cover" />
+              </div>
               <XPProgressBar currentXP={user.total_xp || 0} level={user.level || 1} />
               <div className="h-4 w-px bg-slate-700/70" />
               <RankBadge rank={user.rank_name || 'rookie'} stars={user.rank_stars || 0} />
@@ -231,7 +256,7 @@ export default function AppHeader({ hidden = false }: Props) {
               {getNavItems.map((item) => {
                 const active = isActive(item.href);
                 return (
-                  <Link
+                  <SafeLink
                     key={item.href}
                     href={item.href}
                     className={[
@@ -244,7 +269,6 @@ export default function AppHeader({ hidden = false }: Props) {
                   >
                     {item.icon && <item.icon className="w-4 h-4" />}
                     <span>{item.title}</span>
-                    {/* Active underline */}
                     <span
                       className={[
                         'pointer-events-none absolute -bottom-1 left-3 right-3 h-[2px] rounded-full',
@@ -252,7 +276,7 @@ export default function AppHeader({ hidden = false }: Props) {
                         'transition-all duration-300',
                       ].join(' ')}
                     />
-                  </Link>
+                  </SafeLink>
                 );
               })}
             </nav>
@@ -266,7 +290,7 @@ export default function AppHeader({ hidden = false }: Props) {
                   aria-haspopup="menu"
                   aria-expanded={userMenuOpen}
                 >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-red-600 text-white font-bold text-sm overflow-hidden grid place-items-center">
+                  <div className="w-8 h-8 rounded-full bg-white text-slate-900 font-bold text-sm overflow-hidden grid place-items-center ring-1 ring-slate-300">
                     {user.avatar_url ? (
                       <img src={user.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
@@ -295,12 +319,8 @@ export default function AppHeader({ hidden = false }: Props) {
                   >
                     <div className="p-4 border-b border-slate-800/80">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-red-600 text-white font-bold overflow-hidden grid place-items-center">
-                          {user.avatar_url ? (
-                            <img src={user.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-                          ) : (
-                            (user.username || user.name || '?').charAt(0).toUpperCase()
-                          )}
+                        <div className="w-12 h-12 rounded-full bg-white text-slate-900 font-bold overflow-hidden grid place-items-center ring-1 ring-slate-300">
+                          <img src={avatarSrc} alt="Avatar" className="w-full h-full object-cover" />
                         </div>
                         <div className="min-w-0">
                           <p className="font-semibold text-white truncate">{user.username || user.name}</p>
@@ -315,14 +335,14 @@ export default function AppHeader({ hidden = false }: Props) {
                     </div>
 
                     <div className="p-2">
-                      <Link
+                      <SafeLink
                         href="/settings"
                         className="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-200 hover:bg-slate-800/70 transition"
                         onClick={() => setUserMenuOpen(false)}
                       >
                         <Settings className="w-4 h-4" />
                         <span>Settings</span>
-                      </Link>
+                      </SafeLink>
 
                       <button
                         onClick={handleLogout}
@@ -349,6 +369,21 @@ export default function AppHeader({ hidden = false }: Props) {
         ref={mobileMenuRef}
       >
         <div className="bg-slate-900/90 backdrop-blur-md border-t border-slate-800/80">
+          {/* Mobile: profile header with avatar */}
+          {user && (
+            <div className="p-4 border-b border-slate-800/80">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full overflow-hidden ring-1 ring-slate-700/60">
+                  <img src={avatarSrc} alt="Avatar" className="w-full h-full object-cover" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-white truncate">{user.username || user.name}</p>
+                  <p className="text-xs text-slate-400 truncate">{user.email}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {user?.level && (
             <div className="p-4 border-b border-slate-800/80">
               <div className="space-y-3">
@@ -368,7 +403,7 @@ export default function AppHeader({ hidden = false }: Props) {
 
           <div className="p-3 space-y-1">
             {getNavItems.map((item) => (
-              <Link
+              <SafeLink
                 key={item.href}
                 href={item.href}
                 className={[
@@ -381,7 +416,7 @@ export default function AppHeader({ hidden = false }: Props) {
               >
                 <item.icon className="w-5 h-5" />
                 <span className="font-medium">{item.title}</span>
-              </Link>
+              </SafeLink>
             ))}
           </div>
         </div>

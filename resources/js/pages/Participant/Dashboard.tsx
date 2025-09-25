@@ -106,6 +106,22 @@ interface LeaderboardEntry {
   total_xp: number;
   level: number;
 }
+type SoloAchievementItem = {
+  id: number;
+  code: string;
+  name: string;
+  description?: string;
+  icon_key?: string | null;
+  threshold: number;
+  xp_reward: number;
+  stars_reward: number;
+  current: number;
+  progress: number;
+  unlocked: boolean;
+  claimed?: boolean;
+  can_claim?: boolean;
+};
+
 
 export default function ParticipantDashboard() {
   const { auth } = usePage().props as any;
@@ -116,6 +132,8 @@ export default function ParticipantDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [soloAchievements, setSoloAchievements] = useState<SoloAchievementItem[]>([]);
+  const [soloCompletedCount, setSoloCompletedCount] = useState<number>(0);
 
   useEffect(() => {
     fetchAll(true);
@@ -125,10 +143,25 @@ export default function ParticipantDashboard() {
     try {
       if (firstLoad) setLoading(true);
 
-      const [meRes, lbRes] = await Promise.all([
+     const [meRes, lbRes, achRes] = await Promise.all([
         apiClient.get('/api/me/stats'),
         apiClient.get('/api/users/participants'),
+        apiClient.get('/api/achievements/progress'),
       ]);
+
+      // INSERT BELOW: achievements
+    // Normalize achievements payload shape (works whether apiClient unwraps or not)
+const achPayload =
+  (achRes?.data?.items ? achRes.data :
+  achRes?.data?.data   ? achRes.data.data :
+  achRes?.data         ? achRes.data :
+  achRes);
+
+if (achPayload) {
+  setSoloCompletedCount(Number(achPayload.solo_completed ?? 0));
+  setSoloAchievements(Array.isArray(achPayload.items) ? achPayload.items : []);
+}
+
 
       if (meRes?.success && meRes.data) {
         setStats(meRes.data as DashboardData);
@@ -224,6 +257,21 @@ export default function ParticipantDashboard() {
 
   // Win Rate across all PvP (classic + live)
   const winRate = pvpPlayed ? Math.round((pvpWon / pvpPlayed) * 100) : 0;
+  const [showAchievements, setShowAchievements] = useState(false);
+const [claimingId, setClaimingId] = useState<number | null>(null);
+
+const handleClaim = async (achievementId: number) => {
+  try {
+    setClaimingId(achievementId);
+    const res = await apiClient.post('/api/achievements/claim', { achievement_id: achievementId });
+    // Refresh everything so XP/Stars and progress update
+    await fetchAll(false);
+  } catch (e) {
+    console.error('Claim failed', e);
+  } finally {
+    setClaimingId(null);
+  }
+};
 
   // Level/Progress from total XP
   const myLevel = getLevel(stats?.totals?.xp || 0);
@@ -266,7 +314,7 @@ export default function ParticipantDashboard() {
     </div>
   );
 
-  const StatCard = ({ title, value, icon: Icon, description, tone = 'slate' }: {
+   const StatCard = ({ title, value, icon: Icon, description, tone = 'slate' }: {
     title: string;
     value: string | number;
     icon: any;
@@ -300,6 +348,14 @@ export default function ParticipantDashboard() {
         </div>
       </div>
     );
+  };
+
+  // Trophy icon resolver (shared)
+  const TrophyIcon = ({ icon_key }: { icon_key?: string | null }) => {
+    if (icon_key) {
+      return <img src={`/trophies/${icon_key}.svg`} alt={icon_key || 'trophy'} className="h-5 w-5" />;
+    }
+    return <Trophy className="h-5 w-5 text-yellow-400" />;
   };
 
   /* ---------------- Skeleton ---------------- */
@@ -361,6 +417,7 @@ export default function ParticipantDashboard() {
         <div className="p-6 grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* LEFT: Progress & KPIs */}
           <div className="xl:col-span-2 space-y-6">
+        
             <Section
               title={<div className="flex items-center gap-2"><Crown className="h-5 w-5 text-yellow-400"/><span>Level & Progress</span></div>}
               right={<div className="text-right text-sm">
@@ -513,6 +570,112 @@ export default function ParticipantDashboard() {
 
           {/* RIGHT: Leaderboard */}
           <div className="xl:col-span-1">
+
+            {/* RIGHT: Achievements (toggle) */}
+<Section
+  title={
+    <div className="flex items-center gap-2">
+      <Trophy className="h-5 w-5 text-yellow-400" />
+      <span>Achievements</span>
+    </div>
+  }
+  right={
+    <button
+      onClick={() => setShowAchievements((s) => !s)}
+      className="text-xs inline-flex items-center gap-2 px-2 py-1 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-800"
+    >
+      {showAchievements ? 'Hide' : 'Show'}
+    </button>
+  }
+  className="sticky top-6 mb-4"
+>
+  {showAchievements && (
+    <div className="space-y-4">
+      {/* My Trophies (claimed) */}
+      <div>
+        <p className="text-xs text-slate-400 mb-2">My Trophies</p>
+        <div className="flex flex-wrap gap-2">
+          {soloAchievements.filter(a => a.claimed).length === 0 ? (
+            <span className="text-slate-500 text-xs">No trophies yet.</span>
+          ) : (
+            soloAchievements
+              .filter(a => a.claimed)
+              .map(a => (
+                <div key={a.id} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/60 px-2 py-1">
+                  <TrophyIcon icon_key={a.icon_key} />
+                  <span className="text-xs text-white truncate max-w-[140px]" title={a.name}>{a.name}</span>
+                </div>
+              ))
+          )}
+        </div>
+      </div>
+
+      {/* Tasks / Achievements list */}
+      <div>
+        <p className="text-xs text-slate-400 mb-2">Tasks</p>
+        {soloAchievements.length === 0 ? (
+          <div className="text-slate-400 text-sm">No achievements defined yet.</div>
+        ) : (
+          <div className="space-y-3">
+            {soloAchievements.map(item => (
+              <div
+                key={item.id}
+                className={`rounded-xl border p-3 ${item.unlocked ? 'bg-yellow-900/10 border-yellow-800' : 'bg-slate-900/60 border-slate-700'}`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg border bg-black/20">
+                    <TrophyIcon icon_key={item.icon_key} />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-white font-medium truncate" title={item.name}>{item.name}</p>
+                      {item.claimed ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-700 text-emerald-300">
+                          Claimed
+                        </span>
+                      ) : item.unlocked ? (
+                        <button
+                          disabled={claimingId === item.id}
+                          onClick={() => handleClaim(item.id)}
+                          className="text-[11px] px-2 py-1 rounded-md bg-yellow-600 hover:bg-yellow-500 text-black font-semibold disabled:opacity-60"
+                          title={`+${item.xp_reward} XP, +${item.stars_reward}★`}
+                        >
+                          {claimingId === item.id ? 'Claiming…' : `Claim +${item.xp_reward} XP, +${item.stars_reward}★`}
+                        </button>
+                      ) : (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">
+                          Locked
+                        </span>
+                      )}
+                    </div>
+
+                    {item.description && (
+                      <p className="text-[11px] text-slate-400 mt-0.5 truncate" title={item.description}>
+                        {item.description}
+                      </p>
+                    )}
+
+                    <div className="mt-2">
+                      <div className="w-full h-2 rounded-full bg-slate-700 overflow-hidden">
+                        <div className={`h-full rounded-full ${item.unlocked ? 'bg-gradient-to-r from-yellow-400 to-amber-500' : 'bg-gradient-to-r from-cyan-500 to-blue-500'}`} style={{ width: `${item.progress}%` }} />
+                      </div>
+                      <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                        <span>{Math.min(item.current, item.threshold)} / {item.threshold}</span>
+                        <span>{item.progress}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )}
+</Section>
+
             <Section
               title={<div className="flex items-center gap-2"><Trophy className="h-5 w-5 text-yellow-400"/><span>Leaderboard</span></div>}
               right={<span className="text-xs text-slate-400">XP • Stars</span>}

@@ -24,6 +24,63 @@ class DuelController extends Controller
             'opponent_id.different' => 'You cannot duel yourself.',
         ]);
 
+        $challengerId = $request->user()->id;
+        $opponentId   = (int) $data['opponent_id'];
+        $challengeId  = (int) ($data['challenge_id'] ?? 0);
+
+        // 1) Block duplicates for same challenger & challenge while duel is open
+        $alreadyOpenForChallenger = \App\Models\Duel::query()
+            ->where('challenge_id', $challengeId)
+            ->where('challenger_id', $challengerId)
+            ->whereIn('status', ['pending','active'])
+            ->exists();
+
+        if ($alreadyOpenForChallenger) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You already have an open duel for this challenge.',
+            ], 422);
+        }
+
+        // 2) (Optional) Block duplicates for the *same pair* and challenge while open
+        $alreadyOpenForPair = \App\Models\Duel::query()
+            ->where('challenge_id', $challengeId)
+            ->whereIn('status', ['pending','active'])
+            ->where(function ($q) use ($challengerId, $opponentId) {
+                $q->where(function ($qq) use ($challengerId, $opponentId) {
+                    $qq->where('challenger_id', $challengerId)
+                    ->where('opponent_id',   $opponentId);
+                })->orWhere(function ($qq) use ($challengerId, $opponentId) {
+                    $qq->where('challenger_id', $opponentId)
+                    ->where('opponent_id',   $challengerId);
+                });
+            })
+            ->exists();
+
+        if ($alreadyOpenForPair) {
+            return response()->json([
+                'success' => false,
+                'message' => 'There is already an open duel with this opponent for this challenge.',
+            ], 422);
+        }
+
+        // If a fixed challenge is chosen, ensure neither player has taken it.
+        if ($challengeId > 0) {
+            $alreadyTaken = \App\Models\Duel::query()
+                ->where('duels.challenge_id', $challengeId)
+                ->whereHas('submissions', function ($q) use ($challengerId, $opponentId) {
+                    $q->whereIn('user_id', [$challengerId, $opponentId]);
+                })
+                ->exists();
+
+            if ($alreadyTaken) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This challenge has already been taken by one of the players.',
+                ], 422);
+            }
+        }
+
         $duel = Duel::create([
             'challenger_id' => $request->user()->id,
             'opponent_id'   => $data['opponent_id'],
@@ -167,6 +224,8 @@ class DuelController extends Controller
         ]);
         $this->awardWinnerRewardsToUser($duel);
 
+        $this->applyLoserPenalty($duel);
+
         // keep your language stats updates
         $this->bumpWinLoss($duel->challenger_id, $duel->language, $winnerId === $duel->challenger_id);
         $this->bumpWinLoss($duel->opponent_id,   $duel->language, $winnerId === $duel->opponent_id);
@@ -252,6 +311,10 @@ class DuelController extends Controller
         // NEW: push rewards to the winner's user record
         $this->awardWinnerRewardsToUser($duel);
 
+        // NEW: apply a single loser penalty
+        $this->applyLoserPenalty($duel);
+
+
     }
 
     public function startUserSession(Request $request, Duel $duel)
@@ -280,6 +343,12 @@ class DuelController extends Controller
     public function finalize(Request $request, Duel $duel)
     {
         $this->authorizeUser($request->user()->id, $duel);
+        if ($duel->status === 'finished' && $duel->winner_id) {
+    return response()->json([
+        'success' => true,
+        'data' => $duel->fresh()
+    ]);
+}
 
         if ($duel->status === 'finished') {
             $duel->load(['challenger','opponent','winner','challenge','submissions']);
@@ -321,7 +390,8 @@ class DuelController extends Controller
             $winner->stars    = (int)$winner->stars + (int)$duel->winner_stars;
             $winner->save();
 
-            // Optional: mark as applied to prevent re-application if finalize() is hit twice
+          
+
             // $duel->update(['rewards_applied' => true]);
         });
     }
@@ -334,4 +404,21 @@ class DuelController extends Controller
         $stat->winrate = $stat->games_played > 0 ? round($stat->wins / $stat->games_played, 3) : 0;
         $stat->save();
     }
+
+    private function applyLoserPenalty(Duel $duel): void
+{
+    if (!$duel->winner_id) return;
+
+    $winnerId = (int)$duel->winner_id;
+    $loserId = $winnerId === (int)$duel->challenger_id
+        ? (int)$duel->opponent_id
+        : (int)$duel->challenger_id;
+
+    if ($loserId > 0) {
+        User::whereKey($loserId)->update([
+            'stars' => DB::raw('GREATEST(COALESCE(stars,0) - 1, 0)')
+        ]);
+    }
+}
+
 }
