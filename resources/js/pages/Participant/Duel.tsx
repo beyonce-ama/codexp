@@ -155,7 +155,7 @@ const [comparison, setComparison] = useState<{
     // Initialize sound effects
     useEffect(() => {
         const sounds = {
-            success: new Audio('/sounds/success.wav'),
+            success: new Audio('/sounds/correct.wav'),
             failure: new Audio('/sounds/failure.wav'),
             victory: new Audio('/sounds/victory.wav'),
             defeat: new Audio('/sounds/defeat.wav'),

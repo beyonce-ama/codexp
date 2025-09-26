@@ -6,14 +6,18 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 use App\Models\MatchModel;
 use App\Models\MatchParticipant;
 use App\Models\MatchSearch;
-use App\Events\MatchAttempt;
 use App\Services\MatchService;
-use Illuminate\Support\Facades\Schema;
 use App\Models\User;
+
+// Reuse the same table you used for invite duels
+use App\Models\DuelTaken;
+// For achievements after live matches
+use App\Services\AchievementService;
 
 class MatchRuntimeController extends Controller
 {
@@ -32,7 +36,6 @@ class MatchRuntimeController extends Controller
                 ->where('user_id', $me)
                 ->value('join_secret');
 
-            // enforce only if token exists for this participant
             if ($expected !== null && $expected !== '') {
                 $provided = (string) $request->query('t', '');
                 if ($provided === '' || !hash_equals($expected, $provided)) {
@@ -41,14 +44,17 @@ class MatchRuntimeController extends Controller
             }
         }
 
+        // Ensure “started” rows exist in duels_taken for live
+        $this->markLiveStartedRows($match);
+
         // Challenge may be flat or { challenge: {...} }
         $raw = json_decode($match->challenge_json ?? 'null', true) ?: [];
         $challenge = is_array($raw['challenge'] ?? null) ? $raw['challenge'] : $raw;
 
         return \Inertia\Inertia::render('Participant/MatchStart', [
             'match' => [
-                'id'         => $match->id,          // <-- numeric for API routes
-                'slug'       => $match->public_id,   // <-- used only in the page URL
+                'id'         => $match->id,
+                'slug'       => $match->public_id,
                 'language'   => $match->language,
                 'difficulty' => $match->difficulty,
                 'mode'       => 'aigenerated',
@@ -70,10 +76,7 @@ class MatchRuntimeController extends Controller
 
     protected function checkTimeOrFinish($match)
     {
-        // assume $match has: started_at (datetime), difficulty, finished_at, winner_user_id, reason/message fields if you use them
-        if ($match->finished_at) {
-            return; // already finished
-        }
+        if ($match->finished_at) return;
 
         $startedAt = $match->started_at ?? $match->created_at;
         if (!$startedAt) return;
@@ -81,9 +84,10 @@ class MatchRuntimeController extends Controller
         $dur = $this->durationSecondsFor($match->difficulty ?? 'easy');
         $endsAt = \Carbon\Carbon::parse($startedAt)->addSeconds($dur);
         if (now()->greaterThanOrEqualTo($endsAt)) {
-            // finalize as timeout, NO WINNER, NO REWARDS
+            // Time-out: finished, no winner, no rewards
             $match->finished_at = now();
-            $match->winner_user_id = null;// if you have this column
+            $match->winner_user_id = null;
+            $match->status = 'finished';
             $match->save();
         }
     }
@@ -96,13 +100,11 @@ class MatchRuntimeController extends Controller
     {
         $userId = $r->user()->id;
 
-        // Must be a participant
         $isMine = MatchParticipant::where('match_id', $match->id)->where('user_id', $userId)->exists();
         abort_unless($isMine, 403);
 
         $data = $r->validate(['code' => 'required|string']);
 
-        // Ensure challenge exists
         $raw = json_decode($match->challenge_json ?? 'null', true);
         if (!$raw) {
             Log::warning('Challenge JSON missing/invalid.', ['match_id' => $match->id]);
@@ -111,6 +113,7 @@ class MatchRuntimeController extends Controller
                 'message' => 'Challenge is not ready yet. Please retry in a few seconds.',
             ], 422);
         }
+
         $this->checkTimeOrFinish($match);
         if ($match->finished_at) {
             return response()->json([
@@ -120,20 +123,18 @@ class MatchRuntimeController extends Controller
         }
 
         try {
-            // Judge & finish atomically in the service (handles row locks / winner)
-            // The service now handles saving to match_submissions internally
-            $result = $svc->submitCode(matchId: (int)$match->id, userId: (int)$userId, code: (string)$data['code']);
+            // Judge & finish atomically in service (sets winner + finished_at)
+            $result  = $svc->submitCode(matchId: (int)$match->id, userId: (int)$userId, code: (string)$data['code']);
             $correct = (bool)($result['is_correct'] ?? false);
-            $msg = $correct ? 'Correct!' : 'Wrong — keep trying.';
+            $msg     = $correct ? 'Correct!' : 'Wrong — keep trying.';
 
             \Log::debug('Submit result:', [
                 'match_id' => $match->id,
-                'user_id' => $userId,
-                'correct' => $correct,
-                'result' => $result
+                'user_id'  => $userId,
+                'correct'  => $correct,
+                'result'   => $result
             ]);
 
-            // Cache last attempt for polling fallback - THIS IS WHAT THE OTHER USER SEES
             Cache::put("match:{$match->id}:last_attempt", [
                 'user_id' => $userId,
                 'correct' => $correct,
@@ -145,7 +146,12 @@ class MatchRuntimeController extends Controller
                 return response()->json(['correct' => false, 'message' => 'Wrong — keep trying.']);
             }
 
+            // Auto-award as soon as the match is finished with a winner
             $fresh = MatchModel::find($match->id);
+            if ($fresh?->status === 'finished' && $fresh?->winner_user_id) {
+                $this->awardInternal((int)$fresh->id); // writes is_winner/xp_earned/stars_earned
+            }
+
             return response()->json([
                 'correct'  => true,
                 'message'  => 'You win!',
@@ -168,7 +174,7 @@ class MatchRuntimeController extends Controller
     }
 
     /**
-     * POST /api/match/{match}/finalize  (optional safety)
+     * POST /api/match/{match}/finalize (optional safety)
      */
     public function finalize(Request $r, int $match)
     {
@@ -176,6 +182,12 @@ class MatchRuntimeController extends Controller
             'status'      => 'finished',
             'finished_at' => now(),
         ]);
+
+        // If there is already a winner, award now
+        $m = MatchModel::find($match);
+        if ($m && $m->winner_user_id) {
+            $this->awardInternal((int)$m->id);
+        }
 
         $userIds = MatchParticipant::where('match_id', $match)->pluck('user_id');
         MatchSearch::whereIn('user_id', $userIds)->where('status', 'searching')->update(['status' => 'cancelled']);
@@ -202,7 +214,7 @@ class MatchRuntimeController extends Controller
 
         $last = Cache::get("match:{$match->id}:last_attempt");
 
-        // Build opponent payload (id, name, avatar_url)
+        // Opponent payload
         $participantIds = MatchParticipant::where('match_id', $match->id)->pluck('user_id')->all();
         $oppId = null;
         foreach ($participantIds as $pid) {
@@ -216,12 +228,11 @@ class MatchRuntimeController extends Controller
                 $opponentPayload = [
                     'id'         => (int) $opp->id,
                     'name'       => (string) ($opp->name ?? 'Opponent'),
-                    'avatar_url' => $opp->avatar_url, // accessor from your User model
+                    'avatar_url' => $opp->avatar_url,
                 ];
             }
         }
 
-        // Recent submissions
         $recentSubmissions = DB::table('match_submissions')
             ->select('id', 'user_id', 'is_correct', 'created_at')
             ->where('match_id', $match->id)
@@ -236,17 +247,15 @@ class MatchRuntimeController extends Controller
                 return [
                     'id'         => (string) $submission->id,
                     'user_id'    => (int) $submission->user_id,
-                    'is_correct' => (int) $submission->is_correct, // keep 0/1 (client normalizes)
+                    'is_correct' => (int) $submission->is_correct,
                     'at'         => $createdAt,
                     'by_me'      => ((int) $submission->user_id === (int) $userId),
                 ];
             })
             ->values();
 
-        // Ensure timeout autocloses if time elapsed
         $this->checkTimeOrFinish($match);
 
-        // Compute ends_at for client
         $startedAt = $match->started_at ?? $match->created_at;
         $dur       = $this->durationSecondsFor($match->difficulty ?? 'easy');
         $endsAt    = $startedAt ? \Carbon\Carbon::parse($startedAt)->addSeconds($dur) : null;
@@ -256,16 +265,14 @@ class MatchRuntimeController extends Controller
             $remaining = max(0, $endsAt->diffInSeconds(now(), false) * -1);
         }
 
-        // Timer payload for the frontend
         $payload = [
             'server_now'        => now()->toIso8601String(),
             'ends_at'           => $endsAt ? $endsAt->toIso8601String() : null,
             'remaining_seconds' => $remaining,
-            'finished'          => (bool) $match->finished_at, // treat timeout as finished
+            'finished'          => (bool) $match->finished_at,
             'winner_user_id'    => $match->winner_user_id,
         ];
 
-        // Derive a "timeout" last message if none is cached but match finished by timeout
         if (empty($last) && $match->finished_at && empty($match->winner_user_id)) {
             $last = [
                 'user_id' => null,
@@ -278,10 +285,10 @@ class MatchRuntimeController extends Controller
         return response()->json(array_merge([
             'status'         => $match->status,
             'winner_user_id' => $match->winner_user_id ?? null,
-            'finished'       => (bool) $match->finished_at, // consistent with payload
+            'finished'       => (bool) $match->finished_at,
             'last'           => $last,
             'submissions'    => $recentSubmissions,
-            'opponent'       => $opponentPayload, // <-- added
+            'opponent'       => $opponentPayload,
         ], $payload));
     }
 
@@ -295,10 +302,13 @@ class MatchRuntimeController extends Controller
         $isMine = MatchParticipant::where('match_id', $match->id)->where('user_id', $userId)->exists();
         abort_unless($isMine, 403);
 
-        // Finish + reward atomically in the service
+        // Finish + set winner in service
         $svc->surrender(matchId: (int)$match->id, userId: (int)$userId);
 
-        // Cache + broadcast "Surrendered"
+        // Auto-award now that we have a winner
+        $this->awardInternal((int)$match->id);
+
+        // Cache message
         Cache::put("match:{$match->id}:last_attempt", [
             'user_id' => $userId,
             'correct' => false,
@@ -309,92 +319,174 @@ class MatchRuntimeController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    /**
+     * POST /api/match/{match}/award
+     * Idempotent: uses matches.payload->awarded
+     */
     public function award(Request $r, int $match)
+    {
+        $result = $this->awardInternal($match);
+        return response()->json($result);
+    }
+
+    /* -------------------- Internals -------------------- */
+
+    /**
+     * The shared, idempotent award logic used by submit/surrender/finalize/award.
+     * Returns an array payload suitable for JSON.
+     */
+    private function awardInternal(int $match): array
     {
         return DB::transaction(function () use ($match) {
             /** @var \App\Models\MatchModel $m */
             $m = MatchModel::lockForUpdate()->findOrFail($match);
 
-            // must be finished
             if ($m->status !== 'finished' || empty($m->winner_user_id)) {
-                return response()->json(['ok' => false, 'reason' => 'not_finished'], 409);
+                return ['ok' => false, 'reason' => 'not_finished'];
             }
 
-            // idempotency via matches.payload->awarded
             $meta = is_array($m->payload ?? null) ? $m->payload : [];
             if (!empty($meta['awarded'])) {
-                return response()->json(['ok' => true, 'already' => true]);
+                return ['ok' => true, 'already' => true];
             }
 
-            // figure winner/loser
+            // Participants
             $p = DB::table('match_participants')->where('match_id', $m->id)->pluck('user_id')->all();
             $winnerId = (int) $m->winner_user_id;
             $loserId  = (int) collect($p)->first(fn ($id) => (int)$id !== $winnerId);
 
             // XP by difficulty
             $xpMap = ['easy' => 3, 'medium' => 4, 'hard' => 6];
-            $xp    = $xpMap[strtolower((string)$m->difficulty)] ?? 3;
+            $xp    = (int) ($xpMap[strtolower((string)$m->difficulty)] ?? 3);
+            $winnerStars = 1;
 
-            // users: winner +xp, +1 star; loser -1 star (not below 0)
+            // Winner +XP, +1⭐; Loser −1⭐ (floored at 0)
             DB::table('users')->where('id', $winnerId)->update([
-                'total_xp' => DB::raw('COALESCE(total_xp,0) + '.$xp),
-                'stars'    => DB::raw('GREATEST(COALESCE(stars,0) + 1, 0)'),
+                'total_xp'   => DB::raw('COALESCE(total_xp,0) + '.$xp),
+                'stars'      => DB::raw('GREATEST(COALESCE(stars,0) + 1, 0)'),
                 'updated_at' => now(),
             ]);
 
             if ($loserId) {
                 DB::table('users')->where('id', $loserId)->update([
-                    'stars' => DB::raw('GREATEST(COALESCE(stars,0) - 1, 0)'),
+                    'stars'      => DB::raw('GREATEST(COALESCE(stars,0) - 1, 0)'),
                     'updated_at' => now(),
                 ]);
             }
 
-            // user_language_stats for both players (upsert + recalc winrate)
-            $updateStats = function (int $userId, bool $won) use ($m) {
-                $row = DB::table('user_language_stats')
-                    ->lockForUpdate()
-                    ->where('user_id', $userId)
-                    ->where('language', $m->language)
-                    ->first();
+            // user_language_stats (upsert + winrate)
+            $this->updateLanguageStats($winnerId, $m->language, true);
+            if ($loserId) $this->updateLanguageStats($loserId, $m->language, false);
 
-                $games  = (int)($row->games_played ?? 0) + 1;
-                $wins   = (int)($row->wins ?? 0) + ($won ? 1 : 0);
-                $losses = (int)($row->losses ?? 0) + ($won ? 0 : 1);
-                $winrate = $games > 0 ? round(($wins / $games) * 100, 3) : 0.0;
+            // duels_taken rows for LIVE — this sets is_winner/xp_earned/stars_earned
+            $this->markLiveFinishedRows($m, $winnerId, $loserId, $xp, $winnerStars);
 
-                if ($row) {
-                    DB::table('user_language_stats')
-                        ->where('id', $row->id)
-                        ->update([
-                            'games_played' => $games,
-                            'wins'         => $wins,
-                            'losses'       => $losses,
-                            'winrate'      => $winrate,
-                            'updated_at'   => now(),
-                        ]);
-                } else {
-                    DB::table('user_language_stats')->insert([
-                        'user_id'      => $userId,
-                        'language'     => $m->language,
-                        'games_played' => $games,
-                        'wins'         => $wins,
-                        'losses'       => $losses,
-                        'winrate'      => $winrate,
-                        'created_at'   => now(),
-                        'updated_at'   => now(),
-                    ]);
-                }
-            };
-
-            $updateStats($winnerId, true);
-            if ($loserId) $updateStats($loserId, false);
-
-            // mark awarded
+            // Mark awarded for idempotency
             $meta['awarded'] = true;
             $m->payload = $meta;
             $m->save();
 
-            return response()->json(['ok' => true, 'xp' => $xp]);
+            // PVP achievements (invite + live combined)
+            $this->checkPvpAchievementsFor($winnerId);
+            if ($loserId) $this->checkPvpAchievementsFor($loserId);
+
+            return ['ok' => true, 'xp' => $xp];
         });
+    }
+
+    private function markLiveStartedRows(MatchModel $m): void
+    {
+        $uids = MatchParticipant::where('match_id', $m->id)->pluck('user_id')->all();
+        foreach ($uids as $uid) {
+            if (!$uid) continue;
+            DuelTaken::firstOrCreate(
+                ['user_id' => (int)$uid, 'match_id' => (int)$m->id],
+                [
+                    'source'     => 'live',
+                    'language'   => $m->language,
+                    'status'     => 'started',
+                    'started_at' => $m->started_at ?? $m->created_at ?? now(),
+                ]
+            );
+        }
+    }
+
+    private function markLiveFinishedRows(MatchModel $m, int $winnerId, ?int $loserId, int $xp, int $winnerStars): void
+    {
+        $uids = MatchParticipant::where('match_id', $m->id)->pluck('user_id')->all();
+        foreach ($uids as $uid) {
+            $uid = (int)$uid;
+            if (!$uid) continue;
+
+            $isWinner = ($uid === (int)$winnerId);
+
+            $row = DuelTaken::firstOrNew([
+                'user_id'  => $uid,
+                'match_id' => (int)$m->id,
+            ]);
+
+            $row->source       = 'live';
+            $row->language     = (string)$m->language;
+            $row->status       = $m->status ?: 'finished'; // 'finished' or 'surrendered'
+            $row->is_winner    = $isWinner ? 1 : 0;
+            $row->started_at   = $row->started_at ?: ($m->started_at ?? $m->created_at ?? now());
+            $row->ended_at     = $m->finished_at ?? now();
+            $row->xp_earned    = $isWinner ? max((int)$row->xp_earned, (int)$xp) : (int)$row->xp_earned;
+            $row->stars_earned = $isWinner ? max((int)$row->stars_earned, (int)$winnerStars) : (int)$row->stars_earned;
+            $row->save();
+        }
+    }
+
+    private function updateLanguageStats(int $userId, string $language, bool $won): void
+    {
+        $row = DB::table('user_language_stats')
+            ->lockForUpdate()
+            ->where('user_id', $userId)
+            ->where('language', $language)
+            ->first();
+
+        $games   = (int)($row->games_played ?? 0) + 1;
+        $wins    = (int)($row->wins ?? 0) + ($won ? 1 : 0);
+        $losses  = (int)($row->losses ?? 0) + ($won ? 0 : 1);
+        $winrate = $games > 0 ? round(($wins / $games) * 100, 3) : 0.0;
+
+        if ($row) {
+            DB::table('user_language_stats')
+                ->where('id', $row->id)
+                ->update([
+                    'games_played' => $games,
+                    'wins'         => $wins,
+                    'losses'       => $losses,
+                    'winrate'      => $winrate,
+                    'updated_at'   => now(),
+                ]);
+        } else {
+            DB::table('user_language_stats')->insert([
+                'user_id'      => $userId,
+                'language'     => $language,
+                'games_played' => $games,
+                'wins'         => $wins,
+                'losses'       => $losses,
+                'winrate'      => $winrate,
+                'created_at'   => now(),
+                'updated_at'   => now(),
+            ]);
+        }
+    }
+
+    private function checkPvpAchievementsFor(int $userId): void
+    {
+        // Combine invite + live for PVP achievements
+        $played = DuelTaken::where('user_id', $userId)
+            ->whereIn('source', ['invite','live'])
+            ->whereIn('status', ['finished','surrendered'])
+            ->count();
+
+        $won = DuelTaken::where('user_id', $userId)
+            ->whereIn('source', ['invite','live'])
+            ->where('is_winner', true)
+            ->count();
+
+        app(AchievementService::class)->checkAndAwardPvp($userId, $played, $won);
     }
 }

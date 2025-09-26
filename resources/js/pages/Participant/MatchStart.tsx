@@ -252,9 +252,9 @@ export default function MatchStart() {
   
   // sounds
   useEffect(() => {
-    try { tickSfx.current = new Audio('/sounds/tick.mp3'); } catch {}
-    try { successSfx.current = new Audio('/sounds/success.mp3'); } catch {}
-    try { failSfx.current = new Audio('/sounds/fail.mp3'); } catch {}
+    try { tickSfx.current = new Audio('/sounds/tick.wav'); } catch {}
+    try { successSfx.current = new Audio('/sounds/correct.mp3'); } catch {}
+    try { failSfx.current = new Audio('/sounds/defeat.wav'); } catch {}
   }, []);
   
   const playSfx = (kind: 'tick' | 'success' | 'fail') => {

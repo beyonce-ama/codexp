@@ -1,0 +1,153 @@
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<svg width="256" height="320" viewBox="0 0 256 320" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Platinum / iridescent gradients -->
+    <linearGradient id="plat-core" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"></stop>
+      <stop offset="16%" stop-color="#eef3fb"></stop>
+      <stop offset="42%" stop-color="#d7dfec"></stop>
+      <stop offset="70%" stop-color="#e9eef8"></stop>
+      <stop offset="100%" stop-color="#aeb7c6"></stop>
+    </linearGradient>
+
+    <!-- Cooler, bluish edge -->
+    <linearGradient id="plat-edge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"></stop>
+      <stop offset="45%" stop-color="#eaf0fb"></stop>
+      <stop offset="100%" stop-color="#8fa0ba"></stop>
+    </linearGradient>
+
+    <!-- Iridescent sheen (slight cyan→violet sweep) -->
+    <linearGradient id="iridescent-sweep" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#eaf7ff" stop-opacity="0.85"></stop>
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0.0"></stop>
+      <stop offset="75%" stop-color="#f3eaff" stop-opacity="0.55"></stop>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0"></stop>
+    </linearGradient>
+
+    <!-- Frosty plaque -->
+    <linearGradient id="frost-plaque" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f7f3e6"></stop>
+      <stop offset="100%" stop-color="#dcd2b8"></stop>
+    </linearGradient>
+
+    <!-- Soft drop shadow -->
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"></feGaussianBlur>
+      <feOffset dx="0" dy="3" result="off"></feOffset>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.35"></feFuncA>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode></feMergeNode>
+        <feMergeNode in="SourceGraphic"></feMergeNode>
+      </feMerge>
+    </filter>
+
+    <!-- Inner shadow -->
+    <filter id="inner" x="-50%" y="-50%" width="200%" height="200%">
+      <feOffset dx="0" dy="1"></feOffset>
+      <feGaussianBlur stdDeviation="2" result="b"></feGaussianBlur>
+      <feComposite in="b" in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1"></feComposite>
+      <feColorMatrix type="matrix" values="
+        0 0 0 0 0
+        0 0 0 0 0
+        0 0 0 0 0
+        0 0 0 0.65 0"></feColorMatrix>
+      <feBlend in="SourceGraphic" mode="normal"></feBlend>
+    </filter>
+
+    <!-- Subtle brushed metal texture -->
+    <filter id="brushed" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="7" result="noise"></feTurbulence>
+      <feColorMatrix type="saturate" values="0"></feColorMatrix>
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0 0.08 0.12 0.08 0"></feFuncA>
+      </feComponentTransfer>
+      <feBlend in="SourceGraphic" in2="noise" mode="overlay"></feBlend>
+    </filter>
+
+    <!-- Sparkle glints -->
+    <radialGradient id="glint" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1"></stop>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"></stop>
+    </radialGradient>
+  </defs>
+
+  <!-- Ground shadow -->
+  <ellipse cx="128" cy="302" rx="74" ry="11" fill="#000" opacity="0.12"></ellipse>
+
+  <g filter="url(#shadow)">
+    <!-- Hex pedestal (distinct from other tiers) -->
+    <path d="M128 262 L176 238 L176 206 L128 182 L80 206 L80 238 Z" fill="url(#plat-core)" stroke="#95a2b8" stroke-width="2"></path>
+    <!-- Step under hex -->
+    <path d="M60 272 H196 a8 8 0 0 1 8 8 v14 a8 8 0 0 1 -8 8 H60 a8 8 0 0 1 -8 -8 v-14 a8 8 0 0 1 8 -8z" fill="url(#plat-edge)"></path>
+
+    <!-- Plaque -->
+    <rect x="98" y="274" width="60" height="24" rx="4" fill="url(#frost-plaque)" stroke="#a69a7c" stroke-width="1.5"></rect>
+    <path d="M104 286 h48" stroke="rgba(255,255,255,0.5)" stroke-width="1"></path>
+
+    <!-- Faceted stem with inset gem -->
+    <path d="M112 182 L144 182 L154 198 L144 214 L112 214 L102 198 Z" fill="url(#plat-edge)"></path>
+    <!-- Gem (diamond) -->
+    <path d="M128 168 L144 182 L128 196 L112 182 Z" fill="#dff3ff" stroke="#9fc7df" stroke-width="1"></path>
+
+    <!-- NEW CUP SHAPE: tall faceted chalice (angular, not round) -->
+    <!-- Rim (angular ellipse hybrid) -->
+    <path d="M58 74 L198 74 L192 86 Q128 96 64 86 Z" fill="url(#plat-edge)"></path>
+    <!-- Inner opening -->
+    <path d="M70 80 L186 80 L182 90 Q128 98 74 90 Z" fill="#2b3442" opacity="0.22"></path>
+
+    <!-- Chalice body (multi-facet) -->
+    <path d="
+      M58 74
+      L70 140
+      L98 172
+      L158 172
+      L186 140
+      L198 74
+      Q128 90 58 74 Z" fill="url(#plat-core)" filter="url(#inner)"></path>
+
+    <!-- Laurel-wing handles (sharp, winged look) -->
+    <g>
+      <!-- Left wing -->
+      <path d="M58 96
+               C32 96 20 116 22 134
+               C24 154 42 170 64 168
+               C74 167 82 161 88 153
+               C92 147 92 140 88 136
+               C82 130 76 136 74 140
+               C71 145 68 149 62 151
+               C50 154 38 146 36 134
+               C34 121 44 112 58 112
+               L62 112 L62 96 Z" fill="url(#plat-edge)"></path>
+      <!-- Right wing -->
+      <path d="M198 96
+               C224 96 236 116 234 134
+               C232 154 214 170 192 168
+               C182 167 174 161 168 153
+               C164 147 164 140 168 136
+               C174 130 180 136 182 140
+               C185 145 188 149 194 151
+               C206 154 218 146 220 134
+               C222 121 212 112 198 112
+               L194 112 L194 96 Z" fill="url(#plat-edge)"></path>
+    </g>
+
+    <!-- Iridescent sweep across body (distinct platinum vibe) -->
+    <path d="
+      M64 110
+      C96 100, 116 108, 138 126
+      C156 140, 176 150, 194 148
+      L190 160
+      C168 164, 150 154, 128 138
+      C106 122, 86 116, 66 122 Z" fill="url(#iridescent-sweep)"></path>
+
+    <!-- Vertical gloss band -->
+    <rect x="76" y="98" width="40" height="86" rx="18" fill="url(#iridescent-sweep)" opacity="0.6"></rect>
+
+    <!-- Sparkle glints -->
+    <circle cx="96" cy="110" r="9" fill="url(#glint)"></circle>
+    <circle cx="166" cy="136" r="6.5" fill="url(#glint)" opacity="0.95"></circle>
+  </g>
+</svg>

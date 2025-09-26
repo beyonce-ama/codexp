@@ -1,115 +1,126 @@
-// verify-email.tsx
 import { Head, useForm } from '@inertiajs/react';
 import { LoaderCircle, ArrowLeft, CheckCircle, Mail } from 'lucide-react';
 import { FormEventHandler } from 'react';
 
-import TextLink from '@/components/text-link';
-import { Button } from '@/components/ui/button';
+export default function VerifyEmail({ status }: { status?: string }) {
+  const { post, processing } = useForm({});
+  const submit: FormEventHandler = (e) => {
+    e.preventDefault();
+    post(route('verification.send'));
+  };
 
-interface VerifyEmailProps {
-    status?: string;
-}
+  return (
+    <div className="relative min-h-screen bg-slate-950 text-white overflow-hidden flex items-center justify-center p-6">
+      <Head title="Verify Email" />
 
-export default function VerifyEmail({ status }: VerifyEmailProps) {
-    const { post, processing } = useForm({});
+      {/* --- Animated Background (same as welcome) --- */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-24 -left-20 h-[40rem] w-[40rem] rounded-full blur-3xl"
+        style={{
+          background: 'radial-gradient(closest-side, rgba(255,161,76,0.18), transparent 70%)',
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute top-1/3 -right-32 h-[36rem] w-[36rem] rounded-full blur-3xl"
+        style={{
+          background: 'radial-gradient(closest-side, rgba(99,102,241,0.18), transparent 70%)',
+        }}
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 opacity-[0.15]"
+        style={{
+          backgroundImage:
+            'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.4) 1px, transparent 1px)',
+          backgroundSize: '22px 22px',
+          maskImage:
+            'radial-gradient(ellipse at 50% 30%, black 60%, transparent 85%)',
+        }}
+      />
+      <div
+        aria-hidden
+        className="absolute -inset-1 pointer-events-none animate-[spin_80s_linear_infinite]"
+        style={{
+          background:
+            'conic-gradient(from 200deg at 50% 50%, transparent 0deg, rgba(255,179,79,0.06) 90deg, transparent 180deg, rgba(96,165,250,0.06) 270deg, transparent 360deg)',
+        }}
+      />
 
-    const submit: FormEventHandler = (e) => {
-        e.preventDefault();
-        post(route('verification.send'));
-    };
+      {/* --- Card --- */}
+      <div className="relative w-full max-w-lg z-10">
+        <div className="rounded-3xl bg-slate-900/70 backdrop-blur-xl p-8 sm:p-10 shadow-[0_40px_120px_-40px_rgba(0,0,0,0.6)] ring-1 ring-slate-800/70">
+          {/* Title */}
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-extrabold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-cyan-300">
+              Verify Your Email
+            </h1>
+            <p className="mt-2 text-slate-300 text-sm">
+              We’ve sent a verification link to your email. Please check your inbox
+              and confirm to continue.
+            </p>
+          </div>
 
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-teal-50 to-green-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
-            <Head title="Email Verification" />
-
-            <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                {/* Back button moved to top */}
-                <div className="mb-4">
-                    <TextLink 
-                        href={route('home')} 
-                        className="inline-flex items-center text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors"
-                    >
-                        <ArrowLeft className="mr-1 h-4 w-4" />
-                        Back to Home
-                    </TextLink>
-                </div>
-                
-                <div className="bg-white py-8 px-4 shadow-xl rounded-xl sm:px-10 border border-gray-100">
-                    <div className="mb-6 text-center">
-                        <div className="flex items-center justify-center mb-4">
-                            <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-green-600 rounded-xl flex items-center justify-center mr-3">
-                                <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5H15V3C15 2.45 14.55 2 14 2H10C9.45 2 9 2.45 9 3V5H6.5C5.84 5 5.28 5.42 5.08 6.01L3 12V20C3 20.55 3.45 21 4 21H5C5.55 21 6 20.55 6 20V19H18V20C18 20.55 18.45 21 19 21H20C20.55 21 21 20.55 21 20V12L18.92 6.01Z"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <span className="text-2xl font-bold text-teal-600">JTIMIS</span>
-                                <p className="text-xs text-gray-500">JTI Taxi Management</p>
-                            </div>
-                        </div>
-                        <h2 className="text-2xl font-bold text-gray-800">Verify your email address</h2>
-                        <p className="mt-2 text-sm text-gray-600">
-                            Thanks for signing up! Before getting started, could you verify your email address by clicking on the link we just emailed to you?
-                        </p>
-                    </div>
-
-                    {status === 'verification-link-sent' && (
-                        <div className="mb-6 p-4 bg-teal-50 rounded-lg border border-teal-200">
-                            <div className="flex items-center">
-                                <CheckCircle className="w-5 h-5 text-teal-600 mr-2" />
-                                <p className="text-sm font-medium text-teal-800">
-                                    A new verification link has been sent to your email address.
-                                </p>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="space-y-6">
-                        {/* Email instruction */}
-                        <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                            <div className="flex items-center mb-2">
-                                <Mail className="w-5 h-5 text-gray-600 mr-2" />
-                                <h3 className="text-sm font-semibold text-gray-800">Check your email</h3>
-                            </div>
-                            <p className="text-sm text-gray-600">
-                                We've sent a verification link to your email address. Click the link in the email to verify your account.
-                            </p>
-                        </div>
-
-                        <form onSubmit={submit}>
-                            <Button 
-                                type="submit"
-                                className="w-full bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 text-white font-medium py-3 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center" 
-                                disabled={processing}
-                            >
-                                {processing ? (
-                                    <>
-                                        <LoaderCircle className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
-                                        Sending...
-                                    </>
-                                ) : (
-                                    'Resend verification email'
-                                )}
-                            </Button>
-                        </form>
-
-                        <div className="text-center">
-                            <form method="POST" action={route('logout')} className="inline">
-                                <button
-                                    type="submit"
-                                    className="text-sm text-gray-600 hover:text-gray-800 underline transition-colors"
-                                >
-                                    Log out
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                    
-                    <div className="mt-10 pt-6 border-t border-gray-100 text-center text-xs text-gray-500">
-                        © 2025 JTIMIS - JTI Taxi Management Information System. All rights reserved.
-                    </div>
-                </div>
+          {/* Status */}
+          {status === 'verification-link-sent' && (
+            <div className="mb-6 flex items-center gap-2 rounded-lg bg-slate-800/70 border border-cyan-400/40 p-3 text-sm text-cyan-300">
+              <CheckCircle className="w-5 h-5 text-cyan-300" />
+              A new verification link has been sent to your email address.
             </div>
+          )}
+
+          {/* Email Instruction */}
+          <div className="mb-6 rounded-xl bg-slate-800/40 border border-slate-700/70 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Mail className="w-5 h-5 text-cyan-300" />
+              <h3 className="text-sm font-semibold text-cyan-200">Check your email</h3>
+            </div>
+            <p className="text-sm text-slate-400">
+              Click the link we sent to verify your account. Didn’t get it? You can resend below.
+            </p>
+          </div>
+
+          {/* Resend Form */}
+          <form onSubmit={submit} className="space-y-4">
+            <button
+              type="submit"
+              disabled={processing}
+              className="w-full rounded-xl py-3 font-bold tracking-wide text-slate-900
+                         bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-300
+                         hover:from-orange-300 hover:via-amber-200 hover:to-yellow-200
+                         shadow-[0_10px_30px_-10px_rgba(255,161,76,0.45)]
+                         hover:scale-[1.01] active:scale-[0.98] transition flex items-center justify-center"
+            >
+              {processing ? (
+                <>
+                  <LoaderCircle className="animate-spin -ml-1 mr-2 h-5 w-5 text-slate-900" />
+                  Sending...
+                </>
+              ) : (
+                'Resend Verification Email'
+              )}
+            </button>
+          </form>
+
+          {/* Logout */}
+          <div className="mt-6 text-center">
+            <form method="POST" action={route('logout')} className="inline">
+              <button
+                type="submit"
+                className="text-sm text-slate-400 hover:text-cyan-300 transition"
+              >
+                Log out
+              </button>
+            </form>
+          </div>
         </div>
-    );
+
+        {/* Footer */}
+        <div className="text-center mt-6 text-xs text-slate-500">
+          © 2025 CODEXP AI | GAMIFIED CODING PLATFORM
+        </div>
+      </div>
+    </div>
+  );
 }

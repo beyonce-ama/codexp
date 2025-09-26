@@ -13,8 +13,8 @@ const fadeIn = {
 
 const featureList = [
   { title: 'Login & Sign Up', desc: 'Secure auth with verification + player profile.', icon: ShieldCheck },
-  { title: 'Player Dashboard', desc: 'Level, rank, winrate, and language stats at a glance.', icon: ChartBarBig },
-  { title: 'Solo Mode', desc: 'Beat curated or AI-generated problems. Earn XP & stars.', icon: Brain },
+  { title: 'Player Dashboard', desc: 'Level, stars, winrate, and language stats at a glance.', icon: ChartBarBig },
+  { title: 'Solo Mode', desc: 'Beat curated or AI-generated problems. Earn XP', icon: Brain },
   { title: '1v1 Battle', desc: 'Invite or live matchmaking with timers and instant scoring.', icon: Swords },
   { title: 'Practice Mode', desc: 'Guided drills with hints and explanations.', icon: BookOpen },
   { title: 'Leaderboards', desc: 'Global ladder. Climb and defend your spot.', icon: Trophy },
@@ -22,7 +22,7 @@ const featureList = [
 
 const howItWorks = [
   { step: '1', title: 'Create Your Account', desc: 'Pick your main language (Python/Java) and set goals.' },
-  { step: '2', title: 'Train in Practice', desc: 'Warm up with guided practice and hints.' },
+  { step: '2', title: 'Train/learn in Practice', desc: 'Warm up with guided practice and hints.' },
   { step: '3', title: 'Battle & Rank Up', desc: 'Enter 1v1s, earn XP, collect stars, and learn!' },
 ];
 

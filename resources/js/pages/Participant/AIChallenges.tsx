@@ -154,7 +154,7 @@ export default function ParticipantAIChallenges() {
     // Initialize sound effects
     useEffect(() => {
         const sounds = {
-            success: new Audio('/sounds/success.mp3'),
+            success: new Audio('/sounds/correct.mp3'),
             failure: new Audio('/sounds/failure.mp3'),
             levelup: new Audio('/sounds/levelup.mp3'),
             click: new Audio('/sounds/click.mp3'),

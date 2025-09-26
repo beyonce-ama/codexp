@@ -47,4 +47,37 @@ class AchievementService
 
         return $awarded; // e.g. ['SOLO_5','SOLO_10']
     }
+
+public function checkAndAwardPvp(int $userId, int $played, int $won): array
+{
+    $awarded = [];
+
+    $candidates = \App\Models\Achievement::query()
+        ->where('enabled', true)
+        ->where('scope', 'PVP')
+        ->orderBy('threshold')
+        ->get();
+
+    foreach ($candidates as $ach) {
+        $current = 0;
+        if (str_starts_with($ach->code, 'PVP_PLAY_')) $current = $played;
+        if (str_starts_with($ach->code, 'PVP_WIN_'))  $current = $won;
+
+        if ($current >= $ach->threshold) {
+            $already = \App\Models\UserAchievement::where('user_id',$userId)
+                ->where('achievement_id',$ach->id)
+                ->exists();
+            if (!$already) {
+                \App\Models\UserAchievement::create([
+                    'user_id'       => $userId,
+                    'achievement_id'=> $ach->id,
+                    'unlocked_at'   => now(),
+                ]);
+                $awarded[] = $ach->code;
+            }
+        }
+    }
+    return $awarded;
+}
+
 }
