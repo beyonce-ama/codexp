@@ -340,6 +340,9 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
         Route::get('/profile', [ProfileController::class, 'show']);
         Route::put('/profile', [ProfileController::class, 'update']);
     });
+        Route::patch('/me/preferences', [\App\Http\Controllers\PreferencesController::class, 'update'])
+        ->name('me.preferences.update');
+
     Route::post('/api/ai-challenges/submit-attempt', [AIChallengeController::class, 'submitAttempt']);
     // Get participants for duels (accessible to all authenticated users)
     Route::get('/api/users/participants', function () {

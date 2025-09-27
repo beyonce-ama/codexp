@@ -300,3 +300,8 @@ body.modal-open header {
   border-radius: 14px;
   padding: 12px 14px;
 }
+.aside-rail { scrollbar-width: none; -ms-overflow-style: none; }
+.aside-rail::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+/* Safety: prevent any horizontal scroll caused by fixed rails */
+html, body { overflow-x: hidden; }

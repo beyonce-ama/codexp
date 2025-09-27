@@ -16,73 +16,107 @@ class AzureOpenAIService
 
     public function __construct()
     {
-        $this->endpoint = rtrim(config('azure.openai.endpoint'), '/');
-        $this->apiKey = config('azure.openai.api_key');
+        $this->endpoint       = rtrim(config('azure.openai.endpoint'), '/');
+        $this->apiKey         = config('azure.openai.api_key');
         $this->deploymentName = config('azure.openai.deployment_name');
-        $this->apiVersion = config('azure.openai.api_version');
-        $this->maxTokens = config('azure.openai.max_tokens', 1000);
-        $this->temperature = config('azure.openai.temperature', 0.7);
+        $this->apiVersion     = config('azure.openai.api_version');
+        $this->maxTokens      = config('azure.openai.max_tokens', 1000);
+        $this->temperature    = config('azure.openai.temperature', 0.7);
     }
 
+    /**
+     * Generate one challenge. If $topic is null, we auto-pick a topic and avoid repeating
+     * the most recently used topic for that language for ~30 minutes.
+     */
     public function generateChallenge(string $language, string $difficulty, string $topic = null): array
     {
+        // Avoid immediate repeats per language (best-effort; cache optional)
+        $avoid = [];
+        try {
+            $recent = cache()->get("ai:last_topic:$language");
+            if (is_string($recent) && $recent !== '') {
+                $avoid[] = $recent;
+            }
+        } catch (\Throwable $e) {
+            // cache not critical
+        }
+
+        if ($topic === null) {
+            $topic = $this->pickRandomTopic($language, $avoid);
+        }
+
+        // Remember the chosen topic to reduce repetition
+        try {
+            cache()->put("ai:last_topic:$language", $topic, now()->addMinutes(30));
+        } catch (\Throwable $e) {
+            // cache not critical
+        }
+
         $prompt = $this->buildChallengePrompt($language, $difficulty, $topic);
-        
+
+        // Tiny invisible salt to nudge variety without changing semantics
+        try {
+            $salt = bin2hex(random_bytes(4)); // 8 hex chars
+            $prompt .= "\n\n#VARIETY_SALT={$salt}";
+        } catch (\Throwable $e) {
+            // non-fatal
+        }
+
         try {
             $response = Http::withHeaders([
-                'api-key' => $this->apiKey,
+                'api-key'      => $this->apiKey,
                 'Content-Type' => 'application/json',
             ])->post(
                 "{$this->endpoint}/openai/deployments/{$this->deploymentName}/chat/completions?api-version={$this->apiVersion}",
                 [
                     'messages' => [
                         [
-                            'role' => 'system',
+                            'role'    => 'system',
                             'content' => 'You are an expert programming instructor who creates coding challenges. Always respond with valid JSON format containing the required fields.'
                         ],
                         [
-                            'role' => 'user',
+                            'role'    => 'user',
                             'content' => $prompt
                         ]
                     ],
-                    'max_tokens' => $this->maxTokens,
-                    'temperature' => $this->temperature,
-                    'top_p' => 0.95,
+                    'max_tokens'        => $this->maxTokens,
+                    'temperature'       => $this->temperature,
+                    'top_p'             => 0.95,
                     'frequency_penalty' => 0,
-                    'presence_penalty' => 0,
+                    'presence_penalty'  => 0, // feel free to make this 0.6 in config if you want more variety globally
                 ]
             );
 
             if (!$response->successful()) {
                 Log::error('Azure OpenAI API Error', [
                     'status' => $response->status(),
-                    'body' => $response->body()
+                    'body'   => $response->body(),
                 ]);
                 throw new \Exception('Failed to generate challenge: API request failed');
             }
 
             $data = $response->json();
-            
+
             if (!isset($data['choices'][0]['message']['content'])) {
                 throw new \Exception('Invalid response format from Azure OpenAI');
             }
 
             $content = trim($data['choices'][0]['message']['content']);
-            
+
             // Try to extract JSON from the response (in case there's extra text)
             $jsonStart = strpos($content, '{');
-            $jsonEnd = strrpos($content, '}');
-            
+            $jsonEnd   = strrpos($content, '}');
+
             if ($jsonStart !== false && $jsonEnd !== false) {
                 $content = substr($content, $jsonStart, $jsonEnd - $jsonStart + 1);
             }
-            
+
             $challengeData = json_decode($content, true);
-            
+
             if (json_last_error() !== JSON_ERROR_NONE) {
                 Log::error('Failed to parse JSON from OpenAI response', [
-                    'content' => $content,
-                    'json_error' => json_last_error_msg()
+                    'content'    => $content,
+                    'json_error' => json_last_error_msg(),
                 ]);
                 throw new \Exception('Invalid JSON response from AI service');
             }
@@ -99,23 +133,28 @@ class AzureOpenAIService
 
         } catch (\Exception $e) {
             Log::error('Error generating challenge with Azure OpenAI', [
-                'error' => $e->getMessage(),
-                'language' => $language,
+                'error'      => $e->getMessage(),
+                'language'   => $language,
                 'difficulty' => $difficulty,
-                'topic' => $topic
+                'topic'      => $topic,
             ]);
             throw $e;
         }
     }
 
+    /**
+     * Stronger prompt: forces the chosen topic and varies real-world scenarios.
+     */
     private function buildChallengePrompt(string $language, string $difficulty, string $topic = null): string
     {
-        $topicText = $topic ? "focused on {$topic}" : "on any programming concept";
-        
+        $topicText = $topic
+            ? "STRICTLY focused on the topic: {$topic}. Do not switch topics."
+            : "on any programming concept (vary scenarios to avoid repetition).";
+
         $difficultyGuide = [
-            'easy' => 'Basic syntax, simple logic, beginner-friendly concepts',
+            'easy'   => 'Basic syntax, simple logic, beginner-friendly concepts',
             'medium' => 'Intermediate algorithms, data structures, moderate complexity',
-            'hard' => 'Advanced algorithms, complex logic, optimization challenges'
+            'hard'   => 'Advanced algorithms, complex logic, optimization challenges',
         ];
 
         $guide = $difficultyGuide[$difficulty] ?? 'Mixed difficulty';
@@ -124,9 +163,10 @@ class AzureOpenAIService
 
 Guidelines:
 - Difficulty: {$guide}
-- The challenge should have intentional bugs that students need to fix
-- Include clear description and helpful hints
-- Code should be educational and practical
+- The challenge must revolve around the specified topic (if given), and use a distinct real-world scenario (e.g., finance, scheduling, inventory, games, logs, analytics) to reduce repetition
+- The code must contain 2–3 intentional bugs that students need to fix
+- Include a clear description and a helpful hint
+- Keep solutions concise and idiomatic for {$language}
 
 Respond with ONLY a JSON object in this exact format:
 {
@@ -138,25 +178,29 @@ Respond with ONLY a JSON object in this exact format:
 }
 
 Make sure:
-1. The buggy_code actually has logical bugs (syntax errors, logic mistakes, wrong operators, etc.)
-2. The fixed_code is the corrected version
-3. The description explains the intended functionality
+1. The buggy_code actually has logical bugs (off-by-one, wrong operator, mutated state, wrong data structure, etc.)
+2. The fixed_code is the corrected version that passes the intended behavior
+3. The description explains the intended functionality and the chosen real-world scenario
 4. The hint guides students without giving away the answer
 5. All JSON strings are properly escaped
-6. Code is realistic and educational";
+6. Code is realistic, runnable, and educational";
     }
 
+    /**
+     * Generate N challenges with randomized topics.
+     * Unchanged external behavior—still uses explicit per-call topics.
+     */
     public function generateMultipleChallenges(string $language, string $difficulty, int $count = 3): array
     {
         $challenges = [];
-        $topics = $this->getTopicsForLanguage($language);
-        
+        $topics     = $this->getTopicsForLanguage($language);
+
         for ($i = 0; $i < $count; $i++) {
             try {
-                $topic = $topics[array_rand($topics)];
-                $challenge = $this->generateChallenge($language, $difficulty, $topic);
+                $topic      = $topics[array_rand($topics)];
+                $challenge  = $this->generateChallenge($language, $difficulty, $topic);
                 $challenges[] = $challenge;
-                
+
                 // Small delay to avoid rate limiting
                 if ($i < $count - 1) {
                     sleep(1);
@@ -164,7 +208,7 @@ Make sure:
             } catch (\Exception $e) {
                 $challengeNumber = $i + 1;
                 Log::warning("Failed to generate challenge {$challengeNumber}", [
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
                 // Continue with other challenges
             }
@@ -173,6 +217,9 @@ Make sure:
         return $challenges;
     }
 
+    /**
+     * Topic sources
+     */
     private function getTopicsForLanguage(string $language): array
     {
         $commonTopics = [
@@ -182,17 +229,32 @@ Make sure:
 
         $languageSpecific = [
             'python' => [
-                'list comprehensions', 'dictionaries', 'exception handling', 
+                'list comprehensions', 'dictionaries', 'exception handling',
                 'file handling', 'classes and objects', 'decorators'
             ],
             'java' => [
                 'collections', 'inheritance', 'interfaces', 'exception handling',
                 'generics', 'streams', 'object-oriented programming'
-            ]
+            ],
         ];
 
         $topics = array_merge($commonTopics, $languageSpecific[$language] ?? []);
         return $topics;
     }
 
- }
+    /**
+     * Random topic picker with optional avoidance set.
+     */
+    private function pickRandomTopic(string $language, array $avoid = []): string
+    {
+        $topics = $this->getTopicsForLanguage($language);
+        if (!empty($avoid)) {
+            $topics = array_values(array_diff($topics, $avoid));
+        }
+        if (empty($topics)) {
+            // Fallback if we filtered everything out
+            $topics = $this->getTopicsForLanguage($language);
+        }
+        return $topics[array_rand($topics)];
+    }
+}

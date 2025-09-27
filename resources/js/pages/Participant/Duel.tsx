@@ -13,6 +13,7 @@ import {
 import { apiClient } from '@/utils/api';
 import Swal from 'sweetalert2';
 import AnimatedBackground from '@/components/AnimatedBackground';
+import { audio } from '@/utils/sound';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Home', href: '/dashboard' },
@@ -135,14 +136,17 @@ export default function ParticipantDuel() {
     const [waitingForOpponent, setWaitingForOpponent] = useState(false);
     const [finalizing, setFinalizing] = useState(false);
 
-    // Audio & UI
-    const [soundEnabled, setSoundEnabled] = useState(true);
-    const audioRef = useRef<{ [key: string]: HTMLAudioElement }>({});
-    const sessionTimerRef = useRef<NodeJS.Timeout>();
-    const refreshIntervalRef = useRef<NodeJS.Timeout>();
+const sessionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
 // New, independent review modal state
 
-
+const stopAllTimers = () => {
+  if (sessionTimerRef.current) clearInterval(sessionTimerRef.current);
+  if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
+  sessionTimerRef.current = null;
+  refreshIntervalRef.current = null;
+};
 const [showReviewModal, setShowReviewModal] = useState(false);
 const [reviewDuel, setReviewDuel] = useState<Duel | null>(null);
 const [comparison, setComparison] = useState<{
@@ -152,45 +156,11 @@ const [comparison, setComparison] = useState<{
 
 
     const resultShownRef = useRef(false);
-    // Initialize sound effects
-    useEffect(() => {
-        const sounds = {
-            success: new Audio('/sounds/correct.wav'),
-            failure: new Audio('/sounds/failure.wav'),
-            victory: new Audio('/sounds/victory.wav'),
-            defeat: new Audio('/sounds/defeat.wav'),
-            tick: new Audio('/sounds/tick.wav'),
-            warning: new Audio('/sounds/warning.wav'),
-            start: new Audio('/sounds/start.wav'),
-            click: new Audio('/sounds/click.mp3'),
-            hover: new Audio('/sounds/hover.mp3'),
-        };
-        Object.values(sounds).forEach(audio => {
-            audio.volume = 0.6;
-            audio.preload = 'auto';
-        });
+   
 
-        audioRef.current = sounds;
 
-        return () => {
-            Object.values(sounds).forEach(audio => {
-                audio.pause();
-                audio.currentTime = 0;
-            });
-        };
-    }, []);
 
-    const playSound = (soundName: string) => {
-        if (!soundEnabled || !audioRef.current[soundName]) return;
-        
-        try {
-            const audio = audioRef.current[soundName];
-            audio.currentTime = 0;
-            audio.play().catch(console.error);
-        } catch (error) {
-            console.warn('Could not play sound:', soundName, error);
-        }
-    };
+
 
     // >>> NEW: helper to hydrate winner when only winner_id is present
     const hydrateWinner = (d: Duel): Duel => {
@@ -200,13 +170,7 @@ const [comparison, setComparison] = useState<{
         }
         return d;
     };
-   useEffect(() => {
-  return () => {
-    setShowReviewModal(false);
-    setReviewDuel(null);
-    setComparison(null);
-  };
-}, []);
+
 
     useEffect(() => {
         if (activeTab === 'browse') {
@@ -233,7 +197,7 @@ const [comparison, setComparison] = useState<{
                 setTimeSpent(Math.floor(elapsed / 1000));
                 
                 if (remaining <= 60000 && remaining > 59000) {
-                    playSound('warning');
+                    audio.play('warning');
                 }
                 
                 if (remaining <= 0) {
@@ -273,7 +237,7 @@ const [comparison, setComparison] = useState<{
         if (!activeDuel || duelEnded) return;
 
         setDuelEnded(true);
-        playSound('warning');
+        audio.play('warning');
 
         if (userCode.trim() && !hasSubmitted) {
             await submitDuelCode(true);
@@ -456,7 +420,16 @@ const [comparison, setComparison] = useState<{
       return { winner_id: null, loser_id: null, reason: 'undecided' };
     };
 
-  
+  // At component level
+useEffect(() => {
+  return () => {
+    stopAllTimers();
+    setShowReviewModal(false);
+    setReviewDuel(null);
+    setComparison(null);
+  };
+}, []);
+
 const buildComparisonForModal = (duel: Duel) => {
   if (!duel?.submissions || !duel.challenger || !duel.opponent) return null;
 
@@ -556,7 +529,7 @@ const buildComparisonForModal = (duel: Duel) => {
             params.exclude_taken = true;
             if (selectedOpponent?.id) params.opponent_id = selectedOpponent.id;
 
-            const response = await apiClient.get('/api/challenges/1v1', params);
+            const response = await apiClient.get('/api/challenges/1v1', { params });
             if (response.success) {
                 const challengeData = response.data.data || response.data || [];
                 setChallenges(challengeData);
@@ -692,7 +665,7 @@ const fetchParticipants = async () => {
                     
                     if (opponentSub && (!opponentSubmission || opponentSub.id !== opponentSubmission.id)) {
                         setOpponentSubmission(opponentSub);
-                        playSound('tick');
+                        audio.play('tick');
                         
                         Swal.fire({
                             icon: 'info',
@@ -725,11 +698,8 @@ const fetchParticipants = async () => {
     };
 
     const handleDuelFinished = async (duelData: Duel) => {
-          stopAllTimers();                 // <--- stop timers/polling ASAP
-  setDuelEnded(true);
-  setShowDuelModal(false);
-  setActiveDuel(null);
-      setShowDuelModal(false);
+
+    
 
         // >>> UPDATED: hydrate and use safe defaults for rewards
         const hydrated = hydrateWinner(duelData);
@@ -772,9 +742,9 @@ const cmpHtml = cmp ? `
 
 
         if (isWinner) {
-            playSound('victory');
+            audio.play('victory');
         } else {
-            playSound('defeat');
+            audio.play('defeat');
         }
         
       await Swal.fire({
@@ -878,11 +848,11 @@ const cmpHtml = cmp ? `
 
     const declineDuel = async (duel: Duel) => {
         try {
-            playSound('click');
+            audio.play('click');
             const response = await apiClient.post(`/api/duels/${duel.id}/decline`);
             
             if (response.success) {
-                playSound('success');
+                audio.play('success');
                 await Swal.fire({
                     icon: 'info',
                     title: 'Duel Declined',
@@ -901,7 +871,7 @@ const cmpHtml = cmp ? `
             console.error('Error declining duel:', error);
             
             // For demo purposes, simulate decline
-            playSound('success');
+            audio.play('success');
             await Swal.fire({
                 icon: 'info',
                 title: 'Duel Declined',
@@ -930,7 +900,7 @@ const cmpHtml = cmp ? `
             
           try {
             setCreateLoading(true);
-            playSound('click');
+            audio.play('click');
 
             const duelData = {
                 opponent_id: selectedOpponent.id,
@@ -945,7 +915,7 @@ const cmpHtml = cmp ? `
             if (!response.success) throw new Error(response.message || 'Failed');
 
             // ✅ success path
-            playSound('success');
+            audio.play('success');
             setShowCreateModal(false);
             setSelectedChallenge(null);
             setSelectedOpponent(null);
@@ -992,11 +962,6 @@ const cmpHtml = cmp ? `
             }
 
     };
-const stopAllTimers = () => {
-  if (sessionTimerRef.current) clearInterval(sessionTimerRef.current);
-  if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
-};
-
     const startDuel = async (duel: Duel) => {
         if (!duel.challenge) {
             Swal.fire('Error', 'Challenge data is not available for this duel.', 'error');
@@ -1022,7 +987,7 @@ const stopAllTimers = () => {
                 console.warn('Could not start user session on backend, continuing locally:', error);
             }
             
-            playSound('start');
+            audio.play('start');
             setActiveDuel(duel);
             if (duel.submissions?.some((s: DuelSubmission) => s.user_id !== user.id)) {
               setWaitingForOpponent(false);
@@ -1116,7 +1081,7 @@ if (duel.status === 'finished') {
     const submitDuelCode = async (autoSubmit: boolean = false) => {
         if (!activeDuel || !activeDuel.challenge || (!userCode.trim() && !autoSubmit)) {
             if (!autoSubmit) {
-                playSound('failure');
+                audio.play('failure');
                 Swal.fire('Error', 'Please write some code before submitting.', 'error');
             }
             return;
@@ -1124,7 +1089,7 @@ if (duel.status === 'finished') {
 
         try {
             setSubmitting(true);
-            playSound('click');
+            audio.play('click');
             
             // Enhanced validation with exact match requirement
             const validation = validateCode(userCode || '// No solution submitted', activeDuel.challenge);
@@ -1153,7 +1118,7 @@ if (duel.status === 'finished') {
                 console.log('Duel submission successful:', response.data);
                 
                 if (isCorrect) {
-                    playSound('success');
+                    audio.play('success');
                     
                     await Swal.fire({
                         icon: 'success',
@@ -1183,7 +1148,7 @@ if (duel.status === 'finished') {
                     // Don't close the modal yet - wait for both players to finish
                 } else {
                     if (!autoSubmit) {
-                        playSound('failure');
+                        audio.play('failure');
                       await Swal.fire({
                         title: 'Almost There!',
                         html: `
@@ -1229,7 +1194,7 @@ if (duel.status === 'finished') {
         } catch (error) {
             console.error('Error submitting duel code:', error);
             if (!autoSubmit) {
-                playSound('failure');
+                audio.play('failure');
                 Swal.fire('Error', 'Failed to submit your code. Please try again.', 'error');
             }
         } finally {
@@ -1239,7 +1204,7 @@ if (duel.status === 'finished') {
 
     const showCorrectAnswerHandler = () => {
         if (activeDuel?.challenge?.fixed_code) {
-            playSound('click');
+            audio.play('click');
             setShowCorrectAnswer(true);
             
             Swal.fire({
@@ -1281,7 +1246,7 @@ if (duel.status === 'finished') {
 
         try {
             setDuelEnded(true);
-            playSound('defeat');
+            audio.play('defeat');
             
             // Try to submit surrender to backend
             try {
@@ -1321,11 +1286,11 @@ if (duel.status === 'finished') {
 
     const acceptDuel = async (duel: Duel) => {
         try {
-            playSound('start');
+            audio.play('start');
             const response = await apiClient.post(`/api/duels/${duel.id}/accept`);
             
             if (response.success) {
-                playSound('success');
+                audio.play('success');
                 await Swal.fire({
                     icon: 'success',
                     title: 'Duel Accepted!',
@@ -1345,7 +1310,7 @@ if (duel.status === 'finished') {
             console.error('Error accepting duel:', error);
             
             // For demo purposes, simulate acceptance
-            playSound('success');
+            audio.play('success');
             await Swal.fire({
                 icon: 'success',
                 title: 'Duel Accepted!',
@@ -1496,25 +1461,25 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                             </div>
                         </div>
                         <div className="flex items-center space-x-3">
-                            <button
+                            {/* <button
                                 onClick={() => setSoundEnabled(!soundEnabled)}
                                 className={`p-2 rounded-lg transition-all duration-300 ${
                                     soundEnabled 
                                         ? 'bg-green-600 text-white' 
                                         : 'bg-gray-600 text-gray-300'
                                 }`}
-                                onMouseEnter={() => playSound('hover')}
+                                onMouseEnter={() => audio.play('hover')}
                             >
                                 {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-                            </button>
+                            </button> */}
                             <button
                                 onClick={() => {
-                                    playSound('click');
+                                    audio.play('click');
                                     setActiveTab('browse');
                                     setShowCreateModal(true);
                                 }}
                                 className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg hover:from-cyan-600 hover:to-blue-700 hover:scale-105 transition-all duration-300"
-                                onMouseEnter={() => playSound('hover')}
+                                onMouseEnter={() => audio.play('hover')}
                             >
                                 <Plus className="h-4 w-4" />
                                 <span>Create Duel</span>
@@ -1539,7 +1504,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                         <div className="flex space-x-2">
                             <button
                                 onClick={() => {
-                                    playSound('click');
+                                    audio.play('click');
                                     setActiveTab('my-duels');
                                 }}
                                 className={`flex items-center space-x-2 px-4 py-3 rounded-lg transition-all duration-300 ${
@@ -1547,7 +1512,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                         ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg'
                                         : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 hover:text-white'
                                 }`}
-                                onMouseEnter={() => playSound('hover')}
+                                onMouseEnter={() => audio.play('hover')}
                             >
                                 <Swords className="h-5 w-5" />
                                 <span className="font-medium">My Duels</span>
@@ -1557,7 +1522,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                             </button>
                             <button
                                 onClick={() => {
-                                    playSound('click');
+                                    audio.play('click');
                                     setActiveTab('browse');
                                 }}
                                 className={`flex items-center space-x-2 px-4 py-3 rounded-lg transition-all duration-300 ${
@@ -1565,7 +1530,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                         ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg'
                                         : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 hover:text-white'
                                 }`}
-                                onMouseEnter={() => playSound('hover')}
+                                onMouseEnter={() => audio.play('hover')}
                             >
                                 <Target className="h-5 w-5" />
                                 <span className="font-medium">Browse Challenges</span>
@@ -1591,11 +1556,11 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                         <p className="mb-4">You haven't participated in any duels yet.</p>
                                         <button
                                             onClick={() => {
-                                                playSound('click');
+                                                audio.play('click');
                                                 setActiveTab('browse');
                                             }}
                                             className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg hover:from-cyan-600 hover:to-blue-700"
-                                            onMouseEnter={() => playSound('hover')}
+                                            onMouseEnter={() => audio.play('hover')}
                                         >
                                             Browse Challenges
                                         </button>
@@ -1674,14 +1639,14 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                               <button
                                                                   onClick={() => acceptDuel(duel)}
                                                                   className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm hover:scale-105 transition-all duration-300"
-                                                                  onMouseEnter={() => playSound('hover')}
+                                                                  onMouseEnter={() => audio.play('hover')}
                                                               >
                                                                   Accept
                                                               </button>
                                                               <button
                                                                   onClick={() => declineDuel(duel)}
                                                                   className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm hover:scale-105 transition-all duration-300"
-                                                                  onMouseEnter={() => playSound('hover')}
+                                                                  onMouseEnter={() => audio.play('hover')}
                                                               >
                                                                   Decline
                                                               </button>
@@ -1692,7 +1657,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                           <button
                                                               onClick={() => startDuel(duel)}
                                                               className="flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg hover:from-cyan-600 hover:to-blue-700 text-sm hover:scale-105 transition-all duration-300"
-                                                              onMouseEnter={() => playSound('hover')}
+                                                              onMouseEnter={() => audio.play('hover')}
                                                           >
                                                               <Play className="h-4 w-4" />
                                                               <span>Start Duel</span>
@@ -1875,7 +1840,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                             value={languageFilter}
                                             onChange={(e) => setLanguageFilter(e.target.value)}
                                             className="px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 text-gray-200 transition-all duration-300"
-                                            onMouseEnter={() => playSound('hover')}
+                                            onMouseEnter={() => audio.play('hover')}
                                         >
                                             <option value="all">All Languages</option>
                                             <option value="python">Python</option>
@@ -1885,7 +1850,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                             value={difficultyFilter}
                                             onChange={(e) => setDifficultyFilter(e.target.value)}
                                             className="px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 text-gray-200 transition-all duration-300"
-                                            onMouseEnter={() => playSound('hover')}
+                                            onMouseEnter={() => audio.play('hover')}
                                         >
                                             <option value="all">All Difficulties</option>
                                             <option value="easy">Easy</option>
@@ -1937,12 +1902,12 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                 </div>
                                                 <button
                                                     onClick={() => {
-                                                        playSound('click');
+                                                        audio.play('click');
                                                         setSelectedChallenge(challenge);
                                                         setShowCreateModal(true);
                                                     }}
                                                     className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-red-500 to-pink-600 text-white rounded-lg hover:from-red-600 hover:to-pink-700 transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-red-500/25"
-                                                    onMouseEnter={() => playSound('hover')}
+                                                    onMouseEnter={() => audio.play('hover')}
                                                 >
                                                     <Swords className="h-4 w-4" />
                                                     <span>Challenge</span>
@@ -1967,7 +1932,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                         </h3>
                                         <button
                                             onClick={() => {
-                                                playSound('click');
+                                                audio.play('click');
                                                 setShowCreateModal(false);
                                                 setSelectedChallenge(null);
                                                 setSelectedOpponent(null);
@@ -2015,11 +1980,11 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                     <div
                                                         key={challenge.id}
                                                         onClick={() => {
-                                                            playSound('click');
+                                                            audio.play('click');
                                                             setSelectedChallenge(challenge);
                                                         }}
                                                         className="flex items-center justify-between p-3 bg-gray-900/30 hover:bg-gray-700/30 border border-gray-600/50 rounded-lg cursor-pointer transition-all duration-200 hover:scale-105"
-                                                        onMouseEnter={() => playSound('hover')}
+                                                        onMouseEnter={() => audio.play('hover')}
                                                     >
                                                         <div>
                                                             <p className="text-white font-medium">{challenge.title}</p>
@@ -2039,7 +2004,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                 <h4 className="text-cyan-400 font-bold">Selected Challenge</h4>
                                                 <button
                                                     onClick={() => {
-                                                        playSound('click');
+                                                        audio.play('click');
                                                         setSelectedChallenge(null);
                                                     }}
                                                     className="text-gray-400 hover:text-white transition-all duration-200"
@@ -2168,7 +2133,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                     <div className="flex items-center justify-end space-x-3">
                                         <button
                                             onClick={() => {
-                                                playSound('click');
+                                                audio.play('click');
                                                 setShowCreateModal(false);
                                                 setSelectedChallenge(null);
                                                 setSelectedOpponent(null);
@@ -2176,7 +2141,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                             }}
                                             disabled={createLoading}
                                             className="px-6 py-3 bg-gray-700/50 text-gray-300 rounded-lg hover:bg-gray-600/50 disabled:opacity-50 transition-all duration-300 font-medium"
-                                            onMouseEnter={() => playSound('hover')}
+                                            onMouseEnter={() => audio.play('hover')}
                                         >
                                             Cancel
                                         </button>
@@ -2184,7 +2149,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                             onClick={createDuel}
                                             disabled={createLoading || !selectedChallenge || !selectedOpponent}
                                             className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-red-500 to-pink-600 text-white rounded-lg hover:from-red-600 hover:to-pink-700 disabled:opacity-50 transition-all duration-300 font-medium shadow-lg hover:scale-105"
-                                            onMouseEnter={() => playSound('hover')}
+                                            onMouseEnter={() => audio.play('hover')}
                                         >
                                             {createLoading ? (
                                                 <RefreshCw className="h-4 w-4 animate-spin" />
@@ -2201,9 +2166,9 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
 
                     {/* Active Duel Modal */}
                     {showDuelModal && activeDuel && activeDuel.challenge && (
-                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-                            <div className="relative bg-gray-800/90 backdrop-blur-md border border-gray-700/50 w-full max-w-5xl shadow-2xl rounded-xl overflow-hidden animate-fadeInUp">
-                                <div className="bg-gradient-to-r from-red-600 to-pink-600 px-6 py-4">
+                      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-[100] flex items-center justify-center p-4">
+    <div className="relative bg-gray-800/90 backdrop-blur-md border border-gray-700/50 w-full max-w-5xl shadow-2xl rounded-xl overflow-hidden animate-fadeInUp">
+      <div className="bg-gradient-to-r from-red-600 to-pink-600 px-6 py-4">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-lg font-bold text-white flex items-center">
                                             <Swords className="h-5 w-5 mr-2" />
@@ -2226,7 +2191,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                             </div>
                                             <button
                                                 onClick={() => {
-                                                    playSound('click');
+                                                    audio.play('click');
                                                     setShowDuelModal(false);
                                                 }}
                                                 className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-1 transition-all duration-200"
@@ -2347,7 +2312,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                 onClick={surrenderDuel}
                                                 disabled={submitting || duelEnded}
                                                 className="flex items-center space-x-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-all duration-300 font-medium"
-                                                onMouseEnter={() => playSound('hover')}
+                                                onMouseEnter={() => audio.play('hover')}
                                             >
                                                 <Flag className="h-4 w-4" />
                                                 <span>Surrender</span>
@@ -2358,7 +2323,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                     onClick={showCorrectAnswerHandler}
                                                     disabled={submitting}
                                                     className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 transition-all duration-300 font-medium shadow-lg hover:scale-105"
-                                                    onMouseEnter={() => playSound('hover')}
+                                                    onMouseEnter={() => audio.play('hover')}
                                                 >
                                                     <BookOpen className="h-4 w-4" />
                                                     <span>Show Correct Answer</span>
@@ -2383,12 +2348,12 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                             
                                             <button
                                                 onClick={() => {
-                                                    playSound('click');
+                                                    audio.play('click');
                                                     setShowDuelModal(false);
                                                 }}
                                                 disabled={submitting}
                                                 className="px-6 py-3 bg-gray-700/50 text-gray-300 rounded-lg hover:bg-gray-600/50 disabled:opacity-50 transition-all duration-300 font-medium"
-                                                onMouseEnter={() => playSound('hover')}
+                                                onMouseEnter={() => audio.play('hover')}
                                             >
                                                 Close
                                             </button>
@@ -2398,7 +2363,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                     onClick={() => submitDuelCode()}
                                                     disabled={submitting || !userCode.trim() || duelEnded}
                                                     className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg hover:from-cyan-600 hover:to-blue-700 disabled:opacity-50 transition-all duration-300 font-medium shadow-lg hover:scale-105"
-                                                    onMouseEnter={() => playSound('hover')}
+                                                    onMouseEnter={() => audio.play('hover')}
                                                 >
                                                     {submitting ? (
                                                         <RefreshCw className="h-4 w-4 animate-spin" />

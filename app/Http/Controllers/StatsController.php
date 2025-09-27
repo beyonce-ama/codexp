@@ -14,14 +14,13 @@ class StatsController extends Controller
     public function me(Request $request)
     {
         $user = $request->user();
+        // If other parts of the app just updated totals/stars on this request, refresh:
+        $user->refresh();
 
         // -------------------------
-        // SOLO AGGREGATES
+        // SOLO AGGREGATES (counts only; NOT used for totals.xp/stars)
         // -------------------------
         $soloAttemptsQ = SoloAttempt::where('user_id', $user->id);
-
-        $xp    = (float) $soloAttemptsQ->clone()->sum('xp_earned');
-        $stars = (int)   $soloAttemptsQ->clone()->sum('stars_earned');
 
         $soloAttemptsAll = $soloAttemptsQ->clone()->get();
 
@@ -70,7 +69,7 @@ class StatsController extends Controller
             ->toArray();
 
         // -------------------------
-        // CLASSIC DUEL AGGREGATES
+        // CLASSIC DUEL AGGREGATES (counts only; NOT used for totals.xp/stars)
         // -------------------------
         $duelFinishedStatuses = ['completed','won','lost','draw','finished']; // adjust if needed
 
@@ -85,9 +84,6 @@ class StatsController extends Controller
         $duelsAsChallenger  = (int) Duel::where('challenger_id', $user->id)->count();
         $duelsAsOpponent    = (int) Duel::where('opponent_id', $user->id)->count();
         $duelsTodayClassic  = (int) $duelsPlayedQ->clone()->where('created_at', '>=', now()->startOfDay())->count();
-
-        $duelXp    = (float) Duel::where('winner_id', $user->id)->sum('winner_xp');
-        $duelStars = (int)   Duel::where('winner_id', $user->id)->sum('winner_stars');
 
         // -------------------------
         // RECENT CLASSIC DUELS
@@ -115,7 +111,7 @@ class StatsController extends Controller
             });
 
         // -------------------------
-        // LIVE MATCHES (matches + match_participants)
+        // LIVE MATCHES (matches + match_participants) — counts only
         // -------------------------
         // Treat a match as finished if finished_at is set OR status is in this list
         $matchFinishedStatuses = ['finished','completed','resolved','won','lost','timeout'];
@@ -209,6 +205,7 @@ class StatsController extends Controller
         $langRows = UserLanguageStat::where('user_id', $user->id)->get();
 
         // Derive classic duels per language (wins / nonwins)
+        $duelFinishedStatuses = ['completed','won','lost','draw','finished'];
         $duelLangAgg = Duel::select('language',
                 DB::raw('SUM(CASE WHEN winner_id = '.$user->id.' THEN 1 ELSE 0 END) as wins'),
                 DB::raw('SUM(CASE WHEN (challenger_id = '.$user->id.' OR opponent_id = '.$user->id.') AND (winner_id IS NULL OR winner_id <> '.$user->id.') THEN 1 ELSE 0 END) as nonwins')
@@ -228,7 +225,8 @@ class StatsController extends Controller
             ->get()
             ->keyBy(function($r){ return $r->language ?? 'unknown'; });
 
-        // OPTIONALLY blend live matches into language wins/losses (if you want winrate to reflect live, too)
+        // OPTIONALLY blend live matches into language wins/losses
+        $matchFinishedStatuses = ['finished','completed','resolved','won','lost','timeout'];
         $liveLangAgg = DB::table('matches as m')
             ->join('match_participants as mp', 'mp.match_id', '=', 'm.id')
             ->select('m.language',
@@ -321,18 +319,18 @@ class StatsController extends Controller
                     'ai_successful_attempts'  => $aiSuccessfulAttempts,
                 ],
 
-                // Totals
+                // Totals (SINGLE SOURCE OF TRUTH = users table)
                 'totals' => [
-                    'xp'    => $xp + $duelXp + (float) ($user->total_xp ?? 0),
-                    'stars' => $stars + $duelStars,
+                    'xp'    => (float) ($user->total_xp ?? 0),
+                    'stars' => (int)   ($user->stars    ?? 0),
                 ],
 
                 // Solo (both nested and root for backward compatibility)
-                'solo_stats'             => $soloStats,
-                'solo_attempts'          => $soloStats['total_attempts'],
-                'successful_attempts'    => $soloStats['successful_attempts'],
-                'attempts_today'         => $soloStats['attempts_today'],
-                'completed_challenge_ids'=> $soloStats['completed_challenge_ids'],
+                'solo_stats'              => $soloStats,
+                'solo_attempts'           => $soloStats['total_attempts'],
+                'successful_attempts'     => $soloStats['successful_attempts'],
+                'attempts_today'          => $soloStats['attempts_today'],
+                'completed_challenge_ids' => $soloStats['completed_challenge_ids'],
 
                 // Classic duels
                 'duels_played'        => $duelsPlayed,

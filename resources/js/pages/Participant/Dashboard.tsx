@@ -169,15 +169,22 @@ const looksLikeAchievement = (x: any) =>
 const coerceAchievement = (x: AnyObj) => {
   const threshold = Number(x.threshold ?? x.goal ?? 0);
   const current   = Number(x.current ?? x.count ?? 0);
-  const progress  = Number(
-    x.progress ?? (threshold > 0 ? Math.min(100, Math.round((current / threshold) * 100)) : 0)
-  );
-  const unlocked  = Boolean(x.unlocked ?? (threshold > 0 && current >= threshold));
+
+  // Prefer backend-provided progress if present
+  const progressRaw =
+    x.progress != null
+      ? Number(x.progress)
+      : (threshold > 0 ? Math.min(100, Math.round((current / threshold) * 100)) : 0);
+  const progress = Number.isFinite(progressRaw) ? Math.max(0, Math.min(100, progressRaw)) : 0;
+
+  // Treat progress>=100 as completed if backend didn't supply unlocked/can_claim
+  const unlockedDerived =
+    (threshold > 0 && current >= threshold) || progress >= 100;
+
   const claimed   = Boolean(x.claimed ?? x.is_claimed ?? false);
+  const unlocked  = Boolean(x.unlocked ?? unlockedDerived);
   const can_claim = Boolean(x.can_claim ?? (unlocked && !claimed));
 
-  // IMPORTANT: keep all fallbacks inside a single nullish-coalescing chain.
-  // No `||` here; and wrap the chain in parens when embedding.
   const codeVal  = (x.code ?? x.key ?? x.name ?? '');
   const nameVal  = (x.name ?? x.title ?? x.code);
   const descVal  = (x.description ?? x.desc);
@@ -257,6 +264,20 @@ const flattenAchievements = (root: any): SoloAchievementItem[] => {
 
         const flat = flattenAchievements(achRoot);
         setSoloAchievements(flat);
+        // Auto-claim any newly earned achievements so they don't linger in Tasks
+        if (AUTO_CLAIM_NEWLY_EARNED) {
+          const claimables = flat.filter(a => a.can_claim);
+          for (const a of claimables) {
+            try {
+              const res = await apiClient.post('/api/achievements/claim', { achievement_id: a.id });
+              const xp = res?.data?.xp_reward ?? a.xp_reward ?? 0;
+              const stars = res?.data?.stars_reward ?? a.stars_reward ?? 0;
+              pushToast({ name: a.name, xp, stars, icon_key: a.icon_key ?? undefined });
+            } catch (e) {
+              console.error('Auto-claim failed', a.id, e);
+            }
+          }
+        }
         setSoloCompletedCount(
           Number(
             achRoot?.solo_completed ??
@@ -363,13 +384,18 @@ const [showAchievements, setShowAchievements] = useState(true);
 const [claimingId, setClaimingId] = useState<number | null>(null);
 const [achExpanded, setAchExpanded] = useState(false);
 
-const [rewardModal, setRewardModal] = useState<{
-  open: boolean;
-  name: string;
-  xp: number;
-  stars: number;
-  icon_key?: string | null;
-}>({ open: false, name: '', xp: 0, stars: 0, icon_key: null });
+// Auto-claim newly earned achievements so they jump to Trophies immediately
+const AUTO_CLAIM_NEWLY_EARNED = true;
+
+// Minimal toast queue for reward notifications
+type RewardToast = { id: string; name: string; xp: number; stars: number; icon_key?: string | null };
+const [toasts, setToasts] = useState<RewardToast[]>([]);
+const pushToast = (t: Omit<RewardToast, 'id'>) => {
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  setToasts((q) => [...q, { id, ...t }]);
+  setTimeout(() => setToasts((q) => q.filter(x => x.id !== id)), 3500);
+};
+
 
 const handleClaim = async (achievementId: number) => {
   try {
@@ -377,21 +403,18 @@ const handleClaim = async (achievementId: number) => {
     const item = soloAchievements.find(a => a.id === achievementId);
 
     const res = await apiClient.post('/api/achievements/claim', { achievement_id: achievementId });
-
-    // try to read rewards from API; fallback to item
     const xp = res?.data?.xp_reward ?? item?.xp_reward ?? 0;
     const stars = res?.data?.stars_reward ?? item?.stars_reward ?? 0;
 
-    // reward popup
-    setRewardModal({
-      open: true,
+    // theme-consistent toast (no modal)
+    pushToast({
       name: item?.name || 'Achievement',
       xp,
       stars,
-      icon_key: item?.icon_key
+      icon_key: item?.icon_key ?? undefined
     });
 
-    // refresh so totals & lists update (claimed removed from Tasks)
+    // refresh so totals & lists update (claimed removed from Tasks, appears in Trophies)
     await fetchAll(false);
   } catch (e) {
     console.error('Claim failed', e);
@@ -529,14 +552,14 @@ const handleClaim = async (achievementId: number) => {
             <div className="flex items-center gap-3">
               <StatPill icon={Star} label="Stars" value={myStars} />
               <StatPill icon={Zap} label="Total XP" value={stats?.totals?.xp ?? 0} />
-              <button
+              {/* <button
                 onClick={handleRefresh}
                 disabled={refreshing}
                 className="inline-flex items-center gap-2 rounded-xl px-4 py-2 bg-slate-800 border border-slate-700 text-white hover:bg-slate-700 disabled:opacity-60"
               >
                 <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
                 <span>{refreshing ? 'Refreshing…' : 'Refresh'}</span>
-              </button>
+              </button> */}
             </div>
           </div>
         </div>
@@ -712,32 +735,35 @@ const handleClaim = async (achievementId: number) => {
                   onClick={() => setShowAchievements((s) => !s)}
                   className="text-xs inline-flex items-center gap-2 px-2 py-1 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-800"
                 >
-                  {showAchievements ? 'Hide' : 'Show'}
+                  {showAchievements ? 'Hide Tasks' : 'Show Tasks'}
                 </button>
               }
               className="sticky top-6 mb-4"
             >
+                            {/* My Trophies (claimed only) — always visible */}
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs text-slate-400 mb-2">My Trophies</p>
+                  <div className="flex flex-wrap gap-2">
+                    {soloAchievements.filter(a => a.claimed).length === 0 ? (
+                      <span className="text-slate-500 text-xs">No trophies yet.</span>
+                    ) : (
+                      soloAchievements
+                        .filter(a => a.claimed)
+                        .map(a => (
+                          <div key={a.id} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/60 px-2 py-1">
+                            <TrophyIcon icon_key={a.icon_key} />
+                            <span className="text-xs text-white truncate max-w-[160px]" title={a.name}>{a.name}</span>
+                          </div>
+                        ))
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {showAchievements && (
                 <div className="space-y-4">
-                  {/* My Trophies (claimed only) */}
-                  <div>
-                    <p className="text-xs text-slate-400 mb-2">My Trophies</p>
-                    <div className="flex flex-wrap gap-2">
-                      {soloAchievements.filter(a => a.claimed).length === 0 ? (
-                        <span className="text-slate-500 text-xs">No trophies yet.</span>
-                      ) : (
-                        soloAchievements
-                          .filter(a => a.claimed)
-                          .map(a => (
-                            <div key={a.id} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/60 px-2 py-1">
-                              <TrophyIcon icon_key={a.icon_key} />
-                              <span className="text-xs text-white truncate max-w-[160px]" title={a.name}>{a.name}</span>
-                            </div>
-                          ))
-                      )}
-                    </div>
-                  </div>
-
+                  
                   {/* Tasks: unclaimed only, across ALL scopes */}
                   <div>
                     <p className="text-xs text-slate-400 mb-2">Tasks</p>
@@ -748,10 +774,13 @@ const handleClaim = async (achievementId: number) => {
                         // sort: claimable → unlocked → in-progress → locked
                         const score = (a: SoloAchievementItem) =>
                           a.can_claim ? 3 : a.unlocked ? 2 : a.progress > 0 ? 1 : 0;
-                        const tasksAll = [...soloAchievements].filter(a => !a.claimed).sort((a,b) => {
+                       const tasksAll = [...soloAchievements]
+                        .filter(a => !a.claimed) // include claimables + in-progress + locked
+                        .sort((a,b) => {
                           const s = score(b) - score(a);
                           return s !== 0 ? s : (b.progress - a.progress);
                         });
+
 
                         const visible = achExpanded ? tasksAll : tasksAll.slice(0, 5);
 
@@ -779,28 +808,24 @@ const handleClaim = async (achievementId: number) => {
                                             </span>
                                           </div>
 
-                                          {item.can_claim ? (
-                                            <button
-                                              disabled={claimingId === item.id}
-                                              onClick={() => handleClaim(item.id)}
-                                              className="text-[11px] px-2 py-1 rounded-md bg-yellow-500 hover:bg-yellow-400 text-black font-semibold disabled:opacity-60"
-                                              title={`+${item.xp_reward} XP, +${item.stars_reward}★`}
-                                            >
-                                              {claimingId === item.id ? 'Claiming…' : `Claim +${item.xp_reward} XP, +${item.stars_reward}★`}
-                                            </button>
-                                          ) : item.unlocked ? (
-                                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-yellow-500/15 border border-yellow-700 text-yellow-300">
-                                              Ready to claim soon
-                                            </span>
-                                          ) : item.progress > 0 ? (
-                                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-cyan-900/30 border border-cyan-800 text-cyan-300">
-                                              In progress
-                                            </span>
-                                          ) : (
-                                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 border border-slate-600 text-slate-300">
-                                              Locked
-                                            </span>
-                                          )}
+                                         {item.can_claim ? (
+                                              <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-900/30 border border-amber-800 text-amber-300">
+                                                Ready to claim
+                                              </span>
+                                            ) : item.unlocked ? (
+                                              <span className="text-[10px] px-2 py-0.5 rounded-md bg-yellow-900/20 border border-yellow-800 text-yellow-300">
+                                                Completed
+                                              </span>
+                                            ) : item.progress > 0 ? (
+                                              <span className="text-[10px] px-2 py-0.5 rounded-md bg-cyan-900/30 border border-cyan-800 text-cyan-300">
+                                                In progress
+                                              </span>
+                                            ) : (
+                                              <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 border border-slate-600 text-slate-300">
+                                                Locked
+                                              </span>
+                                            )}
+
                                         </div>
 
                                         {item.description && (
@@ -821,9 +846,35 @@ const handleClaim = async (achievementId: number) => {
                                             <span>{item.progress}%</span>
                                           </div>
 
-                                          <div className="mt-2 text-[10px] text-slate-400">
-                                            Reward: <span className="text-white font-medium">+{item.xp_reward} XP</span> • <span className="inline-flex items-center gap-1"><Star className="h-3 w-3 text-yellow-400" /> {item.stars_reward}</span>
-                                          </div>
+                                          <div className="mt-2 flex items-center justify-between gap-2">
+                                              <div className="text-[10px] text-slate-400">
+                                                Reward: <span className="text-white font-medium">+{item.xp_reward} XP</span> •{" "}
+                                                <span className="inline-flex items-center gap-1">
+                                                  <Star className="h-3 w-3 text-yellow-400" /> {item.stars_reward}
+                                                </span>
+                                              </div>
+
+                                              {item.can_claim && (
+                                                <button
+                                                  onClick={() => handleClaim(item.id)}
+                                                  disabled={claimingId === item.id}
+                                                  className="text-[11px] inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border border-yellow-700 bg-yellow-500/10 text-yellow-200 hover:bg-yellow-500/20 disabled:opacity-60"
+                                                >
+                                                  {claimingId === item.id ? (
+                                                    <>
+                                                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                      Claiming…
+                                                    </>
+                                                  ) : (
+                                                    <>
+                                                      <Trophy className="h-3.5 w-3.5" />
+                                                      Claim
+                                                    </>
+                                                  )}
+                                                </button>
+                                              )}
+                                            </div>
+
                                         </div>
                                       </div>
                                     </div>
@@ -905,59 +956,28 @@ const handleClaim = async (achievementId: number) => {
             </Section>
           </div>
         </div>
-
-        <AnimatePresence>
-  {rewardModal.open && (
-    <motion.div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={() => setRewardModal(r => ({ ...r, open: false }))}
+{/* Reward toasts (bottom-right) */}
+<div className="fixed bottom-4 right-4 z-[60] space-y-2">
+  {toasts.map(t => (
+    <div
+      key={t.id}
+      className="flex items-center gap-3 rounded-xl border border-yellow-700 bg-slate-900/90 backdrop-blur px-4 py-3 shadow-lg"
     >
-      <motion.div
-        className="relative w-full max-w-sm mx-4 rounded-2xl border border-yellow-700 bg-gradient-to-b from-slate-900 to-slate-950 p-6 text-center"
-        initial={{ scale: 0.9, y: 20, opacity: 0 }}
-        animate={{ scale: 1, y: 0, opacity: 1 }}
-        exit={{ scale: 0.95, y: 12, opacity: 0 }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="absolute -top-8 left-1/2 -translate-x-1/2">
-          <motion.div
-            initial={{ rotate: -10, scale: 0.8 }}
-            animate={{ rotate: 0, scale: 1 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 12 }}
-            className="inline-flex items-center justify-center h-16 w-16 rounded-full border border-yellow-700 bg-yellow-400/20 backdrop-blur"
-          >
-            {rewardModal.icon_key
-              ? <img src={`/trophies/${rewardModal.icon_key}.svg`} className="h-9 w-9" />
-              : <Trophy className="h-9 w-9 text-yellow-400" />
-            }
-          </motion.div>
-        </div>
-
-        <h3 className="mt-8 text-white text-lg font-bold">Achievement Unlocked!</h3>
-        <p className="mt-1 text-slate-300 text-sm">{rewardModal.name}</p>
-
-        <div className="mt-4 flex items-center justify-center gap-4">
-          <div className="rounded-xl px-3 py-2 bg-yellow-500/15 border border-yellow-700 text-yellow-300 text-sm font-semibold">
-            +{rewardModal.xp} XP
-          </div>
-          <div className="rounded-xl px-3 py-2 bg-amber-500/15 border border-amber-700 text-amber-300 text-sm font-semibold inline-flex items-center gap-1">
-            <Star className="h-4 w-4 text-yellow-400" /> +{rewardModal.stars}
-          </div>
-        </div>
-
-        <button
-          onClick={() => setRewardModal(r => ({ ...r, open: false }))}
-          className="mt-6 w-full rounded-xl bg-yellow-500 hover:bg-yellow-400 text-black font-semibold px-4 py-2"
-        >
-          Nice!
-        </button>
-      </motion.div>
-    </motion.div>
-  )}
-</AnimatePresence>
+      <div className="p-2 rounded-lg border border-yellow-700 bg-yellow-500/10">
+        {t.icon_key
+          ? <img src={`/trophies/${t.icon_key}.svg`} className="h-5 w-5" />
+          : <Trophy className="h-5 w-5 text-yellow-400" />
+        }
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm text-white font-semibold truncate" title={t.name}>Achievement Unlocked: {t.name}</p>
+        <p className="text-xs text-slate-300">
+          +{t.xp} XP • <span className="inline-flex items-center gap-1"><Star className="h-3 w-3 text-yellow-400" /> {t.stars}</span>
+        </p>
+      </div>
+    </div>
+  ))}
+</div>
 
       </AppLayout>
     </div>

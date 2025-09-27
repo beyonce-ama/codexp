@@ -1,168 +1,160 @@
+// imports unchanged, but you can remove Settings if no longer used
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, usePage, router } from '@inertiajs/react';
 import {
-  Trophy,
-  Settings,
-  ChevronDown,
-  Menu,
-  X,
-  User,
-  LogOut,
-  Star,
-  Crown,
-  Target,
-  Users,
-  BookOpen,
-  Code,
-  Swords,
-  LayoutGrid,
-  Brain,
-  Clock,
+  ChevronDown, Menu, X, User, LogOut, Target, Users, BookOpen, Code,
+  Swords, LayoutGrid, Brain, Clock, Zap, Star,
 } from 'lucide-react';
+import { Volume2, VolumeX, Music } from 'lucide-react';
+import { audio } from '@/utils/sound';
+import { apiClient } from '@/utils/api';
 
-interface GameUser {
-  id: number;
-  name: string;
-  username?: string;
-  email: string;
-  level?: number;
-  xp?: number;
-  total_xp?: number;
-  rank_name?: string;
-  rank_stars?: number;
-  winrate?: number;
-  avatar_url?: string;
-  role: string;
-}
-
-interface NavItem {
-  title: string;
-  href: string;
-  icon: React.ComponentType<any>;
-}
-
-/* ---------- Helpers ---------- */
 const safeCurrentPath = (pageUrl?: string) => {
   if (pageUrl) return pageUrl.split('?')[0];
   if (typeof window !== 'undefined') return window.location.pathname;
   return '/';
 };
+const getLevelFromXP = (totalXP?: number) => Math.floor(Number(totalXP || 0) / 10) + 1;
 
-/* ---------- SafeLink wrapper ---------- */
 const SafeLink = ({ href, children, ...props }: any) => {
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) {
-      e.preventDefault(); // prevent opening in new tab
+    // Block opening in new tab / new window behaviors
+    if (
+      e.button !== 0 ||          // not left click (e.g., middle/right)
+      e.ctrlKey || e.metaKey ||  // Ctrl/Cmd click
+      e.shiftKey || e.altKey     // Shift/Alt modifiers
+    ) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
     }
-  };
-
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault(); // disable right-click open
+    // Let Inertia handle normal left-click navigation
   };
 
   return (
     <Link
       href={href}
-      {...props}
       onClick={handleClick}
-      onContextMenu={handleContextMenu}
+      onAuxClick={(e) => { e.preventDefault(); e.stopPropagation(); }} // middle-click
+      onMouseDown={(e) => { if (e.button !== 0) { e.preventDefault(); e.stopPropagation(); } }}
+      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }} // right-click
+      draggable={false}
+      {...props}
     >
       {children}
     </Link>
   );
 };
 
-const XPProgressBar = ({ currentXP, level }: { currentXP: number; level: number }) => {
-  const xpForCurrentLevel = (level - 1) * 50;
-  const xpForNextLevel = level * 50;
-  const progressXP = Math.max(0, currentXP - xpForCurrentLevel);
-  const neededXP = Math.max(1, xpForNextLevel - xpForCurrentLevel);
-  const progress = Math.min((progressXP / neededXP) * 100, 100);
 
-  return (
-    <div className="flex items-center gap-2">
-      <div className="text-[10px] sm:text-xs text-orange-300 font-semibold tracking-wide">LVL {level}</div>
-      <div className="w-24 sm:w-28 h-2 rounded-full bg-slate-800/80 ring-1 ring-slate-700/60 overflow-hidden">
-        <div
-          className="h-full bg-gradient-to-r from-orange-500 via-amber-400 to-yellow-300 transition-[width] duration-500"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-      <div className="text-[10px] sm:text-xs text-gray-300 tabular-nums">
-        {progressXP}/{neededXP}
-      </div>
+const Tip = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <div className="group relative" title={label}>
+    {children}
+    <div className="pointer-events-none absolute left-12 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-slate-800/95 text-[10px] text-white px-2 py-1 opacity-0 shadow-lg ring-1 ring-slate-700 transition group-hover:opacity-100 hidden xl:block">
+      {label}
     </div>
-  );
-};
+  </div>
+);
 
-const RankBadge = ({ rank, stars }: { rank: string; stars: number }) => {
-  const color =
-    {
-      rookie: 'text-gray-400',
-      bronze: 'text-orange-500',
-      silver: 'text-slate-200',
-      gold: 'text-yellow-400',
-      platinum: 'text-blue-300',
-      diamond: 'text-cyan-300',
-    }[rank?.toLowerCase()] || 'text-gray-400';
+export type AppHeaderProps = { hidden?: boolean };
 
-  return (
-    <div className="flex items-center gap-1">
-      <Crown className={`w-4 h-4 ${color}`} />
-      <span className={`text-xs font-bold capitalize ${color}`}>{rank || 'rookie'}</span>
-      <div className="flex">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Star key={i} className={`w-3 h-3 ${i < (stars ?? 0) ? 'text-yellow-400 fill-current' : 'text-slate-600'}`} />
-        ))}
-      </div>
-    </div>
-  );
-};
-
-type Props = { hidden?: boolean };
-
-export default function AppHeader({ hidden = false }: Props) {
+export default function AppHeader({ hidden = false }: AppHeaderProps) {
   const page: any = usePage();
+  const { auth } = page.props || {};
+  const user = auth?.user as any;
+
   const clientPath = typeof window !== 'undefined' ? window.location.pathname : '';
   const path = clientPath || page?.url || '';
-
   const hideForMatch = /^\/play\/m(atch)?\/.+/i.test(path);
-
   if (hidden || hideForMatch) return null;
 
-  const { auth } = page.props || {};
-  const user: GameUser = auth?.user;
-  const avatarSrc = user?.avatar_url || '/avatars/default.png';
+  const avatarSrc = user?.avatar_url
+    ? (user.avatar_url.startsWith('/') ? user.avatar_url : '/' + user.avatar_url)
+    : '/avatars/default.png';
+  const totalXP = Number(user?.total_xp ?? 0);
+  const level = getLevelFromXP(totalXP);
+  const stars = Number(user?.stars ?? 0);
 
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
+  // ✅ moved inside component
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(!!user?.sound_enabled);
+  const [musicEnabled, setMusicEnabled] = useState<boolean>(!!user?.music_enabled);
+
+  // keep toggles in sync when auth refreshes
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 8);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    setSoundEnabled(!!user?.sound_enabled);
+    setMusicEnabled(!!user?.music_enabled);
+  }, [user?.sound_enabled, user?.music_enabled]);
+
+  const toggleSound = async () => {
+    const next = !soundEnabled;
+    setSoundEnabled(next);
+    audio.setSoundEnabled(next);
+    try {
+      // If Ziggy route() exists, keep it. Otherwise: '/me/preferences'
+      await apiClient.patch(route?.('me.preferences.update') ?? '/me/preferences', { sound_enabled: next ? 1 : 0 });
+      router.reload({ only: ['auth'] });
+      audio.play('click');
+    } catch {
+      setSoundEnabled(!next);
+    }
+  };
+
+const toggleMusic = async () => {
+  const next = !musicEnabled;
+
+  // 👇 optimistic UI
+  setMusicEnabled(next);
+  audio.setMusicEnabled(next);
+
+  // 👇 tell the layout to start/stop immediately
+  try {
+    window.dispatchEvent(new CustomEvent('app:music-setting', { detail: { enabled: next } }));
+  } catch {}
+
+  try {
+    await apiClient.patch(route?.('me.preferences.update') ?? '/me/preferences', {
+      music_enabled: next ? 1 : 0,
+    });
+    router.reload({ only: ['auth'] }); // keeps header badges etc in sync
+    audio.play('click');
+  } catch {
+    // revert if server failed
+    setMusicEnabled(!next);
+    audio.setMusicEnabled(!next);
+    // also revert layout
+    try {
+      window.dispatchEvent(new CustomEvent('app:music-setting', { detail: { enabled: !next } }));
+    } catch {}
+  }
+};
+
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setUserMenuOpen(false);
-      }
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
-        setMobileMenuOpen(false);
-      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) setUserMenuOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    const unlisten = router.on('success', () => setSidebarOpen(false));
+    return () => unlisten();
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSidebarOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const handleLogout = () => router.post('/logout');
 
-  const getNavItems = useMemo<NavItem[]>(() => {
+  const navItems = useMemo(() => {
     if (user?.role === 'admin') {
       return [
         { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
@@ -176,181 +168,144 @@ export default function AppHeader({ hidden = false }: Props) {
       { title: 'AI Challenges', href: '/play/ai-challenges', icon: Brain },
       { title: 'Practice', href: '/play/practice', icon: BookOpen },
       { title: 'Invite Duel', href: '/play/duel', icon: Swords },
-      { title: 'Live duel', href: '/play/Matchmaking', icon: Clock },
+      { title: 'Live Duel', href: '/play/Matchmaking', icon: Clock },
       { title: 'My Profile', href: '/profile', icon: User },
     ];
   }, [user?.role]);
 
   const currentPath = safeCurrentPath(page?.url);
-  const isActive = (href: string) =>
-    currentPath === href || (href !== '/' && currentPath?.startsWith(href));
+  const isActive = (href: string) => currentPath === href || (href !== '/' && currentPath?.startsWith(href));
+
+  const QuickShortcutDock = () => (
+    <aside className="fixed left-0 top-0 bottom-0 z-40 hidden lg:flex bg-slate-950/60 backdrop-blur-md border-r border-slate-800/70 shadow-xl w-14 overflow-y-auto overflow-x-hidden overscroll-contain">
+      <div className="pt-18 pb-3 px-2 flex flex-col items-center gap-2 w-full">
+        {navItems.map((item) => {
+          const ActiveIcon = item.icon as any;
+          const active = isActive(item.href);
+          return (
+            <Tip key={item.href} label={item.title}>
+              <SafeLink
+                href={item.href}
+                className={[
+                  'grid place-items-center w-10 h-10 rounded-xl ring-1 transition',
+                  active
+                    ? 'bg-slate-800/70 text-orange-300 ring-orange-500/30 shadow-lg shadow-orange-500/10'
+                    : 'text-slate-300 hover:text-orange-300 hover:bg-slate-800/50 ring-slate-700/60',
+                ].join(' ')}
+              >
+                <ActiveIcon className="w-5 h-5" />
+              </SafeLink>
+            </Tip>
+          );
+        })}
+      </div>
+    </aside>
+  );
 
   return (
-    <header
-      className={[
-        'sticky top-0 z-30',
-        'backdrop-blur-md bg-gradient-to-r from-slate-950/70 via-slate-900/60 to-slate-950/70',
-        'border-b',
-        scrolled ? 'border-orange-500/40 shadow-[0_10px_30px_-10px_rgba(255,138,76,0.25)]' : 'border-slate-800/70',
-        'transition-all duration-300',
-      ].join(' ')}
-    >
-      {/* Top accent line */}
-      <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-orange-500/50 to-transparent" />
+    <>
+      <header
+  className="bg-slate-950/70 backdrop-blur-md border-b border-slate-800/70 sticky top-0 z-50"
+  onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
+>
 
-      <div className="mx-auto max-w-[120rem] px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          {/* Left: Brand + Mobile Toggle */}
-          <div className="flex items-center gap-3">
-            <button
-              className="md:hidden inline-flex p-2 rounded-xl ring-1 ring-slate-700/70 text-slate-200 hover:text-orange-300 hover:bg-slate-800/70 transition"
-              onClick={() => setMobileMenuOpen((v) => !v)}
-              aria-label="Toggle navigation"
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+        <div className="mx-auto max-w-[120rem] px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                className="inline-flex p-2 rounded-xl ring-1 ring-slate-700/70 text-slate-200 hover:text-orange-300 hover:bg-slate-800/70 transition"
+                onClick={() => setSidebarOpen((v) => !v)}
+                aria-label="Toggle navigation"
+              >
+                {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
 
-            <SafeLink href="/dashboard" className="flex items-center gap-2 group">
-              <div className="flex flex-col leading-tight">
+              <SafeLink href="/dashboard" className="flex items-center gap-2 group">
                 <span className="text-lg sm:text-xl font-extrabold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-300">
                   CODEXP AI
                 </span>
-                <span className="text-[10px] sm:text-xs text-slate-400 tracking-[0.2em] group-hover:text-slate-300 transition">
-                  COMPETITIVE CODING
-                </span>
-              </div>
-            </SafeLink>
-          </div>
-
-          {/* Center: Player strip (now with avatar) */}
-          {user?.level ? (
-            <div
-              className={[
-                'hidden lg:flex items-center gap-5',
-                'rounded-2xl px-4 py-2',
-                'bg-slate-900/50 ring-1 ring-slate-700/60',
-                'shadow-inner shadow-black/30',
-              ].join(' ')}
-            >
-              <div className="w-8 h-8 rounded-full overflow-hidden ring-1 ring-slate-700/60 shrink-0">
-                <img src={avatarSrc} alt="Me" className="w-full h-full object-cover" />
-              </div>
-              <XPProgressBar currentXP={user.total_xp || 0} level={user.level || 1} />
-              <div className="h-4 w-px bg-slate-700/70" />
-              <RankBadge rank={user.rank_name || 'rookie'} stars={user.rank_stars || 0} />
-              <div className="h-4 w-px bg-slate-700/70" />
-              <div className="flex items-center gap-1">
-                <Trophy className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs text-emerald-400 font-medium tabular-nums">
-                  {(user.winrate ?? 0).toFixed(1)}%
-                </span>
-              </div>
+              </SafeLink>
             </div>
-          ) : (
-            <div className="hidden lg:block" />
-          )}
 
-          {/* Right: Desktop nav + user */}
-          <div className="flex items-center gap-2">
-            <nav className="hidden md:flex items-center gap-1">
-              {getNavItems.map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <SafeLink
-                    key={item.href}
-                    href={item.href}
-                    className={[
-                      'group relative flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium',
-                      'transition',
-                      active
-                        ? 'text-orange-300 bg-slate-800/60 ring-1 ring-orange-500/30'
-                        : 'text-slate-300 hover:text-orange-300 hover:bg-slate-800/40 ring-1 ring-transparent hover:ring-slate-700/60',
-                    ].join(' ')}
-                  >
-                    {item.icon && <item.icon className="w-4 h-4" />}
-                    <span>{item.title}</span>
-                    <span
-                      className={[
-                        'pointer-events-none absolute -bottom-1 left-3 right-3 h-[2px] rounded-full',
-                        active ? 'bg-gradient-to-r from-orange-500 via-amber-400 to-yellow-300' : 'bg-transparent',
-                        'transition-all duration-300',
-                      ].join(' ')}
-                    />
-                  </SafeLink>
-                );
-              })}
-            </nav>
-
-            {/* User menu */}
             {user && (
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setUserMenuOpen((v) => !v)}
-                  className="flex items-center gap-2 p-1.5 rounded-xl text-slate-200 hover:bg-slate-800/60 ring-1 ring-slate-700/60 transition"
+                  className="flex items-center gap-3 p-1.5 rounded-xl text-slate-200 hover:bg-slate-800/60 ring-1 ring-slate-700/60 transition"
                   aria-haspopup="menu"
                   aria-expanded={userMenuOpen}
                 >
-                  <div className="w-8 h-8 rounded-full bg-white text-slate-900 font-bold text-sm overflow-hidden grid place-items-center ring-1 ring-slate-300">
-                    {user.avatar_url ? (
-                      <img src={user.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      (user.username || user.name || '?').charAt(0).toUpperCase()
-                    )}
+                  <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-orange-400 shadow-md bg-white">
+                    <img src={avatarSrc} alt="Avatar" className="w-full h-full object-cover" />
                   </div>
-                  <div className="hidden sm:block text-left leading-tight">
-                    <p className="text-sm font-semibold text-white truncate max-w-[10rem]">
+                  <div className="flex flex-col items-start leading-tight">
+                    <span className="font-bold text-sm sm:text-base text-white">
                       {user.username || user.name}
-                    </p>
+                    </span>
+                    <span className="text-xs font-semibold text-orange-300">LVL {level}</span>
                   </div>
                   <ChevronDown className="w-4 h-4 text-slate-400" />
                 </button>
 
                 {userMenuOpen && (
-                  <div
-                    className={[
-                      'absolute right-0 mt-2 w-72',
-                      'rounded-2xl overflow-hidden',
-                      'bg-slate-900/95 backdrop-blur-md',
-                      'ring-1 ring-slate-700/70 shadow-2xl shadow-black/50',
-                      'animate-in fade-in slide-in-from-top-2',
-                      'z-50',
-                    ].join(' ')}
-                    role="menu"
-                  >
+                  <div className="absolute right-0 mt-2 w-72 rounded-2xl overflow-hidden bg-slate-900/95 backdrop-blur-md ring-1 ring-slate-700/70 shadow-2xl z-50">
                     <div className="p-4 border-b border-slate-800/80">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-white text-slate-900 font-bold overflow-hidden grid place-items-center ring-1 ring-slate-300">
-                          <img src={avatarSrc} alt="Avatar" className="w-full h-full object-cover" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-semibold text-white truncate">{user.username || user.name}</p>
-                          <p className="text-xs text-slate-400 truncate">{user.email}</p>
-                          {user.rank_name !== undefined && user.rank_stars !== undefined && (
-                            <div className="mt-1">
-                              <RankBadge rank={user.rank_name || 'rookie'} stars={user.rank_stars || 0} />
-                            </div>
-                          )}
-                        </div>
+                      <p className="font-semibold text-white truncate">{user.username || user.name}</p>
+                      <p className="text-xs text-slate-400 truncate">{user.email}</p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-300 ring-1 ring-orange-500/30">
+                          Level {level}
+                        </span>
+                        <span className="text-[11px] text-slate-400">XP {totalXP}</span>
+                        {stars >= 0 && (
+                          <span className="flex items-center gap-1 text-[11px] text-yellow-400">
+                            <Star className="w-3 h-3" />
+                            <span>{stars}</span>
+                          </span>
+                        )}
                       </div>
                     </div>
 
-                    <div className="p-2">
-                      <SafeLink
-                        href="/settings"
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-200 hover:bg-slate-800/70 transition"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        <Settings className="w-4 h-4" />
-                        <span>Settings</span>
-                      </SafeLink>
+                    {/* ▼ Replaced Settings with Music/Sound controls */}
+                    <div className="p-3 flex items-center justify-between gap-2">
+                      <span className="text-xs text-slate-400">Audio</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={toggleSound}
+                          className={[
+                            'p-2 rounded-xl border transition',
+                            soundEnabled
+                              ? 'bg-green-600 text-white border-green-600'
+                              : 'bg-white/10 text-white border-white/20',
+                          ].join(' ')}
+                          title={soundEnabled ? 'Sound: On' : 'Sound: Off'}
+                        >
+                          {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+                        </button>
 
-                      <button
+                        <button
+                          onClick={toggleMusic}
+                          className={[
+                            'p-2 rounded-xl border transition',
+                            musicEnabled
+                              ? 'bg-indigo-600 text-white border-indigo-600'
+                              : 'bg-white/10 text-white border-white/20',
+                          ].join(' ')}
+                          title={musicEnabled ? 'Music: On' : 'Music: Off'}
+                        >
+                          <Music className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="px-2 pb-2">
+                      {/* <button
                         onClick={handleLogout}
                         className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-900/20 transition"
                       >
                         <LogOut className="w-4 h-4" />
                         <span>Sign Out</span>
-                      </button>
+                      </button> */}
                     </div>
                   </div>
                 )}
@@ -358,70 +313,111 @@ export default function AppHeader({ hidden = false }: Props) {
             )}
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Mobile drawer */}
+      <QuickShortcutDock />
+
+      {/* Backdrop */}
       <div
         className={[
-          'md:hidden overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out',
-          mobileMenuOpen ? 'max-h-[28rem] opacity-100' : 'max-h-0 opacity-0',
+          'fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px] transition-opacity lg:hidden',
+          sidebarOpen ? 'opacity-100' : 'pointer-events-none opacity-0',
         ].join(' ')}
-        ref={mobileMenuRef}
+        onClick={() => setSidebarOpen(false)}
+        aria-hidden
+      />
+
+      {/* Panel */}
+     <div
+        className={[
+          'fixed inset-y-0 left-0 w-80 max-w-[85vw] z-50 transform transition-transform duration-300 ease-in-out',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+          'bg-slate-900/95 backdrop-blur-md border-r border-slate-800/80 shadow-xl',
+          'flex flex-col overflow-x-hidden',
+        ].join(' ')}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation"
+        onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
       >
-        <div className="bg-slate-900/90 backdrop-blur-md border-t border-slate-800/80">
-          {/* Mobile: profile header with avatar */}
-          {user && (
-            <div className="p-4 border-b border-slate-800/80">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full overflow-hidden ring-1 ring-slate-700/60">
-                  <img src={avatarSrc} alt="Avatar" className="w-full h-full object-cover" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">{user.username || user.name}</p>
-                  <p className="text-xs text-slate-400 truncate">{user.email}</p>
-                </div>
-              </div>
-            </div>
-          )}
 
-          {user?.level && (
-            <div className="p-4 border-b border-slate-800/80">
-              <div className="space-y-3">
-                <XPProgressBar currentXP={user.total_xp || 0} level={user.level || 1} />
-                <div className="flex items-center justify-between">
-                  <RankBadge rank={user.rank_name || 'rookie'} stars={user.rank_stars || 0} />
-                  <div className="flex items-center gap-1">
-                    <Trophy className="w-4 h-4 text-emerald-400" />
-                    <span className="text-xs text-emerald-400 font-medium tabular-nums">
-                      {(user.winrate ?? 0).toFixed(1)}%
+{/* Close button only (sticky top) */}
+<div className="sticky top-0 z-10 flex justify-end px-3 py-2 bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80">
+  <button
+    onClick={() => setSidebarOpen(false)}
+    className="inline-flex items-center justify-center h-10 w-10 rounded-xl ring-1 ring-slate-700/60 text-slate-300 hover:text-orange-300 hover:bg-slate-800/40 transition focus:outline-none focus:ring-2 focus:ring-orange-400/40"
+    aria-label="Close sidebar"
+  >
+    <X className="w-5 h-5" />
+    <span className="sr-only">Close</span>
+  </button>
+</div>
+
+
+
+
+        {/* User card in sidebar (requested) */}
+        {user && (
+          <div className="p-4 border-b border-slate-800/80">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-orange-400 shadow-md bg-white">
+                <img src={avatarSrc} alt="Avatar" className="w-full h-full object-cover" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-white font-semibold truncate">{user.username || user.name}</div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-300 ring-1 ring-orange-500/30">
+                      Level {level}
                     </span>
+
+                    <span className="text-[11px] text-slate-400">XP {totalXP}</span>
+
+                    {stars >= 0 && (
+                      <span className="flex items-center gap-1 text-[11px] text-yellow-400">
+                        <Star className="w-3 h-3" />
+                        <span>{stars}</span>
+                      </span>
+                    )}
                   </div>
-                </div>
+
+
               </div>
             </div>
-          )}
-
-          <div className="p-3 space-y-1">
-            {getNavItems.map((item) => (
-              <SafeLink
-                key={item.href}
-                href={item.href}
-                className={[
-                  'flex items-center gap-3 px-3 py-2 rounded-xl',
-                  isActive(item.href)
-                    ? 'text-orange-300 bg-slate-800/60 ring-1 ring-orange-500/30'
-                    : 'text-slate-200 hover:text-orange-300 hover:bg-slate-800/50',
-                ].join(' ')}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <item.icon className="w-5 h-5" />
-                <span className="font-medium">{item.title}</span>
-              </SafeLink>
-            ))}
           </div>
+        )}
+
+        {/* Nav list */}
+        <div className="flex-1 p-3 space-y-1 overflow-y-auto overscroll-contain">
+          {navItems.map((item) => (
+            <SafeLink
+              key={item.href}
+              href={item.href}
+              className={[
+                'flex items-center gap-3 px-3 py-2 rounded-lg',
+                isActive(item.href)
+                  ? 'bg-slate-800/60 text-orange-300 ring-1 ring-orange-500/30'
+                  : 'text-slate-200 hover:text-orange-300 hover:bg-slate-800/40',
+              ].join(' ')}
+            >
+              <item.icon className="w-5 h-5" />
+              <span>{item.title}</span>
+            </SafeLink>
+          ))}
+        </div>
+
+        {/* Footer quick actions */}
+        <div className="mt-auto p-3 border-t border-slate-800/80">
+         
+          <button
+            onClick={handleLogout}
+            className="mt-1 w-full flex items-center gap-2 px-3 py-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-900/20"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Sign Out</span>
+          </button>
         </div>
       </div>
-    </header>
+    </>
   );
 }
 

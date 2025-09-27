@@ -21,10 +21,17 @@ class AchievementController extends Controller
             ->where('status', 'completed')   // lowercase matches your SoloUsageController
             ->count();
 
-        $achievements = Achievement::where('enabled', true)
-            ->where('scope', 'SOLO')
-            ->orderBy('threshold')
-            ->get();
+$achievements = Achievement::query()
+    // treat NULL as enabled, or pass ?scope=... to filter
+    ->where(function ($q) {
+        $q->where('enabled', true)->orWhereNull('enabled');
+    })
+    ->when($request->filled('scope'), function ($q) use ($request) {
+        $q->whereRaw('UPPER(scope) = ?', [strtoupper((string)$request->input('scope'))]);
+    })
+    ->orderByRaw("COALESCE(NULLIF(scope,''),'GENERAL') asc")
+    ->orderBy('threshold')
+    ->get();
 
         $userMap = UserAchievement::where('user_id', $uid)
             ->get()
@@ -36,21 +43,23 @@ class AchievementController extends Controller
             $claimed  = (bool) optional($ua)->claimed_at;
             $progress = min(100, (int) floor(($soloCompleted / max(1,$a->threshold))*100));
 
-            return [
-                'id'           => $a->id,
-                'code'         => $a->code,
-                'name'         => $a->name,
-                'description'  => $a->description,
-                'icon_key'     => $a->icon_key,
-                'threshold'    => $a->threshold,
-                'xp_reward'    => (int) $a->xp_reward,
-                'stars_reward' => (int) $a->stars_reward,
-                'current'      => $soloCompleted,
-                'progress'     => $progress,
-                'unlocked'     => $unlocked,
-                'claimed'      => $claimed,
-                'can_claim'    => $unlocked && !$claimed,
-            ];
+ return [
+    'id'           => $a->id,
+    'code'         => $a->code,
+    'name'         => $a->name,
+    'description'  => $a->description,
+    'icon_key'     => $a->icon_key,
+    'threshold'    => (int) $a->threshold,
+    'xp_reward'    => (int) $a->xp_reward,
+    'stars_reward' => (int) $a->stars_reward,
+    'current'      => (int) $soloCompleted,
+    'progress'     => (int) $progress,
+    'unlocked'     => (bool) $unlocked,
+    'claimed'      => (bool) $claimed,
+    'can_claim'    => (bool) ($unlocked && !$claimed),
+    'scope'        => strtoupper((string)($a->scope ?? 'GENERAL')), // helpful for UI
+];
+
         });
 
         return response()->json([

@@ -8,8 +8,9 @@ import {
     RefreshCw, Filter, Search, AlertTriangle, Zap,
     CheckCircle, X, Send, Lightbulb, BookOpen, Flame,
     Award, TrendingUp, Sparkles, PartyPopper, Crown,
-    Rocket, Heart, Shield, Sword, Volume2, VolumeX
+    Rocket, Heart, Shield, Sword
 } from 'lucide-react';
+import { audio } from '@/utils/sound';
 import { apiClient } from '@/utils/api';
 import Swal from 'sweetalert2';
 import { withTheme, svgCircle } from "@/utils/swalTheme";
@@ -144,12 +145,10 @@ export default function ParticipantSolo() {
     const [showSuccess, setShowSuccess] = useState(false);
     const [isShaking, setIsShaking] = useState(false);
     const [celebrationActive, setCelebrationActive] = useState(false);
-    const [soundEnabled, setSoundEnabled] = useState(true);
     const [isGlowing, setIsGlowing] = useState(false);
     const [progressAnimation, setProgressAnimation] = useState(false);
     
     // Audio references
-    const audioRef = useRef<{ [key: string]: HTMLAudioElement }>({});
     const animationFrameRef = useRef<number>();
 
     const [takenById, setTakenById] = useState<Record<number, 'viewed' | 'started' | 'abandoned' | 'submitted_incorrect' | 'completed'>>({});
@@ -161,46 +160,17 @@ export default function ParticipantSolo() {
     }
     }, [showChallengeModal]);
 
-    // Initialize sound effects
-    useEffect(() => {
-        const sounds = {
-            success: new Audio('/sounds/correct.mp3'),
-            failure: new Audio('/sounds/failure.mp3'),
-            levelup: new Audio('/sounds/levelup.mp3'),
-            click: new Audio('/sounds/click.mp3'),
-            hover: new Audio('/sounds/hover.mp3'),
-            victory: new Audio('/sounds/victory.mp3'),
-            streak: new Audio('/sounds/streak.mp3'),
-            typing: new Audio('/sounds/typing.mp3')
-        };
-
-        Object.values(sounds).forEach(audio => {
-            audio.volume = 0.6;
-            audio.preload = 'auto';
-        });
-
-        audioRef.current = sounds;
-
-        return () => {
-            Object.values(sounds).forEach(audio => {
-                audio.pause();
-                audio.currentTime = 0;
-            });
-        };
-    }, []);
-
-    // Play sound effect
-    const playSound = (soundName: string) => {
-        if (!soundEnabled || !audioRef.current[soundName]) return;
-        
-        try {
-            const audio = audioRef.current[soundName];
-            audio.currentTime = 0;
-            audio.play().catch(console.error);
-        } catch (error) {
-            console.warn('Could not play sound:', soundName, error);
-        }
-    };
+// Register SFX for this page (idempotent)
+useEffect(() => {
+  audio.registerSfx('success', '/sounds/correct.mp3');
+  audio.registerSfx('failure', '/sounds/failure.mp3');
+  audio.registerSfx('levelup', '/sounds/levelup.mp3');
+  audio.registerSfx('click', '/sounds/click.mp3');
+  audio.registerSfx('hover', '/sounds/hover.mp3');
+  audio.registerSfx('victory', '/sounds/victory.mp3');
+  audio.registerSfx('streak', '/sounds/streak.mp3');
+  audio.registerSfx('typing', '/sounds/typing.mp3');
+}, []);
 
     // Updated leveling system: 10 XP per level
     const calculateLevel = (xp: number) => Math.floor(xp / 10) + 1;
@@ -403,10 +373,10 @@ export default function ParticipantSolo() {
     };
 
     const startChallenge = (challenge: SoloChallenge) => {
-        playSound('click');
+        audio.play('click');
         
         if (userStats?.completed_challenge_ids.includes(challenge.id)) {
-            playSound('failure');
+            audio.play('failure');
             Swal.fire({
                 icon: 'info',
                 title: 'Challenge Already Completed!',
@@ -520,17 +490,17 @@ export default function ParticipantSolo() {
 
     const submitAttempt = async () => {
         if (!selectedChallenge || !userCode.trim()) {
-            playSound('failure');
+            audio.play('failure');
             Swal.fire('Error', 'Please write some code before submitting.', 'error');
             return;
         }
 
         try {
             setSubmitting(true);
-            playSound('typing');
+            audio.play('typing');
             
             if (!selectedChallenge.fixed_code) {
-                playSound('failure');
+                audio.play('failure');
                 Swal.fire('Error', 'This challenge does not have a solution stored in the database.', 'error');
                 setSubmitting(false);
                 return;
@@ -591,7 +561,7 @@ export default function ParticipantSolo() {
                         } : null);
                     }
                    
-                    playSound('success');
+                    audio.play('success');
                     setShowSuccess(true);
                     setCelebrationActive(true);
                     setIsGlowing(true);
@@ -606,14 +576,14 @@ export default function ParticipantSolo() {
 
                     if (leveledUp) {
                         setTimeout(() => {
-                            playSound('levelup');
+                            audio.play('levelup');
                             setShowLevelUp(true);
                             createParticleExplosion(centerX, centerY - 100, 'levelup');
                         }, 1000);
                     }
 
                     setTimeout(() => {
-                        playSound('victory');
+                        audio.play('victory');
                     }, 500);
 
                  // inside: if (isCorrect) { ... after sounds/particles/level calc }
@@ -691,7 +661,7 @@ if (isConfirmed) {
                     }, 7000);
 
                 } else {
-                    playSound('failure');
+                    audio.play('failure');
                     setIsShaking(true);
                     setTimeout(() => setIsShaking(false), 600);
 
@@ -737,7 +707,7 @@ if (isConfirmed) {
             }
         } catch (error) {
             console.error('Error submitting attempt:', error);
-            playSound('failure');
+            audio.play('failure');
             
             let errorMessage = 'Failed to submit your attempt. Please try again.';
             if (error instanceof Error) {
@@ -754,7 +724,7 @@ if (isConfirmed) {
         // If the challenge is completed, close immediately
         if (hasSubmitted && lastSubmissionResult?.isCorrect) {
             await markChallengeAsTaken('completed');
-            playSound('click');
+            audio.play('click');
             setShowChallengeModal(false);
             setSelectedChallenge(null);
             setUserCode('');
@@ -832,7 +802,7 @@ if (isConfirmed) {
             });
         } finally {
             // Always reset modal state
-            playSound('click');
+            audio.play('click');
             setShowChallengeModal(false);
             setSelectedChallenge(null);
             setUserCode('');
@@ -852,7 +822,7 @@ if (isConfirmed) {
 
     const showCorrectAnswerHandler = () => {
         if (selectedChallenge?.fixed_code) {
-            playSound('click');
+            audio.play('click');
             setShowCorrectAnswer(true);
             
             Swal.fire({
@@ -928,7 +898,7 @@ if (isConfirmed) {
                 ${isGlowing ? 'glow-success' : ''}
                 cursor-pointer
             `}
-            onMouseEnter={() => playSound('hover')}
+            onMouseEnter={() => audio.play('hover')}
         >
             <div className="flex items-center space-x-3">
                 <div className={`p-2 rounded-lg ${color} transition-all duration-300`}>
@@ -1011,24 +981,24 @@ if (isConfirmed) {
                             </div>
                         </div>
                         <div className="flex items-center space-x-3">
-                            <button
+                            {/* <button
                                 onClick={() => setSoundEnabled(!soundEnabled)}
                                 className={`p-2 rounded-lg transition-all duration-300 ${
                                     soundEnabled 
                                         ? 'bg-green-600 text-white' 
                                         : 'bg-gray-600 text-gray-300'
                                 }`}
-                                onMouseEnter={() => playSound('hover')}
+                                onMouseEnter={() => audio.play('hover')}
                             >
                                 {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-                            </button>
+                            </button> */}
                             <button
                                 onClick={() => {
-                                    playSound('click');
+                                    audio.play('click');
                                     fetchChallenges();
                                 }}
                                 className="flex items-center space-x-2 px-4 py-2 bg-gray-800/50 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700/50 hover:scale-105 transition-all duration-300"
-                                onMouseEnter={() => playSound('hover')}
+                                onMouseEnter={() => audio.play('hover')}
                             >
                                 <RefreshCw className="h-4 w-4" />
                                 <span>Refresh</span>
@@ -1165,7 +1135,7 @@ if (isConfirmed) {
                                     <div 
                                         key={challenge.id} 
                                         className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-xl p-6 hover:scale-105 hover:shadow-2xl transition-all duration-300 hover:border-cyan-500/50 challenge-card"
-                                        onMouseEnter={() => playSound('hover')}
+                                        onMouseEnter={() => audio.play('hover')}
                                     >
                                         <div className="flex items-start justify-between mb-4">
                                             <div className="flex items-center space-x-2">

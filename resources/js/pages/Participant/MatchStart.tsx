@@ -28,38 +28,57 @@ type PageProps = {
 type FeedItem = { id: string; byMe: boolean; correct: boolean; text: string; ts: number };
 type OpponentInfo = { id: number; name?: string; avatar_url?: string | null };
 
-const stripEmotion = (url?: string | null) => {
-  if (!url) return null;
-  const noQuery = url.split('?')[0];
-  const base = noQuery.replace(/\.(png|jpg|jpeg|webp|gif)$/i, '');
-  return base.replace(/_(sad|think|smirk)$/i, '');
-};
-const extFrom = (url?: string | null) => {
-  if (!url) return '.png';
-  const m = url.split('?')[0].match(/\.(png|jpg|jpeg|webp|gif)$/i);
+type Mood = 'think' | 'smirk' | 'sad' | 'base';
+
+const removeQuery = (u?: string | null) => (u ? u.split('?')[0] : null);
+const getExt = (u?: string | null) => {
+  if (!u) return '.png';
+  const m = removeQuery(u)!.match(/\.(png|jpg|jpeg|webp|gif)$/i);
   return m ? m[0] : '.png';
 };
-const baseSrc = (avatarUrl?: string | null) => {
-  const root = stripEmotion(avatarUrl);
-  if (!root) return null;
-  return `${root}${extFrom(avatarUrl)}`;
+const stripMood = (u?: string | null) => {
+  if (!u) return null;
+  const noQ = removeQuery(u)!;
+  const noExt = noQ.replace(/\.(png|jpg|jpeg|webp|gif)$/i, '');
+  return noExt.replace(/_(sad|think|smirk)$/i, '');
 };
-const emotionSrc = (
-  avatarUrl?: string | null,
-  mood: 'think' | 'smirk' | 'sad' | 'idle' | 'base' = 'think'
-) => {
+
+/** Build a candidate URL for a given mood (no existence check). */
+const buildEmotionUrl = (avatarUrl?: string | null, mood: Mood = 'think') => {
   if (!avatarUrl) return null;
-
-  const noQuery = avatarUrl.split('?')[0];
-  const ext = extFrom(noQuery); // <- use real extension (png/jpg/webp/gif)
-  const root = stripEmotion(noQuery);
+  const root = stripMood(avatarUrl);
   if (!root) return avatarUrl;
+  const ext = getExt(avatarUrl);
+  const emo = mood === 'base' ? '' : `_${mood}`;
+  const url = `${root}${emo}${ext}`;
+  // cache-bust for mood changes (not to defeat CDN, just to avoid stale)
+  return `${url}?v=${Date.now()}`;
+};
 
-  const emo = mood === 'idle' ? 'think' : mood;
-  const file = emo === 'base' ? `${root}${ext}` : `${root}_${emo}${ext}`;
+/** Preload an image and resolve true/false. */
+const preload = (src: string) =>
+  new Promise<boolean>((res) => {
+    const img = new Image();
+    img.onload = () => res(true);
+    img.onerror = () => res(false);
+    img.src = src;
+  });
 
-  // cache-bust so the browser/CDN doesn't reuse the _think image
-  return `${file}?mood=${emo}`;
+/**
+ * Choose the best available mood image:
+ * try desired -> think -> base. Keeps current src if all fail.
+ */
+const chooseMoodSrc = async (
+  avatarUrl: string,
+  desired: Mood,
+  current?: string | null
+): Promise<string | null> => {
+  const tryList: Mood[] = desired === 'base' ? ['base', 'think'] : [desired, 'think', 'base'];
+  for (const m of tryList) {
+    const candidate = buildEmotionUrl(avatarUrl, m);
+    if (candidate && (await preload(candidate))) return candidate;
+  }
+  return current ?? (await preload(buildEmotionUrl(avatarUrl, 'base')!)) ? buildEmotionUrl(avatarUrl, 'base')! : null;
 };
 
 
@@ -225,6 +244,41 @@ export default function MatchStart() {
   const [opponent, setOpponent] = useState<OpponentInfo | null>(null);
   const [oppMood, setOppMood] = useState<'idle' | 'think' | 'smirk' | 'sad' | 'base'>('think');
 
+
+  // ---- Opponent avatar source that only updates after the new image is loaded
+const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
+
+// When opponent changes, preload default moods so first swap is instant
+useEffect(() => {
+  let dead = false;
+  (async () => {
+    if (!opponent?.avatar_url) {
+      setAvatarSrc(null);
+      return;
+    }
+    // Preload think first; if ok set it.
+    const think = buildEmotionUrl(opponent.avatar_url, 'think');
+    if (think && (await preload(think)) && !dead) setAvatarSrc(think);
+    // Warm other moods in background (no state change)
+    const sad = buildEmotionUrl(opponent.avatar_url, 'sad'); sad && preload(sad);
+    const smirk = buildEmotionUrl(opponent.avatar_url, 'smirk'); smirk && preload(smirk);
+    const base = buildEmotionUrl(opponent.avatar_url, 'base'); base && preload(base);
+  })();
+  return () => { dead = true; };
+}, [opponent?.avatar_url]);
+
+// When mood changes, only switch src after target mood image is confirmed loaded
+useEffect(() => {
+  let dead = false;
+  (async () => {
+    if (!opponent?.avatar_url) return;
+    const next = await chooseMoodSrc(opponent.avatar_url, oppMood === 'idle' ? 'think' : oppMood, avatarSrc);
+    if (!dead && next && next !== avatarSrc) setAvatarSrc(next);
+  })();
+  return () => { dead = true; };
+}, [oppMood, opponent?.avatar_url]); // avatarSrc purposely NOT a dep to avoid loops
+
+
   // hide app header while mounted (no beforeunload dialog)
   useEffect(() => {
     document.body.classList.add('hide-app-header');
@@ -244,19 +298,98 @@ export default function MatchStart() {
   const lastOpponentSubIdRef = useRef<string | null>(null);
   const awardedRef = useRef(false);
   const endedRef = useRef(false);
-  
+  const bgmRef = useRef<HTMLAudioElement | null>(null);
+const clamp = (n: number, a = 0, b = 1) => Math.max(a, Math.min(b, n));
+const fadeTo = (audio: HTMLAudioElement, target: number, ms: number) => {
+  const start = audio.volume;
+  const end = clamp(target);
+  const dur = Math.max(1, ms);
+  const t0 = performance.now();
+  const tick = (t: number) => {
+    const k = clamp((t - t0) / dur);
+    audio.volume = start + (end - start) * k;
+    if (k < 1) requestAnimationFrame(tick);
+    else if (end === 0) { audio.pause(); audio.currentTime = 0; }
+  };
+  requestAnimationFrame(tick);
+};
+
   useEffect(() => {
     document.body.classList.add('hide-app-header');
     return () => document.body.classList.remove('hide-app-header');
   }, []);
   
-  // sounds
-  useEffect(() => {
-    try { tickSfx.current = new Audio('/sounds/tick.wav'); } catch {}
-    try { successSfx.current = new Audio('/sounds/correct.mp3'); } catch {}
-    try { failSfx.current = new Audio('/sounds/defeat.wav'); } catch {}
-  }, []);
-  
+// sounds (page-local only)
+useEffect(() => {
+  const mk = (src: string) => {
+    const a = new Audio(src);
+    a.preload = 'auto';
+    a.crossOrigin = 'anonymous';
+    return a;
+  };
+
+  try { tickSfx.current    = mk('/sounds/tick.wav');          tickSfx.current!.volume    = 0.9; } catch {}
+  try { successSfx.current = mk('/sounds/correct.mp3');       successSfx.current!.volume = 0.95; } catch {}
+  try { failSfx.current    = mk('/sounds/defeat.wav');        failSfx.current!.volume    = 0.95; } catch {}
+
+  // BGM – low volume, loop
+  try {
+    if (!bgmRef.current) {
+      bgmRef.current = mk('/audio/bgm.mp3'); // <-- put your track here
+      bgmRef.current.loop = true;
+      bgmRef.current.volume = 0; // we'll fade in if enabled
+    }
+  } catch {}
+
+  // Apply toggle immediately
+  if (!sfxOn) {
+    tickSfx.current?.pause();
+    successSfx.current?.pause();
+    failSfx.current?.pause();
+    if (bgmRef.current) fadeTo(bgmRef.current, 0, 250); // gentle fade out
+  } else {
+    // start or resume bgm quietly, then fade in
+    if (bgmRef.current) {
+      bgmRef.current.play().catch(() => {});
+      // small delay to avoid clicks on first frame
+      setTimeout(() => { if (bgmRef.current) fadeTo(bgmRef.current, 0.22, 600); }, 60);
+    }
+  }
+
+  return () => {
+    // cleanup on unmount
+    bgmRef.current?.pause();
+  };
+}, [sfxOn]);
+
+// One-time unlock on first user interaction (required by autoplay policies)
+useEffect(() => {
+  const unlock = () => {
+    const list = [tickSfx.current, successSfx.current, failSfx.current, bgmRef.current]
+      .filter(Boolean) as HTMLAudioElement[];
+
+    for (const a of list) {
+      try {
+        const p = a.play();
+        if (p && typeof p.then === 'function') {
+          p.then(() => {
+            a.pause();
+            a.currentTime = 0;
+          }).catch(() => {});
+        }
+      } catch {}
+    }
+    window.removeEventListener('pointerdown', unlock);
+    window.removeEventListener('keydown', unlock);
+  };
+  window.addEventListener('pointerdown', unlock, { once: true });
+  window.addEventListener('keydown', unlock, { once: true });
+  return () => {
+    window.removeEventListener('pointerdown', unlock);
+    window.removeEventListener('keydown', unlock);
+  };
+}, []);
+
   const playSfx = (kind: 'tick' | 'success' | 'fail') => {
     if (!sfxOn) return;
     const el = kind === 'tick' ? tickSfx.current : kind === 'success' ? successSfx.current : failSfx.current;
@@ -788,23 +921,20 @@ export default function MatchStart() {
                       <div className="absolute inset-0 rounded-full border-2 border-indigo-500/20 animate-ping-slow" />
                       <div className="absolute inset-3 rounded-full border-2 border-indigo-500/10 animate-pulse-slow" />
                       {/* Avatar */}
-                      {opponent?.avatar_url ? (
-                        <img
-                          key={oppMood} // force repaint when mood changes
-                          src={emotionSrc(opponent?.avatar_url, oppMood) || opponent?.avatar_url || ''}
-                          onError={(e) => {
-                            // if a variant is missing, fall back to think
-                            const fallback = emotionSrc(opponent?.avatar_url, 'think') || opponent?.avatar_url || '';
-                            if (e.currentTarget.src !== fallback) e.currentTarget.src = fallback;
-                          }}
-                          alt="Opponent avatar"
-                          className={`w-44 h-44 object-contain select-none
-                            ${oppMood === 'think' ? 'animate-opp-breathe' : ''}
-                            ${oppMood === 'smirk' ? 'animate-opp-bounce avatar-glow-green' : ''}
-                            ${oppMood === 'sad' ? 'animate-opp-shake avatar-glow-red' : ''}`}
-                        />
+                   {opponent?.avatar_url ? (
+                          <img
+                            src={avatarSrc || buildEmotionUrl(opponent.avatar_url, 'think') || ''}
+                            alt="Opponent avatar"
+                            draggable={false}
+                            loading="eager"
+                            className={`w-44 h-44 object-contain select-none
+                              ${oppMood === 'think' ? 'animate-opp-breathe' : ''}
+                              ${oppMood === 'smirk' ? 'animate-opp-bounce avatar-glow-green' : ''}
+                              ${oppMood === 'sad' ? 'animate-opp-shake avatar-glow-red' : ''}`}
+                          />
+                        ) : (
 
-                      ) : (
+
                         <div className="w-44 h-44 rounded-full bg-indigo-600/20 grid place-items-center border-2 border-slate-700/60">
                           <Target className="w-12 h-12 text-indigo-300 animate-bounce-slow" />
                         </div>
@@ -834,23 +964,18 @@ export default function MatchStart() {
                       
                       {/* Avatar */}
                       <div className="absolute inset-0 flex items-center justify-center">
-                        {opponent?.avatar_url ? (
-                          <img
-                            key={oppMood} // <- force rerender on mood change
-                            src={emotionSrc(opponent.avatar_url, oppMood) || opponent.avatar_url || ''}
-                            onError={(e) => {
-                              // if a specific mood variant is missing, fall back to 'think'
-                              const fallback = emotionSrc(opponent?.avatar_url, 'think') || opponent?.avatar_url || '';
-                              if (e.currentTarget.src !== fallback) e.currentTarget.src = fallback;
-                            }}
-                            alt="Opponent avatar"
-                            className={`w-40 h-40 object-contain select-none
-                              ${oppMood === 'think' ? 'animate-opp-breathe' : ''}
-                              ${oppMood === 'smirk' ? 'animate-opp-bounce avatar-glow-green' : ''}
-                              ${oppMood === 'sad' ? 'animate-opp-shake avatar-glow-red' : ''}
-                          />`}
-                            draggable={false}
-                          />
+                       {opponent?.avatar_url ? (
+                            <img
+                              src={avatarSrc || buildEmotionUrl(opponent.avatar_url, 'think') || ''}
+                              alt="Opponent avatar"
+                              draggable={false}
+                              loading="eager"
+                              className={`w-40 h-40 object-contain select-none
+                                ${oppMood === 'think' ? 'animate-opp-breathe' : ''}
+                                ${oppMood === 'smirk' ? 'animate-opp-bounce avatar-glow-green' : ''}
+                                ${oppMood === 'sad' ? 'animate-opp-shake avatar-glow-red' : ''}`}
+                            />
+
 
                         ) : lastOpponentAction.correct ? (
                           <Crown className="w-12 h-12 text-yellow-300 animate-bounce" />
