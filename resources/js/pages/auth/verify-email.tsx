@@ -102,18 +102,15 @@ export default function VerifyEmail({ status }: { status?: string }) {
               )}
             </button>
           </form>
-
-          {/* Logout */}
-          <div className="mt-6 text-center">
-            <form method="POST" action={route('logout')} className="inline">
-              <button
-                type="submit"
-                className="text-sm text-slate-400 hover:text-cyan-300 transition"
-              >
-                Log out
-              </button>
-            </form>
-          </div>
+{/* Back to Login */}
+<div className="mt-6 text-center">
+  <a
+    href={route('login')}
+    className="text-sm text-slate-400 hover:text-cyan-300 transition"
+  >
+    Back to Login
+  </a>
+</div>
         </div>
 
         {/* Footer */}
