@@ -1,5 +1,4 @@
 <?php
-use App\Http\Controllers\Auth\RegisteredUserController;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -23,6 +22,7 @@ use App\Http\Controllers\MatchmakingController;
 use App\Http\Controllers\MatchRuntimeController;
 use App\Http\Controllers\SoloUsageController;
 
+use App\Http\Controllers\Auth\RegisteredUserController;
 
 
 // Home (Welcome) Page
