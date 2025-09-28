@@ -2,7 +2,8 @@ import { Head, useForm } from '@inertiajs/react';
 import { Eye, EyeOff, Users, Code, Star, ArrowLeft } from 'lucide-react';
 import React, { useState, useEffect, FormEventHandler } from 'react';
 
-export default function Login({ status, canResetPassword }: { status?: string; canResetPassword: boolean }) {
+export default function Login({ status, canResetPassword = false }: { status?: string; canResetPassword?: boolean }) {
+
   const [showPassword, setShowPassword] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 

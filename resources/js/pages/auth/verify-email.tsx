@@ -1,7 +1,6 @@
-
-import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { Head, router, useForm, usePage, Link } from '@inertiajs/react';
 import { LoaderCircle, ArrowLeft, CheckCircle, Mail } from 'lucide-react';
-import { FormEventHandler, useEffect } from 'react';
+import { FormEventHandler } from 'react';
 
 export default function VerifyEmail({ status }: { status?: string }) {
   const { post, processing } = useForm({});
@@ -9,22 +8,6 @@ export default function VerifyEmail({ status }: { status?: string }) {
     e.preventDefault();
     post(route('verification.send'));
   };
-const page: any = usePage();
-
-// if your Inertia share includes auth.user, this will be available:
-const verified = !!page.props?.auth?.user?.email_verified_at;
-
-useEffect(() => {
-  if (verified) {
-    router.visit(route('login'), { replace: true });
-    return;
-  }
-  const id = setInterval(() => {
-    // reload ONLY the 'auth' shared prop; super light
-    router.reload({ only: ['auth'] });
-  }, 3000);
-  return () => clearInterval(id);
-}, [verified]);
 
   return (
     <div className="relative min-h-screen bg-slate-950 text-white overflow-hidden flex items-center justify-center p-6">
@@ -119,15 +102,23 @@ useEffect(() => {
               )}
             </button>
           </form>
-{/* Back to Login */}
-<div className="mt-6 text-center">
-  <a
-    href={route('login')}
-    className="text-sm text-slate-400 hover:text-cyan-300 transition"
-  >
-    Back to Login
-  </a>
-</div>
+
+       {/* Logout (Inertia POST) */}
+{/* Logout (form with CSRF) */}
+<form method="post" action={route('logout')} className="mt-6 text-center inline">
+  <input
+    type="hidden"
+    name="_token"
+    value={(document.querySelector('meta[name="csrf-token]') as HTMLMetaElement)?.content
+      || (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content
+      || ''}
+  />
+  <button type="submit" className="text-sm text-slate-400 hover:text-cyan-300 transition">
+    Log out
+  </button>
+</form>
+
+
         </div>
 
         {/* Footer */}
