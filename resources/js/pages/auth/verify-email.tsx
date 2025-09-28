@@ -104,19 +104,21 @@ export default function VerifyEmail({ status }: { status?: string }) {
           </form>
 
        {/* Logout (Inertia POST) */}
-{/* Logout (form with CSRF) */}
-<form method="post" action={route('logout')} className="mt-6 text-center inline">
-  <input
-    type="hidden"
-    name="_token"
-    value={(document.querySelector('meta[name="csrf-token]') as HTMLMetaElement)?.content
-      || (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content
-      || ''}
-  />
-  <button type="submit" className="text-sm text-slate-400 hover:text-cyan-300 transition">
+{/* Logout (Inertia POST + redirect) */}
+<div className="mt-6 text-center">
+  <button
+    type="button"
+    onClick={() =>
+      router.post(route('logout'), {}, {
+        replace: true,
+        onFinish: () => router.visit(route('login'), { replace: true }),
+      })
+    }
+    className="text-sm text-slate-400 hover:text-cyan-300 transition"
+  >
     Log out
   </button>
-</form>
+</div>
 
 
         </div>
