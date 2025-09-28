@@ -14,7 +14,7 @@ class VerifyEmailController extends Controller
     /**
      * Mark the authenticated user's email address as verified for JTIMIS.
      */
-   public function __invoke(\Illuminate\Foundation\Auth\EmailVerificationRequest $request)
+public function __invoke(\Illuminate\Foundation\Auth\EmailVerificationRequest $request)
 {
     if ($request->user()->hasVerifiedEmail()) {
         return redirect()->route('login')->with('status', 'email-already-verified');
