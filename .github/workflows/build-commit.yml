@@ -1,0 +1,26 @@
+name: Build Vite & Commit
+on:
+  push:
+    branches: [ main ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install deps & build
+        run: |
+          npm ci || npm install
+          npm run build
+
+      - name: Commit public/build to main
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add -f public/build
+          git commit -m "Add Vite production build" || echo "No changes"
+          git push
