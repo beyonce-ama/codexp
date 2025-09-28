@@ -46,7 +46,6 @@ const SafeLink = ({ href, children, ...props }: any) => {
   );
 };
 
-
 const Tip = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="group relative" title={label}>
     {children}
@@ -62,6 +61,7 @@ export default function AppHeader({ hidden = false }: AppHeaderProps) {
   const page: any = usePage();
   const { auth } = page.props || {};
   const user = auth?.user as any;
+const isAdmin = user?.role === 'admin';
 
   const clientPath = typeof window !== 'undefined' ? window.location.pathname : '';
   const path = clientPath || page?.url || '';
@@ -242,7 +242,10 @@ const toggleMusic = async () => {
                     <span className="font-bold text-sm sm:text-base text-white">
                       {user.username || user.name}
                     </span>
-                    <span className="text-xs font-semibold text-orange-300">LVL {level}</span>
+                    {!isAdmin && (
+  <span className="text-xs font-semibold text-orange-300">LVL {level}</span>
+)}
+
                   </div>
                   <ChevronDown className="w-4 h-4 text-slate-400" />
                 </button>
@@ -253,22 +256,26 @@ const toggleMusic = async () => {
                       <p className="font-semibold text-white truncate">{user.username || user.name}</p>
                       <p className="text-xs text-slate-400 truncate">{user.email}</p>
                       <div className="mt-2 flex items-center gap-2">
-                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-300 ring-1 ring-orange-500/30">
-                          Level {level}
-                        </span>
-                        <span className="text-[11px] text-slate-400">XP {totalXP}</span>
-                        {stars >= 0 && (
-                          <span className="flex items-center gap-1 text-[11px] text-yellow-400">
-                            <Star className="w-3 h-3" />
-                            <span>{stars}</span>
-                          </span>
+                     {!isAdmin && (
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-300 ring-1 ring-orange-500/30">
+                              Level {level}
+                            </span>
+                            <span className="text-[11px] text-slate-400">XP {totalXP}</span>
+                            {stars >= 0 && (
+                              <span className="flex items-center gap-1 text-[11px] text-yellow-400">
+                                <Star className="w-3 h-3" />
+                                <span>{stars}</span>
+                              </span>
+                            )}
+                          </div>
                         )}
-                      </div>
-                    </div>
+
+                    </div>  </div>
 
                     {/* ▼ Replaced Settings with Music/Sound controls */}
                     <div className="p-3 flex items-center justify-between gap-2">
-                      <span className="text-xs text-slate-400">Audio</span>
+                      <span className="text-m text-slate-400">Audio Settings</span>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={toggleSound}
@@ -299,13 +306,13 @@ const toggleMusic = async () => {
                     </div>
 
                     <div className="px-2 pb-2">
-                      {/* <button
+                      <button
                         onClick={handleLogout}
                         className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-900/20 transition"
                       >
                         <LogOut className="w-4 h-4" />
                         <span>Sign Out</span>
-                      </button> */}
+                      </button>
                     </div>
                   </div>
                 )}
@@ -365,20 +372,21 @@ const toggleMusic = async () => {
               </div>
               <div className="min-w-0">
                 <div className="text-white font-semibold truncate">{user.username || user.name}</div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-300 ring-1 ring-orange-500/30">
-                      Level {level}
-                    </span>
+               {!isAdmin && (
+  <div className="flex items-center gap-2 mt-0.5">
+    <span className="text-[11px] px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-300 ring-1 ring-orange-500/30">
+      Level {level}
+    </span>
+    <span className="text-[11px] text-slate-400">XP {totalXP}</span>
+    {stars >= 0 && (
+      <span className="flex items-center gap-1 text-[11px] text-yellow-400">
+        <Star className="w-3 h-3" />
+        <span>{stars}</span>
+      </span>
+    )}
+  </div>
+)}
 
-                    <span className="text-[11px] text-slate-400">XP {totalXP}</span>
-
-                    {stars >= 0 && (
-                      <span className="flex items-center gap-1 text-[11px] text-yellow-400">
-                        <Star className="w-3 h-3" />
-                        <span>{stars}</span>
-                      </span>
-                    )}
-                  </div>
 
 
               </div>
