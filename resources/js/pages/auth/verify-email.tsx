@@ -1,6 +1,6 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { LoaderCircle, ArrowLeft, CheckCircle, Mail } from 'lucide-react';
-import { FormEventHandler } from 'react';
+import { FormEventHandler, useEffect } from 'react';
 
 export default function VerifyEmail({ status }: { status?: string }) {
   const { post, processing } = useForm({});
@@ -8,6 +8,22 @@ export default function VerifyEmail({ status }: { status?: string }) {
     e.preventDefault();
     post(route('verification.send'));
   };
+const page: any = usePage();
+
+// if your Inertia share includes auth.user, this will be available:
+const verified = !!page.props?.auth?.user?.email_verified_at;
+
+useEffect(() => {
+  if (verified) {
+    router.visit(route('login'), { replace: true });
+    return;
+  }
+  const id = setInterval(() => {
+    // reload ONLY the 'auth' shared prop; super light
+    router.reload({ only: ['auth'] });
+  }, 3000);
+  return () => clearInterval(id);
+}, [verified]);
 
   return (
     <div className="relative min-h-screen bg-slate-950 text-white overflow-hidden flex items-center justify-center p-6">

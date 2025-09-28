@@ -14,38 +14,15 @@ class VerifyEmailController extends Controller
     /**
      * Mark the authenticated user's email address as verified for JTIMIS.
      */
-    public function __invoke(EmailVerificationRequest $request): RedirectResponse
-    {
-        if ($request->user()->hasVerifiedEmail()) {
-            // Redirect to role-specific dashboard
-            $user = $request->user();
-            if ($user->role === 'admin') {
-                return redirect()->intended('/admin/dashboard?verified=1');
-            } elseif ($user->role === 'dispatcher') {
-                return redirect()->intended('/dispatcher/dashboard?verified=1');
-            } elseif ($user->role === 'driver') {
-                return redirect()->intended('/driver/dashboard?verified=1');
-            }
-            
-            return redirect()->intended(route('dashboard', absolute: false).'?verified=1');
-        }
-
-        if ($request->user()->markEmailAsVerified()) {
-            /** @var \Illuminate\Contracts\Auth\MustVerifyEmail $user */
-            $user = $request->user();
-            event(new Verified($user));
-        }
-
-        // Redirect to role-specific dashboard after verification
-        $user = $request->user();
-        if ($user->role === 'admin') {
-            return redirect()->intended('/admin/dashboard?verified=1');
-        } elseif ($user->role === 'dispatcher') {
-            return redirect()->intended('/dispatcher/dashboard?verified=1');
-        } elseif ($user->role === 'driver') {
-            return redirect()->intended('/driver/dashboard?verified=1');
-        }
-
-        return redirect()->intended(route('dashboard', absolute: false).'?verified=1');
+   public function __invoke(\Illuminate\Foundation\Auth\EmailVerificationRequest $request)
+{
+    if ($request->user()->hasVerifiedEmail()) {
+        return redirect()->route('login')->with('status', 'email-already-verified');
     }
+
+    $request->fulfill();
+
+    return redirect()->route('login')->with('status', 'email-verified');
+}
+
 }
