@@ -1,6 +1,5 @@
 <?php
 
-// RegisteredUserController.php
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
@@ -17,49 +16,54 @@ use Inertia\Response;
 class RegisteredUserController extends Controller
 {
     /**
-     * Show the registration page for JTIMIS.
+     * Show the registration page.
      */
     public function create(): Response
     {
+        // Make sure this matches your TSX path, e.g. resources/js/Pages/auth/register.tsx
         return Inertia::render('auth/register');
     }
 
     /**
-     * Handle an incoming registration request for JTIMIS users.
-     *
-     * @throws \Illuminate\Validation\ValidationException
+     * Handle registration (participant only) and send verification email.
      */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => 'required|in:dispatcher,driver,admin',
-            'phone' => 'nullable|string|max:20',
+        $validated = $request->validate([
+            'name'                  => ['required','string','max:255'],
+            'email'                 => ['required','string','lowercase','email','max:255','unique:'.User::class],
+            'password'              => ['required','confirmed', Rules\Password::defaults()],
+            // role is NOT accepted from client — we force 'participant'
         ]);
 
+        // Create user with forced role + defaults that exist in your DB
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => $request->role ?? 'driver', // Default to driver role
-            'phone' => $request->phone,
+            'name'         => $validated['name'],
+            'email'        => $validated['email'],
+            'password'     => Hash::make($validated['password']),
+            'role'         => 'participant',
+            'status'       => 'active',     // requires 'status' to be fillable OR set below via ->forceFill()
+            'stars'        => 0,
+            'total_xp'     => 0,
+            'sound_enabled'=> 1,
+            'music_enabled'=> 1,
         ]);
 
+        // If 'status', 'sound_enabled', 'music_enabled' aren't in $fillable, uncomment:
+        // $user->forceFill([
+        //     'status'        => 'active',
+        //     'stars'         => 0,
+        //     'total_xp'      => 0,
+        //     'sound_enabled' => 1,
+        //     'music_enabled' => 1,
+        // ])->save();
+
+        // This triggers Laravel's SendEmailVerificationNotification listener
         event(new Registered($user));
 
+        // Log them in and send to the verify notice page
         Auth::login($user);
 
-        // Redirect based on JTIMIS user role
-        if ($user->role === 'admin') {
-            return redirect('/admin/dashboard');
-        } elseif ($user->role === 'dispatcher') {
-            return redirect('/dispatcher/dashboard');
-        } elseif ($user->role === 'driver') {
-            return redirect('/driver/dashboard');
-        }
-
-        return to_route('dashboard');
+        return redirect()->route('verification.notice');
     }
 }

@@ -1,4 +1,5 @@
 <?php
+use App\Http\Controllers\Auth\RegisteredUserController;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -345,8 +346,8 @@ Route::get('/dashboard/stats', function () {
         Route::get('/profile', [ProfileController::class, 'show']);
         Route::put('/profile', [ProfileController::class, 'update']);
     });
-        Route::patch('/me/preferences', [\App\Http\Controllers\PreferencesController::class, 'update'])
-        ->name('me.preferences.update');
+       Route::match(['POST','PATCH'], '/me/preferences', [\App\Http\Controllers\PreferencesController::class, 'update'])
+    ->name('me.preferences.update');
 
     Route::post('/api/ai-challenges/submit-attempt', [AIChallengeController::class, 'submitAttempt']);
     // Get participants for duels (accessible to all authenticated users)
@@ -449,6 +450,11 @@ Route::get('/dashboard/stats', function () {
      * SHARED PAGES
      */
     Route::get('/faq', fn () => Inertia::render('System/FAQ'))->name('system.faq');
+});
+
+Route::middleware('guest')->group(function () {
+    Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
+    Route::post('/register', [RegisteredUserController::class, 'store']);
 });
 
 
