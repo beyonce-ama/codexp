@@ -1,0 +1,26 @@
+name: Build for Hostinger (deploy branch)
+on:
+  push:
+    branches: [ main ]     # whenever you push to main, we rebuild deploy
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install & Build (Vite)
+        run: |
+          npm ci
+          npm run build
+      - name: Create deploy branch with built assets
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git checkout -B deploy
+          # ensure vendor and Laravel stuff are all included (normal repo contents)
+          # keep the Vite output (public/build) produced above
+          git add -A
+          git commit -m "Build assets for Hostinger" || echo "No changes to commit"
+          git push -f origin deploy
