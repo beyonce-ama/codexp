@@ -533,16 +533,17 @@ useEffect(() => {
                 const xpEarned = response.data?.xp_earned || (isCorrect ? selectedChallenge.reward_xp : 0);
                 
                 if (isCorrect) { 
-                    await apiClient.post('/api/solo/mark-taken', {
-                        challenge_id: selectedChallenge.id,
-                        language: selectedChallenge.language,
-                        difficulty: selectedChallenge.difficulty,
-                        mode: selectedChallenge.mode,
-                        status: 'completed',
-                        time_spent_sec: timeSpent,
-                        code_submitted: userCode,
-                        earned_xp: xpEarned ?? 0
-                    });
+                   await apiClient.post('/api/solo/mark-taken', {
+                            challenge_id: Number(selectedChallenge.id),
+                            language: (selectedChallenge.language || '').toLowerCase(),
+                            difficulty: (selectedChallenge.difficulty || '').toLowerCase(),
+                            mode: (selectedChallenge.mode || '').toLowerCase(),
+                            status: status.toLowerCase(),
+                            time_spent_sec: Number(timeSpent || 0),
+                            code_submitted: userCode || selectedChallenge.buggy_code || '',
+                            earned_xp: status === 'completed' ? Number(selectedChallenge.reward_xp ?? 0) : 0,
+                            });
+
                     const oldTotalXP = userStats?.total_xp || 0;
                     const newTotalXP = oldTotalXP + xpEarned;
                     const oldLevel = calculateLevel(oldTotalXP);
