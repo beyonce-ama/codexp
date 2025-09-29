@@ -8,10 +8,11 @@
     
     <title inertia>{{ config('app.name', 'Laravel') }}</title>
     
-    <!-- resources/views/app.blade.php -->
-        @routes
-        @vite('resources/js/app.tsx')
-        @inertiaHead
+    <!-- Other head content -->
+    @routes
+    @viteReactRefresh
+    @vite(['resources/js/app.tsx', "resources/js/Pages/{$page['component']}.tsx"])
+    @inertiaHead
 </head>
 <body>
     @inertia

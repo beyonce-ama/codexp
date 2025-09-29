@@ -1,28 +1,26 @@
 <?php
 
-
-// VerifyEmailController.php
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\RedirectResponse;
 
 class VerifyEmailController extends Controller
 {
     /**
-     * Mark the authenticated user's email address as verified for JTIMIS.
+     * Fulfill the signed email verification link then redirect.
      */
-public function __invoke(\Illuminate\Foundation\Auth\EmailVerificationRequest $request)
-{
-    if ($request->user()->hasVerifiedEmail()) {
-        return redirect()->route('login')->with('status', 'email-already-verified');
+    public function __invoke(EmailVerificationRequest $request): RedirectResponse
+    {
+        // If already verified, just go to dashboard
+        if ($request->user()->hasVerifiedEmail()) {
+            return redirect()->intended('/dashboard');
+        }
+
+        // Marks the email as verified and fires the Verified event
+        $request->fulfill();
+
+        return redirect()->intended('/dashboard')->with('verified', true);
     }
-
-    $request->fulfill();
-
-    return redirect()->route('login')->with('status', 'email-verified');
-}
-
 }

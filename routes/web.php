@@ -351,25 +351,35 @@ Route::get('/dashboard/stats', function () {
 
     Route::post('/api/ai-challenges/submit-attempt', [AIChallengeController::class, 'submitAttempt']);
     // Get participants for duels (accessible to all authenticated users)
-    Route::get('/api/users/participants', function () {
+   Route::get('/api/users/participants', function () {
     try {
         $participants = User::where('role', 'participant')
-            ->with(['profile:id,user_id,username,avatar_url'])
-            ->orderByDesc('total_xp')       // sort for leaderboard
-            ->orderByDesc('stars')          // tie-breaker
-            ->get(['id','name','email','role','stars','total_xp']);
+            ->orderByDesc('total_xp')
+            ->orderByDesc('stars')
+            ->get(['id','name','email','stars','total_xp','avatar']); // <-- include avatar
 
-        $data = $participants->map(function ($u) {
+        $data = $participants->map(function (User $u) {
+            // Normalize to a browser-usable URL
+            $avatar = $u->avatar; // e.g. 'avatars/girl1.png'
+            if ($avatar) {
+                if (preg_match('#^(https?://|data:)#i', $avatar)) {
+                    // already absolute
+                } else {
+                    // If stored under public/avatars/* => asset('avatars/..')
+                    // If stored under storage/app/public/avatars/* => asset('storage/avatars/..') + run "php artisan storage:link"
+                    $avatar = asset($avatar); // adjust to asset('storage/'.$avatar) if needed
+                }
+            } else {
+                $avatar = null;
+            }
+
             return [
                 'id'       => $u->id,
                 'name'     => $u->name,
                 'email'    => $u->email,
                 'stars'    => (int)($u->stars ?? 0),
                 'total_xp' => (float)($u->total_xp ?? 0),
-                'profile'  => [
-                    'username'   => optional($u->profile)->username,
-                    'avatar_url' => optional($u->profile)->avatar_url,
-                ],
+                'avatar'   => $avatar, // <-- RETURN IT
             ];
         });
 
@@ -378,8 +388,7 @@ Route::get('/dashboard/stats', function () {
         Log::error('participants error', ['ex' => $e->getMessage()]);
         return response()->json(['success' => false, 'message' => 'Error fetching participants'], 500);
     }
-
-    });
+});
 // Solo tracking routes
 
     /**

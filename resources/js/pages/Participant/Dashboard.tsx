@@ -149,6 +149,23 @@ const scopeChipClass = (scope: string) => {
   }
 };
 type AnyObj = Record<string, any>;
+// replace your current normalizeAvatar with this:
+const normalizeAvatar = (v?: string | null) => {
+  if (!v) return null;
+  const s = String(v).trim();
+
+  // already absolute or data URL → leave it
+  if (/^(https?:\/\/|data:)/i.test(s)) return s;
+
+  // already root-relative → leave it
+  if (s.startsWith('/')) return s;
+
+  // common relative paths → make root-relative
+  if (s.startsWith('avatars/') || s.startsWith('storage/')) return `/${s}`;
+
+  // plain filename (e.g., "girl3.png") → assume lives under /avatars
+  return `/avatars/${s}`;
+};
 
 const scopeFromCode = (code: string) => {
   if (!code) return 'General';
@@ -301,29 +318,34 @@ const flattenAchievements = (root: any): SoloAchievementItem[] => {
           stars?: number;
           user?: { stars?: number };
           total_xp?: number;
-          profile?: { username?: string; avatar_url?: string | null };
+          profile?: { username?: string; avatar?: string | null };
           avatar?: string | null;
         }>;
 
-        const list = raw
-          .map((u) => {
-            const xp = Number(u.total_xp ?? 0);
-            const starsFromUsers = u.user?.stars;
-            const starsFlat = u.stars;
-            const stars = Number(starsFromUsers ?? starsFlat ?? 0);
-            return {
-              id: u.id,
-              name: u.name,
-              email: u.email,
-              avatar: u.profile?.avatar_url ?? u.avatar ?? null,
-              total_xp: xp,
-              stars,
-              level: Math.floor(xp / 10) + 1, // start at Level 1
-            };
-          })
-          // backend might already be sorted; keep this for safety:
-          .sort((a, b) => (b.total_xp - a.total_xp) || (b.stars - a.stars))
-          .map((u, i) => ({ ...u, rank: i + 1 }));
+       const list = raw
+  .map((u) => {
+    const xp = Number(u.total_xp ?? 0);
+    const starsFromUsers = u.user?.stars;
+    const starsFlat = u.stars;
+    const stars = Number(starsFromUsers ?? starsFlat ?? 0);
+
+    // prefer top-level users.avatar, then profile.avatar; don't use *_url here
+    const avatar = normalizeAvatar(
+      (u as any).avatar ?? u.profile?.avatar ?? null
+    );
+
+    return {
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      avatar, // <- store as 'avatar'
+      total_xp: xp,
+      stars,
+      level: Math.floor(xp / 10) + 1, // Level 1 starts at 0 XP
+    };
+  })
+  .sort((a, b) => (b.total_xp - a.total_xp) || (b.stars - a.stars))
+  .map((u, i) => ({ ...u, rank: i + 1 }));
 
         setLeaderboard(list);
       }
@@ -916,7 +938,16 @@ const handleClaim = async (achievementId: number) => {
                   {leaderboard.slice(0, 3).map((p) => {
                     const m = medalForRank(p.rank);
                     return (
+                      
                       <div key={p.id} className={`rounded-xl p-3 border ${m.chip} text-center`}>
+                        <div className="mt-2 mx-auto w-12 h-12 rounded-full overflow-hidden ring-1 ring-slate-700/60">
+  <img
+    src={p.avatar || '/avatars/default.png'}
+    alt={p.name}
+    className="w-full h-full object-cover"
+  />
+</div>
+
                         <div className="flex items-center justify-center gap-1">
                           <Medal className={`h-5 w-5 ${m.className}`} />
                           <span className={`text-sm font-semibold ${m.className}`}>#{p.rank}</span>
@@ -937,6 +968,13 @@ const handleClaim = async (achievementId: number) => {
                     <div className="w-8 text-center">
                       <span className={`text-sm font-bold ${p.rank <= 3 ? 'text-yellow-400' : 'text-slate-300'}`}>#{p.rank}</span>
                     </div>
+                     <div className="w-8 h-8 rounded-full overflow-hidden ring-1 ring-slate-700/60 shrink-0">
+    <img
+      src={p.avatar || '/avatars/default.png'}
+      alt={p.name}
+      className="w-full h-full object-cover"
+    />
+  </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-white font-medium truncate" title={p.name}>{p.name}</span>
