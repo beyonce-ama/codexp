@@ -29,12 +29,14 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'name'                  => ['required','string','max:255'],
-            'email'                 => ['required','string','lowercase','email','max:255','unique:'.User::class],
-            'password'              => ['required','confirmed', Rules\Password::defaults()],
-            // role is NOT accepted from client — we force 'participant'
-        ]);
+       $request->validate([
+    'name' => ['required', 'string', 'max:255', 'unique:users,name'],
+    'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
+    'password' => ['required', 'confirmed', Rules\Password::defaults()],
+], [
+    'name.unique' => 'This username is already taken.',
+]);
+
 
         // Create user with forced role + defaults that exist in your DB
         $user = User::create([

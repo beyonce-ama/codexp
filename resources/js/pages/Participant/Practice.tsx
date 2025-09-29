@@ -52,21 +52,6 @@ export default function ParticipantPractice() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const bgMusicRef = useRef<HTMLAudioElement | null>(null);
 
-  // init / cleanup bg music element
-  useEffect(() => {
-    const music = new Audio('/sounds/music.mp3');
-    music.loop = true;
-    music.volume = 0.35;
-    bgMusicRef.current = music;
-
-    return () => {
-      if (bgMusicRef.current) {
-        bgMusicRef.current.pause();
-        bgMusicRef.current.currentTime = 0;
-        bgMusicRef.current = null;
-      }
-    };
-  }, []);
 
   // tiny helper to respect toggle for SFX
   const playSfx = (name: 'click' | 'hover' | 'success' | 'failure') => {
