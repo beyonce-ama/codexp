@@ -12,17 +12,15 @@ class SoloUsageController extends Controller
     // POST /api/solo/mark-taken
     public function markTaken(Request $req)
     {
-        // Normalize/cast inputs so validation won’t 422 on case/typing differences.
-$req->merge([
-    'language'       => $req->filled('language')   ? strtolower((string)$req->input('language'))   : null,
-    'difficulty'     => $req->filled('difficulty') ? strtolower((string)$req->input('difficulty')) : null,
-    'mode'           => strtolower((string)$req->input('mode')),
-    'status'         => strtolower((string)$req->input('status')),
-    'challenge_id'   => $req->filled('challenge_id') ? (int)$req->input('challenge_id') : null,
-    'time_spent_sec' => $req->filled('time_spent_sec') ? (int)$req->input('time_spent_sec') : null,
-    'earned_xp'      => $req->filled('earned_xp') ? (int)$req->input('earned_xp') : null,
-]);
-
+        $rules = [
+            'language'        => ['nullable', Rule::in(['python','java'])],
+            'difficulty'      => ['nullable', Rule::in(['easy','medium','hard'])],
+            'mode'            => ['required', Rule::in(['fixbugs','random','aigenerated'])],
+            'status'          => ['required', Rule::in(['viewed','started','abandoned','completed','submitted_incorrect'])],
+            'time_spent_sec'  => ['nullable','integer','min:0'],
+            'earned_xp'       => ['nullable','integer','min:0'],
+            'code_submitted'  => ['nullable','string'],
+        ];
         // challenge_id required for real challenges, nullable for AI
         if ($req->input('mode') === 'aigenerated') {
             $rules['challenge_id'] = ['nullable','integer'];
@@ -52,9 +50,8 @@ $req->merge([
         }
 
         $row->status         = $data['status'];
-        $row->time_spent_sec = max((int)($data['time_spent_sec'] ?? 0), (int)($row->time_spent_sec ?? 0));
-        $row->earned_xp      = max((int)($data['earned_xp'] ?? 0), (int)($row->earned_xp ?? 0));
-
+        $row->time_spent_sec = max((int)($data['time_spent_sec'] ?? 0), (int)$row->time_spent_sec);
+        $row->earned_xp      = max((int)($data['earned_xp'] ?? 0), (int)$row->earned_xp);
 
         if (array_key_exists('code_submitted', $data)) {
             $row->code_submitted = $data['code_submitted'];
@@ -88,19 +85,24 @@ $req->merge([
     // POST /api/solo/attempts
     public function storeAttempt(Request $req)
     {
-       $rules = [
-    'language'        => ['nullable', Rule::in(['python','java'])],
-    'difficulty'      => ['nullable', Rule::in(['easy','medium','hard'])],
-    'mode'            => ['required', Rule::in(['fixbugs','random','aigenerated'])],
-    'status'          => ['required', Rule::in(['viewed','started','abandoned','completed','submitted_incorrect'])],
-    'time_spent_sec'  => ['nullable','integer','min:0'],
-    'earned_xp'       => ['nullable','integer','min:0'],
-    'code_submitted'  => ['nullable','string'],
-    'challenge_id'    => $req->input('mode') === 'aigenerated'
-                          ? ['nullable','integer']
-                          : ['required','integer'],
-];
-
+        $rules = [
+            'language'        => ['required', Rule::in(['python','java'])],
+            'mode'            => ['required', Rule::in(['fixbugs','random','aigenerated'])],
+            'time_spent_sec'  => ['required','integer','min:0'],
+            'is_correct'      => ['required','boolean'],
+            'code_submitted'  => ['required','string'],
+            'judge_feedback'  => ['nullable','string'],
+            'difficulty'      => ['nullable', Rule::in(['easy','medium','hard'])],
+            'similarity'      => ['nullable','numeric','min:0','max:1'],
+            'xp_earned'       => ['nullable','integer','min:0'],
+            'reward_xp'       => ['nullable','integer','min:0'],
+        ];
+        if ($req->input('mode') === 'aigenerated') {
+            $rules['challenge_id'] = ['nullable','integer'];
+        } else {
+            $rules['challenge_id'] = ['required','integer'];
+            // Optional: Rule::exists('solo_challenges','id')
+        }
 
         $data = $req->validate($rules);
 
