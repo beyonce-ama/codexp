@@ -185,9 +185,10 @@ const toggleMusic = async () => {
 
   const QuickShortcutDock = () => (
    <aside className={[
-  "fixed left-0 top-0 bottom-0 z-40 hidden lg:flex bg-slate-950/60 backdrop-blur-md border-r border-slate-800/70 shadow-xl w-14 overflow-y-auto overflow-x-hidden overscroll-contain",
+  "fixed left-0 top-0 bottom-0 z-30 hidden lg:flex bg-slate-950/60 backdrop-blur-md border-r border-slate-800/70 shadow-xl w-14 overflow-y-auto overflow-x-hidden overscroll-contain",
   modalOpen ? "pointer-events-none opacity-50" : ""
 ].join(" ")}>
+
 
       <div className="pt-18 pb-3 px-2 flex flex-col items-center gap-2 w-full">
         {navItems.map((item) => {
@@ -221,11 +222,12 @@ useEffect(() => {
 
   return (
     <>
-    <header
-        className={[
-          "bg-slate-950/70 backdrop-blur-md border-b border-slate-800/70 sticky top-0 z-40",
-          modalOpen ? "pointer-events-none opacity-50" : ""
-        ].join(" ")}
+       <header
+          className={[
+            "bg-slate-950/70 backdrop-blur-md border-b border-slate-800/70 sticky top-0 z-50",
+            modalOpen ? "pointer-events-none opacity-50" : ""
+          ].join(" ")}
+
         onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
       >
 

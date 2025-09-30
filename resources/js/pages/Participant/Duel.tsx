@@ -1934,7 +1934,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
 
                     {/* Create Duel Modal */}
                     {showCreateModal && (
-                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-[10000] pointer-events-auto flex items-center justify-center p-4">
                             <div className="relative bg-gray-800/90 backdrop-blur-md border border-gray-700/50 w-full max-w-2xl shadow-2xl rounded-xl overflow-hidden animate-fadeInUp">
                                 <div className="bg-gradient-to-r from-red-600 to-pink-600 px-6 py-4">
                                     <div className="flex items-center justify-between">
@@ -2179,7 +2179,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                     {/* Active Duel Modal */}
                     {showDuelModal && activeDuel && activeDuel.challenge && (
                   <div className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-[9999] flex items-center justify-center p-4" role="dialog" aria-modal="true">
-    <div className="relative bg-gray-800/90 backdrop-blur-md border border-gray-700/50 w-full max-w-5xl shadow-2xl rounded-xl overflow-hidden animate-fadeInUp">
+    <div className="relative z-[10001] bg-gray-800/90 backdrop-blur-md border border-gray-700/50 w-full max-w-5xl shadow-2xl rounded-xl overflow-hidden animate-fadeInUp">
       <div className="bg-gradient-to-r from-red-600 to-pink-600 px-6 py-4">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-lg font-bold text-white flex items-center">
@@ -2201,7 +2201,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                 <Clock className="h-4 w-4" />
                                                 <span className="text-sm font-medium">{formatTime(timeSpent)}</span>
                                             </div>
-                                            <button
+                                            {/* <button
                                                 onClick={() => {
                                                     audio.play('click');
                                                     setShowDuelModal(false);
@@ -2209,7 +2209,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                 className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-1 transition-all duration-200"
                                             >
                                                 <X className="h-6 w-6" />
-                                            </button>
+                                            </button> */}
                                         </div>
                                     </div>
                                     

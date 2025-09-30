@@ -13,6 +13,7 @@ import { apiClient } from '@/utils/api';
 import Swal from 'sweetalert2';
 import AnimatedBackground from '@/components/AnimatedBackground';
 import { audio } from '@/utils/sound';
+
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Home', href: '/dashboard' },
     { title: 'Practice', href: '#' },
@@ -90,11 +91,16 @@ export default function ParticipantAIChallenges() {
     const [progressAnimation, setProgressAnimation] = useState(false);
     
     const [hasForfeited, setHasForfeited] = useState(false);
-// Treat various API shapes as "ok"
-const isApiOk = (res: any) => {
-  const d = (res && res.data) ? res.data : res;
-   return res && res.data && res.data.success === true;
-};
+
+    // NEW: Modal state
+    const [showChallengeModal, setShowChallengeModal] = useState(false);
+
+    // Treat various API shapes as "ok"
+    const isApiOk = (res: any) => {
+        const d = (res && res.data) ? res.data : res;
+        return res && res.data && res.data.success === true;
+    };
+
     // NEW: XP constants
     const BASE_XP_NO_HINT = 3.5;
     const BASE_XP_WITH_HINT = 2.5;
@@ -102,49 +108,47 @@ const isApiOk = (res: any) => {
     // Audio references
     const animationFrameRef = useRef<number>();
         
-  const applyRewards = async () => {
-  try {
-    const payload = {
-      difficulty: currentChallenge?.difficulty,
-      language,
-      topic: selectedTopic || undefined,
-      is_correct: true,
-      hint_used: showHint,
-      time_spent_sec: Math.max(0, parseInt(String(timeSpent), 10) || 0),
-      code_submitted: userCode,
+    const applyRewards = async () => {
+        try {
+            const payload = {
+                difficulty: currentChallenge?.difficulty,
+                language,
+                topic: selectedTopic || undefined,
+                is_correct: true,
+                hint_used: showHint,
+                time_spent_sec: Math.max(0, parseInt(String(timeSpent), 10) || 0),
+                code_submitted: userCode,
+            };
+
+            console.log('Sending rewards payload:', payload);
+
+            const res = await apiClient.post('/api/ai-challenges/submit-attempt', payload);
+            
+            console.log('Rewards API response:', res);
+
+            // Handle the ApiResponse format correctly
+            if (res.success && res.data) {
+                const backendData = res.data;
+                console.log('Backend data received:', backendData);
+                
+                // Update stats with backend-calculated values
+                setUserStats(prev => prev ? {
+                    ...prev,
+                    total_xp: backendData.total_xp || prev.total_xp,
+                    ai_successful_attempts: backendData.ai_successful_attempts || prev.ai_successful_attempts,
+                    ai_attempts: backendData.ai_attempts || prev.ai_attempts,
+                } : prev);
+                
+                return backendData.xp_earned || 0;
+            } else {
+                console.warn('Backend response indicates failure:', res);
+                throw new Error(res.message || 'Backend response was not successful');
+            }
+        } catch (err) {
+            console.error('Failed to apply rewards - full error:', err);
+            throw err;
+        }
     };
-
-    console.log('Sending rewards payload:', payload);
-
-    const res = await apiClient.post('/api/ai-challenges/submit-attempt', payload);
-    
-    console.log('Rewards API response:', res);
-
-    // Handle the ApiResponse format correctly
-    if (res.success && res.data) {
-      const backendData = res.data;
-      console.log('Backend data received:', backendData);
-      
-      // Update stats with backend-calculated values
-      setUserStats(prev => prev ? {
-        ...prev,
-        total_xp: backendData.total_xp || prev.total_xp,
-        ai_successful_attempts: backendData.ai_successful_attempts || prev.ai_successful_attempts,
-        ai_attempts: backendData.ai_attempts || prev.ai_attempts,
-      } : prev);
-      
-      return backendData.xp_earned || 0;
-    } else {
-      console.warn('Backend response indicates failure:', res);
-      throw new Error(res.message || 'Backend response was not successful');
-    }
-  } catch (err) {
-    console.error('Failed to apply rewards - full error:', err);
-    throw err;
-  }
-};
-    // Initialize sound effects
-   
 
     // Updated leveling system: 10 XP per level
     const calculateLevel = (xp: number) => Math.floor(xp / 10) + 1;
@@ -201,55 +205,56 @@ const isApiOk = (res: any) => {
         };
     }, [particles.length]);
 
-const fetchUserStats = async () => {
-  try {
-    setStatsLoading(true);
-    const statsResponse = await apiClient.get('/api/me/stats');
+    const fetchUserStats = async () => {
+        try {
+            setStatsLoading(true);
+            const statsResponse = await apiClient.get('/api/me/stats');
 
-    // Handle the ApiResponse format
-    if (statsResponse.success && statsResponse.data) {
-      const statsData = statsResponse.data;
-      const totalXP = statsData.totals?.xp || 0;
-      const aiStats = statsData.ai_stats || {};
-      
-      setUserStats({
-        ai_attempts: aiStats.ai_attempts || statsData.ai_attempts || 0,
-        ai_successful_attempts: aiStats.ai_successful_attempts || statsData.ai_successful_attempts || 0,
-        total_xp: totalXP,
-        total_stars: statsData.totals?.stars || 0,
-        current_level: calculateLevel(totalXP),
-        xp_to_next_level: calculateXPToNextLevel(totalXP),
-        streak: statsData.streak || 0
-      });
-    } else {
-      console.warn('Failed to fetch stats:', statsResponse.message);
-      // Fallback to user table data
-      setUserStats({
-        ai_attempts: user?.ai_attempts || 0,
-        ai_successful_attempts: user?.ai_successful_attempts || 0,
-        total_xp: user?.total_xp || 0,
-        total_stars: 0,
-        current_level: calculateLevel(user?.total_xp || 0),
-        xp_to_next_level: calculateXPToNextLevel(user?.total_xp || 0),
-        streak: 0
-      });
-    }
-  } catch (error) {
-    console.error('Error fetching user stats:', error);
-    // Fallback to user table data if available
-    setUserStats({
-      ai_attempts: user?.ai_attempts || 0,
-      ai_successful_attempts: user?.ai_successful_attempts || 0,
-      total_xp: user?.total_xp || 0,
-      total_stars: 0,
-      current_level: calculateLevel(user?.total_xp || 0),
-      xp_to_next_level: calculateXPToNextLevel(user?.total_xp || 0),
-      streak: 0
-    });
-  } finally {
-    setStatsLoading(false);
-  }
-};
+            // Handle the ApiResponse format
+            if (statsResponse.success && statsResponse.data) {
+                const statsData = statsResponse.data;
+                const totalXP = statsData.totals?.xp || 0;
+                const aiStats = statsData.ai_stats || {};
+                
+                setUserStats({
+                    ai_attempts: aiStats.ai_attempts || statsData.ai_attempts || 0,
+                    ai_successful_attempts: aiStats.ai_successful_attempts || statsData.ai_successful_attempts || 0,
+                    total_xp: totalXP,
+                    total_stars: statsData.totals?.stars || 0,
+                    current_level: calculateLevel(totalXP),
+                    xp_to_next_level: calculateXPToNextLevel(totalXP),
+                    streak: statsData.streak || 0
+                });
+            } else {
+                console.warn('Failed to fetch stats:', statsResponse.message);
+                // Fallback to user table data
+                setUserStats({
+                    ai_attempts: user?.ai_attempts || 0,
+                    ai_successful_attempts: user?.ai_successful_attempts || 0,
+                    total_xp: user?.total_xp || 0,
+                    total_stars: 0,
+                    current_level: calculateLevel(user?.total_xp || 0),
+                    xp_to_next_level: calculateXPToNextLevel(user?.total_xp || 0),
+                    streak: 0
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching user stats:', error);
+            // Fallback to user table data if available
+            setUserStats({
+                ai_attempts: user?.ai_attempts || 0,
+                ai_successful_attempts: user?.ai_successful_attempts || 0,
+                total_xp: user?.total_xp || 0,
+                total_stars: 0,
+                current_level: calculateLevel(user?.total_xp || 0),
+                xp_to_next_level: calculateXPToNextLevel(user?.total_xp || 0),
+                streak: 0
+            });
+        } finally {
+            setStatsLoading(false);
+        }
+    };
+
     const createParticleExplosion = (x: number, y: number, type: 'success' | 'levelup' | 'streak' = 'success') => {
         const colors = {
             success: ['#10B981', '#34D399', '#6EE7B7', '#FBBF24', '#F59E0B'],
@@ -280,70 +285,84 @@ const fetchUserStats = async () => {
         setParticles(prev => [...prev, ...newParticles]);
     };
 
-   const fetchTopics = async () => {
-  try {
-    const response = await apiClient.get('/api/ai-challenges/topics', { language });
-    
-    // Handle ApiResponse format
-    if (response.success && response.data) {
-      setAvailableTopics(response.data);
-    }
-  } catch (error) {
-    console.error('Error fetching topics:', error);
-  }
-};
-  const generateChallenge = async () => {
-  try {
-    setGenerating(true);
-    audio.play('click');
-    
-    const params: any = { language, difficulty };
-    if (selectedTopic) params.topic = selectedTopic;
+    const fetchTopics = async () => {
+        try {
+            const response = await apiClient.get('/api/ai-challenges/topics', { language });
+            
+            // Handle ApiResponse format
+            if (response.success && response.data) {
+                setAvailableTopics(response.data);
+            }
+        } catch (error) {
+            console.error('Error fetching topics:', error);
+        }
+    };
 
-    const response = await apiClient.post('/api/ai-challenges/generate', params);
-    
-    // Handle ApiResponse format
-    if (response.success && response.data) {
-      setCurrentChallenge({
-        ...response.data,
-        language,
-        difficulty
-      });
-      setUserCode(response.data.buggy_code || '');
-      setStartTime(new Date());
-      setTimeSpent(0);
-      setShowHint(false);
-      setHasSubmitted(false);
-      setLastSubmissionResult(null);
-      setShowCorrectAnswer(false);
-      setHasForfeited(false);
-      audio.play('success');
-      Swal.fire({
-        icon: 'success',
-        title: 'Challenge Generated!',
-        text: 'Your AI-generated challenge is ready. Good luck!',
-        timer: 2000,
-        showConfirmButton: false,
-        background: '#1f2937',
-        color: '#fff'
-      });
-    } else {
-      throw new Error(response.message || 'Failed to generate challenge');
-    }
-  } catch (error) {
-    console.error('Error generating challenge:', error);
-    audio.play('failure');
-    Swal.fire({
-      icon: 'error',
-      title: 'Generation Failed',
-      text: error instanceof Error ? error.message : 'Unable to generate challenge. Please try again.',
-      background: '#1f2937',
-      color: '#fff'
-    });
-  } finally {
-    setGenerating(false);
-  }
-};
+    const generateChallenge = async () => {
+        try {
+            setGenerating(true);
+            audio.play('click');
+            
+            const params: any = { language, difficulty };
+            if (selectedTopic) params.topic = selectedTopic;
+
+            const response = await apiClient.post('/api/ai-challenges/generate', params);
+            
+            // Handle ApiResponse format
+            if (response.success && response.data) {
+                const challenge = {
+                    ...response.data,
+                    language,
+                    difficulty
+                };
+                setCurrentChallenge(challenge);
+                setUserCode(response.data.buggy_code || '');
+                setStartTime(new Date());
+                setTimeSpent(0);
+                setShowHint(false);
+                setHasSubmitted(false);
+                setLastSubmissionResult(null);
+                setShowCorrectAnswer(false);
+                setHasForfeited(false);
+                
+                audio.play('success');
+                
+                // NEW: Show modal instead of setting challenge directly
+                setShowChallengeModal(true);
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Challenge Generated!',
+                    text: 'Your AI-generated challenge is ready. Good luck!',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    background: '#1f2937',
+                    color: '#fff'
+                });
+            } else {
+                throw new Error(response.message || 'Failed to generate challenge');
+            }
+        } catch (error) {
+            console.error('Error generating challenge:', error);
+            audio.play('failure');
+            Swal.fire({
+                icon: 'error',
+                title: 'Generation Failed',
+                text: error instanceof Error ? error.message : 'Unable to generate challenge. Please try again.',
+                background: '#1f2937',
+                color: '#fff'
+            });
+        } finally {
+            setGenerating(false);
+        }
+    };
+
+    // NEW: Close modal and reset challenge
+    const closeChallengeModal = () => {
+        setShowChallengeModal(false);
+        resetChallenge();
+    };
+
     // NEW: forfeit flow that shows solution and clears the board
     const surrenderAndShowAnswer = async () => {
         if (!currentChallenge?.fixed_code) return;
@@ -383,7 +402,7 @@ const fetchUserStats = async () => {
         });
 
         // clear board after surrender
-        resetChallenge();
+        closeChallengeModal();
     };
 
     // Helper function to calculate string similarity
@@ -484,187 +503,187 @@ const fetchUserStats = async () => {
         return passed;
     };
 
-const submitSolution = async () => {
-    if (!currentChallenge || !userCode.trim()) {
-        audio.play('failure');
-        Swal.fire('Error', 'Please write some code before submitting.', 'error');
-        return;
-    }
+    const submitSolution = async () => {
+        if (!currentChallenge || !userCode.trim()) {
+            audio.play('failure');
+            Swal.fire('Error', 'Please write some code before submitting.', 'error');
+            return;
+        }
 
-    try {
-        setSubmitting(true);
-        audio.play('typing');
+        try {
+            setSubmitting(true);
+            audio.play('typing');
 
-        // Enhanced validation
-        const isCorrect = validateCode(userCode, currentChallenge);
-        const similarity = calculateStringSimilarity(
-            userCode.trim().replace(/\s+/g, ' '),
-            currentChallenge.fixed_code.trim().replace(/\s+/g, ' ')
-        );
+            // Enhanced validation
+            const isCorrect = validateCode(userCode, currentChallenge);
+            const similarity = calculateStringSimilarity(
+                userCode.trim().replace(/\s+/g, ' '),
+                currentChallenge.fixed_code.trim().replace(/\s+/g, ' ')
+            );
 
-        setLastSubmissionResult({ isCorrect, similarity });
-        setHasSubmitted(true);
+            setLastSubmissionResult({ isCorrect, similarity });
+            setHasSubmitted(true);
 
-        if (isCorrect) {
-            try {
-                // Apply rewards through backend and get the actual XP earned
-                const xpEarned = await applyRewards();
+            if (isCorrect) {
+                try {
+                    // Apply rewards through backend and get the actual XP earned
+                    const xpEarned = await applyRewards();
 
-                const oldTotalXP = userStats?.total_xp || 0;
-                const newTotalXP = oldTotalXP + xpEarned;
-                const oldLevel = calculateLevel(oldTotalXP);
-                const newLevel = calculateLevel(newTotalXP);
-                const leveledUp = newLevel > oldLevel;
+                    const oldTotalXP = userStats?.total_xp || 0;
+                    const newTotalXP = oldTotalXP + xpEarned;
+                    const oldLevel = calculateLevel(oldTotalXP);
+                    const newLevel = calculateLevel(newTotalXP);
+                    const leveledUp = newLevel > oldLevel;
 
-                audio.play('success');
-                setShowSuccess(true);
-                setCelebrationActive(true);
-                setIsGlowing(true);
-                
-                // Trigger progress animation
-                setProgressAnimation(true);
-                setTimeout(() => setProgressAnimation(false), 2000);
-                
-                const centerX = window.innerWidth / 2;
-                const centerY = window.innerHeight / 2;
-                createParticleExplosion(centerX, centerY, 'success');
+                    audio.play('success');
+                    setShowSuccess(true);
+                    setCelebrationActive(true);
+                    setIsGlowing(true);
+                    
+                    // Trigger progress animation
+                    setProgressAnimation(true);
+                    setTimeout(() => setProgressAnimation(false), 2000);
+                    
+                    const centerX = window.innerWidth / 2;
+                    const centerY = window.innerHeight / 2;
+                    createParticleExplosion(centerX, centerY, 'success');
 
-                if (leveledUp) {
+                    if (leveledUp) {
+                        setTimeout(() => {
+                            audio.play('levelup');
+                            setShowLevelUp(true);
+                            createParticleExplosion(centerX, centerY - 100, 'levelup');
+                        }, 1000);
+                    }
+
                     setTimeout(() => {
-                        audio.play('levelup');
-                        setShowLevelUp(true);
-                        createParticleExplosion(centerX, centerY - 100, 'levelup');
-                    }, 1000);
-                }
+                        audio.play('victory');
+                    }, 500);
 
-                setTimeout(() => {
-                    audio.play('victory');
-                }, 500);
+                    await Swal.fire({
+                        title: 'AI CHALLENGE MASTERED!',
+                        html: `
+                            <div class="text-center">
+                            <div class="text-5xl mb-4">🤖🏆</div>
+                            <p class="mb-3 text-lg font-semibold text-cyan-200">
+                                Exceptional! You've conquered this AI-generated challenge!
+                            </p>
+                            
+                            <div class="bg-blue-900/30 border border-blue-500/40 rounded-lg p-4 mb-4">
+                                <div class="text-2xl font-bold text-green-400">100% Perfect Match</div>
+                                <div class="text-sm text-gray-200 opacity-80">AI Solution Mastery!</div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <div class="bg-gray-900/40 rounded-lg p-3">
+                                <div class="text-lg font-bold text-yellow-300">+${xpEarned.toFixed(1)}</div>
+                                <div class="text-xs text-gray-300">XP Earned</div>
+                                </div>
+                                <div class="bg-gray-900/40 rounded-lg p-3">
+                                <div class="text-lg font-bold text-purple-300">Level ${newLevel}</div>
+                                <div class="text-xs text-gray-300">Current Level</div>
+                                </div>
+                            </div>
+
+                            <div class="text-sm text-gray-300">
+                                ⏱️ Completed in ${Math.floor(timeSpent / 60)}m ${timeSpent % 60}s
+                            </div>
+
+                            ${leveledUp ? `
+                                <div class="mt-4 text-center">
+                                <div class="text-lg font-bold text-pink-400 animate-pulse">✨ LEVEL UP! ✨</div>
+                                <p class="text-sm text-gray-200">
+                                    You've reached Level ${newLevel}! 
+                                    Next: ${calculateXPToNextLevel(newTotalXP)} XP needed.
+                                </p>
+                                </div>
+                            ` : ''}
+                            </div>
+                        `,
+                        timer: 6000,
+                        timerProgressBar: true,
+                        showConfirmButton: true,
+                        confirmButtonText: 'Generate New Challenge!',
+                        background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
+                        color: '#fff',
+                        confirmButtonColor: '#10B981'
+                    });
+                    
+                    // Close modal after successful submission
+                    closeChallengeModal();
+
+                    setTimeout(() => {
+                        setShowSuccess(false);
+                        setCelebrationActive(false);
+                        setShowLevelUp(false);
+                        setIsGlowing(false);
+                    }, 7000);
+
+                } catch (rewardError) {
+                    // Handle reward application error
+                    console.error('Reward application failed:', rewardError);
+                    audio.play('failure');
+                    
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Completed but rewards failed',
+                        text: 'Challenge completed but there was an issue applying rewards. Please check your connection and try again.',
+                        background: '#1f2937',
+                        color: '#fff'
+                    });
+                }
+            } else {
+                audio.play('failure');
+                setIsShaking(true);
+                setTimeout(() => setIsShaking(false), 600);
 
                 await Swal.fire({
-                    title: 'AI CHALLENGE MASTERED!',
+                    title: 'Almost There!',
                     html: `
                         <div class="text-center">
-                        <div class="text-5xl mb-4">🤖🏆</div>
-                        <p class="mb-3 text-lg font-semibold text-cyan-200">
-                            Exceptional! You've conquered this AI-generated challenge!
+                        <div class="text-5xl mb-4">⚠️</div>
+                        <p class="mb-3 text-lg font-semibold text-red-200">
+                            Your solution must exactly match the AI-generated answer.
                         </p>
                         
-                        <div class="bg-blue-900/30 border border-blue-500/40 rounded-lg p-4 mb-4">
-                            <div class="text-2xl font-bold text-green-400">100% Perfect Match</div>
-                            <div class="text-sm text-gray-200 opacity-80">AI Solution Mastery!</div>
+                        <div class="bg-red-900/30 border border-red-500/40 rounded-lg p-4 mb-4">
+                            <div class="text-lg font-bold text-yellow-300">${Math.round(similarity * 100)}% Match</div>
+                            <div class="text-sm text-gray-200 opacity-80">Need 100% for Success</div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-4 mb-4">
-                            <div class="bg-gray-900/40 rounded-lg p-3">
-                            <div class="text-lg font-bold text-yellow-300">+${xpEarned.toFixed(1)}</div>
-                            <div class="text-xs text-gray-300">XP Earned</div>
-                            </div>
-                            <div class="bg-gray-900/40 rounded-lg p-3">
-                            <div class="text-lg font-bold text-purple-300">Level ${newLevel}</div>
-                            <div class="text-xs text-gray-300">Current Level</div>
-                            </div>
+                        <div class="bg-gray-900/40 rounded-lg p-3 text-left text-sm text-gray-200">
+                            <div class="font-medium text-yellow-400 mb-1">💡 Tips:</div>
+                            <ul class="list-disc list-inside space-y-1">
+                            <li>Ensure your code is at least 20 characters long</li>
+                            <li>Don't just copy the buggy version</li>
+                            <li>Whitespace, symbols & punctuation matter</li>
+                            </ul>
                         </div>
-
-                        <div class="text-sm text-gray-300">
-                            ⏱️ Completed in ${Math.floor(timeSpent / 60)}m ${timeSpent % 60}s
-                        </div>
-
-                        ${leveledUp ? `
-                            <div class="mt-4 text-center">
-                            <div class="text-lg font-bold text-pink-400 animate-pulse">✨ LEVEL UP! ✨</div>
-                            <p class="text-sm text-gray-200">
-                                You've reached Level ${newLevel}! 
-                                Next: ${calculateXPToNextLevel(newTotalXP)} XP needed.
-                            </p>
-                            </div>
-                        ` : ''}
                         </div>
                     `,
-                    timer: 6000,
-                    timerProgressBar: true,
+                    timer: 4500,
                     showConfirmButton: true,
-                    confirmButtonText: 'Generate New Challenge!',
+                    confirmButtonText: 'Try Again',
                     background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
                     color: '#fff',
-                    confirmButtonColor: '#10B981'
-                    });
-                // Clear the challenge board after successful submission
-                resetChallenge();
-
-                setTimeout(() => {
-                    setShowSuccess(false);
-                    setCelebrationActive(false);
-                    setShowLevelUp(false);
-                    setIsGlowing(false);
-                }, 7000);
-
-            } catch (rewardError) {
-                // Handle reward application error
-                console.error('Reward application failed:', rewardError);
-                audio.play('failure');
-                
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Completed but rewards failed',
-                    text: 'Challenge completed but there was an issue applying rewards. Please check your connection and try again.',
-                    background: '#1f2937',
-                    color: '#fff'
+                    confirmButtonColor: '#3B82F6'
                 });
             }
-        } else {
+        } catch (error) {
+            console.error('Error submitting solution:', error);
             audio.play('failure');
-            setIsShaking(true);
-            setTimeout(() => setIsShaking(false), 600);
-
-            await Swal.fire({
-                title: 'Almost There!',
-                html: `
-                    <div class="text-center">
-                    <div class="text-5xl mb-4">⚠️</div>
-                    <p class="mb-3 text-lg font-semibold text-red-200">
-                        Your solution must exactly match the AI-generated answer.
-                    </p>
-                    
-                    <div class="bg-red-900/30 border border-red-500/40 rounded-lg p-4 mb-4">
-                        <div class="text-lg font-bold text-yellow-300">${Math.round(similarity * 100)}% Match</div>
-                        <div class="text-sm text-gray-200 opacity-80">Need 100% for Success</div>
-                    </div>
-
-                    <div class="bg-gray-900/40 rounded-lg p-3 text-left text-sm text-gray-200">
-                        <div class="font-medium text-yellow-400 mb-1">💡 Tips:</div>
-                        <ul class="list-disc list-inside space-y-1">
-                        <li>Ensure your code is at least 20 characters long</li>
-                        <li>Don’t just copy the buggy version</li>
-                        <li>Whitespace, symbols & punctuation matter</li>
-                        </ul>
-                    </div>
-                    </div>
-                `,
-                timer: 4500,
-                showConfirmButton: true,
-                confirmButtonText: 'Try Again',
-                background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
-                color: '#fff',
-                confirmButtonColor: '#3B82F6'
-                });
-
+            
+            let errorMessage = 'Failed to submit your solution. Please try again.';
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+            
+            Swal.fire('Error', errorMessage, 'error');
+        } finally {
+            setSubmitting(false);
         }
+    };
 
-    } catch (error) {
-        console.error('Error submitting solution:', error);
-        audio.play('failure');
-        
-        let errorMessage = 'Failed to submit your solution. Please try again.';
-        if (error instanceof Error) {
-            errorMessage = error.message;
-        }
-        
-        Swal.fire('Error', errorMessage, 'error');
-    } finally {
-        setSubmitting(false);
-    }
-};
     const showCorrectAnswerHandler = () => {
         if (currentChallenge?.fixed_code) {
             audio.play('click');
@@ -692,7 +711,7 @@ const submitSolution = async () => {
     
     const resetChallenge = () => {
         audio.play('click');
-        setCurrentChallenge(null);  // <- This clears the board
+        setCurrentChallenge(null);
         setUserCode('');
         setStartTime(null);
         setTimeSpent(0);
@@ -701,6 +720,7 @@ const submitSolution = async () => {
         setLastSubmissionResult(null);
         setShowCorrectAnswer(false);
         setHasForfeited(false);
+        setShowChallengeModal(false);
     };
 
     const getDifficultyColor = (difficulty: string) => {
@@ -748,9 +768,10 @@ const submitSolution = async () => {
     );
 
     return (
-               <div className="min-h-screen relative overflow-hidden">
-                     {/* Background */}
-                     <AnimatedBackground />
+        <div className="min-h-screen relative overflow-hidden">
+            {/* Background */}
+            <AnimatedBackground />
+            
             {/* Animated background elements */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-purple-400 rounded-full animate-ping opacity-20"></div>
@@ -799,235 +820,63 @@ const submitSolution = async () => {
                 </div>
             )}
 
-            <AppLayout breadcrumbs={breadcrumbs}>
-                <Head title="AI Generated Challenges" />
-                <div className={`flex flex-col gap-6 p-4 relative z-10 ${isShaking ? 'animate-shake' : ''}`}>
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                            <div className="flex items-center space-x-2">
-                                <Brain className={`h-8 w-8 text-purple-400 ${celebrationActive ? 'animate-spin' : ''} transition-all duration-300`} />
-                                <Sparkles className="h-6 w-6 text-yellow-400" />
-                                <Cpu className="h-8 w-8 text-cyan-400" />
-                            </div>
-                            <div>
-                                {/* <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent"> */}
-                                <h1 className="text-2xl font-bold ">
-                                    AI CHALLENGES
-                                </h1>
-                                <p className="text-gray-400 text-sm">Unique coding challenges created by artificial intelligence</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                            {/* <button
-                                onClick={() => setSoundEnabled(!soundEnabled)}
-                                className={`p-2 rounded-lg transition-all duration-300 ${
-                                    soundEnabled 
-                                        ? 'bg-green-600 text-white' 
-                                        : 'bg-gray-600 text-gray-300'
-                                }`}
-                                onMouseEnter={() => audio.play('hover')}
-                            >
-                                {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-                            </button> */}
-                        </div>
-                    </div>
-
-                    {/* User Stats */}
-                    {userStats && (
-                        <div className="space-y-4">
-                            {/* Enhanced Level Progress Bar */}
-                            <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-xl p-6">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center space-x-3">
-                                        <Crown className="h-6 w-6 text-yellow-400" />
-                                        <span className="text-xl font-bold text-white">Level {userStats.current_level}</span>
-                                        <div className="text-sm text-gray-400">
-                                            ({getCurrentLevelXP(userStats.total_xp)}/10 XP)
-                                        </div>
+            {/* Challenge Modal */}
+            {showChallengeModal && currentChallenge && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
+                    <div className="bg-gray-900/95 border border-gray-700/50 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+                        {/* Modal Header */}
+                        <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-t-2xl p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-2xl font-bold text-white flex items-center">
+                                    <Target className="h-6 w-6 mr-2" />
+                                    {currentChallenge.title}
+                                </h2>
+                                <div className="flex items-center space-x-4">
+                                    <div className="flex items-center space-x-2 text-white">
+                                        <Clock className="h-5 w-5" />
+                                        <span className="font-medium">{formatTime(timeSpent)}</span>
                                     </div>
-                                    <div className="text-right">
-                                        <div className="text-gray-400 text-sm">Next Level</div>
-                                        <div className="text-cyan-400 font-bold">{userStats.xp_to_next_level} XP needed</div>
-                                    </div>
-                                </div>
-                                <div className="w-full bg-gray-700 rounded-full h-4 overflow-hidden relative">
-                                    <div 
-                                        className={`bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 h-4 rounded-full transition-all duration-1000 ease-out progress-bar-glow ${progressAnimation ? 'animate-pulse' : ''}`}
-                                        style={{ width: `${calculateProgress(userStats.total_xp)}%` }}
-                                    >
-                                        <div className="absolute inset-0 bg-white/20 rounded-full animate-pulse"></div>
-                                    </div>
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <span className="text-xs font-bold text-white drop-shadow-lg">
-                                            {Math.round(calculateProgress(userStats.total_xp))}%
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="flex justify-between text-xs text-gray-400 mt-2">
-                                    <span>Level {userStats.current_level}</span>
-                                    <span>{getCurrentLevelXP(userStats.total_xp)} / 10 XP</span>
-                                    <span>Level {userStats.current_level + 1}</span>
-                                </div>
-                            </div>
-
-                            {/* Stats Grid */}
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                
-                                <StatCard title="Level" value={userStats.current_level} icon={Crown} color="bg-orange-500" />  
-                                <StatCard title="Total XP" value={userStats.total_xp || 0} icon={Trophy} color="bg-yellow-500" />
-                                <StatCard 
-                                    title="AI Completed" 
-                                    value={userStats.ai_successful_attempts || 0} 
-                                    icon={CheckCircle} 
-                                    color="bg-purple-500" 
-                                    animated={showSuccess}
-                                />
-                                <StatCard title="Streak" value={userStats.streak || 0} icon={Zap} color="bg-cyan-500" />
-                            </div>
-                        </div>
-                    )}
-
-                    {!currentChallenge ? (
-                        /* Challenge Generation Interface */
-                        <div className="max-w-4xl mx-auto w-full">
-                            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-8">
-                                <div className="text-center mb-8">
-                                    <Zap className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
-                                    <h2 className="text-2xl font-bold text-white mb-2">Generate Your AI Challenge</h2>
-                                    <p className="text-gray-400">Configure your preferences and let AI create a unique coding challenge</p>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                                    {/* Language Selection */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                                            Programming Language
-                                        </label>
-                                        <select
-                                            value={language}
-                                            onChange={(e) => setLanguage(e.target.value)}
-                                            className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-200 transition-all duration-300"
-                                            onMouseEnter={() => audio.play('hover')}
-                                        >
-                                            <option value="python">Python</option>
-                                            <option value="java">Java</option>
-                                        </select>
-                                    </div>
-
-                                    {/* Difficulty Selection */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                                            Difficulty Level
-                                        </label>
-                                        <select
-                                            value={difficulty}
-                                            onChange={(e) => setDifficulty(e.target.value)}
-                                            className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-200 transition-all duration-300"
-                                            onMouseEnter={() => audio.play('hover')}
-                                        >
-                                            <option value="easy">Easy (3.0 XP)</option>
-                                            <option value="medium">Medium (4.0 XP)</option>
-                                            <option value="hard">Hard (6.0 XP)</option>
-                                        </select>
-                                    </div>
-
-                                    {/* Topic Selection */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                                            Topic (Optional)
-                                        </label>
-                                        <select
-                                            value={selectedTopic}
-                                            onChange={(e) => setSelectedTopic(e.target.value)}
-                                            className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-200 transition-all duration-300"
-                                            onMouseEnter={() => audio.play('hover')}
-                                        >
-                                            <option value="">Random Topic</option>
-                                            {availableTopics.map((topic) => (
-                                                <option key={topic} value={topic}>{topic}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-
-                                {/* Generate Button */}
-                                <div className="text-center">
                                     <button
-                                        onClick={generateChallenge}
-                                        disabled={generating}
-                                        className="inline-flex items-center space-x-3 px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl hover:from-purple-600 hover:to-pink-700 disabled:opacity-50 transition-all duration-300 font-bold text-lg shadow-lg hover:scale-105"
+                                        onClick={closeChallengeModal}
+                                        className="flex items-center space-x-2 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors"
                                         onMouseEnter={() => audio.play('hover')}
                                     >
-                                        {generating ? (
-                                            <>
-                                                <RefreshCw className="h-6 w-6 animate-spin" />
-                                                <span>Generating Challenge...</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Sparkles className="h-6 w-6" />
-                                                <span>Generate AI Challenge</span>
-                                            </>
-                                        )}
+                                        <X className="h-4 w-4" />
+                                        <span>Close</span>
                                     </button>
-                                </div>
-                            </div>
-                        </div>
-                    ) : (
-                        /* Active Challenge Interface */
-                        <div className="max-w-6xl mx-auto w-full">
-                            {/* Challenge Header */}
-                            <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-6 mb-6">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h2 className="text-2xl font-bold text-white flex items-center">
-                                        <Target className="h-6 w-6 mr-2" />
-                                        {currentChallenge.title}
-                                    </h2>
-                                    <div className="flex items-center space-x-4">
-                                        <div className="flex items-center space-x-2 text-white">
-                                            <Clock className="h-5 w-5" />
-                                            <span className="font-medium">{formatTime(timeSpent)}</span>
-                                        </div>
-                                        <button
-                                            onClick={resetChallenge}
-                                            className="flex items-center space-x-2 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors"
-                                            onMouseEnter={() => audio.play('hover')}
-                                        >
-                                            <X className="h-4 w-4" />
-                                            <span>Reset</span>
-                                        </button>
-                                        <button
+                                    <button
                                         onClick={surrenderAndShowAnswer}
                                         className="flex items-center space-x-2 px-4 py-2 bg-red-600/80 text-white rounded-lg hover:bg-red-600 transition-colors"
                                         onMouseEnter={() => audio.play('hover')}
-                                        >
+                                    >
                                         <AlertTriangle className="h-4 w-4" />
                                         <span>Surrender & Show Answer</span>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-3 gap-4">
-                                    <div className="bg-white/20 rounded-lg p-3">
-                                        <div className="text-sm text-white/80">Language</div>
-                                        <div className="text-lg font-bold text-white">{language.toUpperCase()}</div>
-                                    </div>
-                                    <div className="bg-white/20 rounded-lg p-3">
-                                        <div className="text-sm text-white/80">Difficulty</div>
-                                        <div className={`text-lg font-bold capitalize`}>
-                                            {difficulty}
-                                        </div>
-                                    </div>
-                                    <div className="bg-white/20 rounded-lg p-3">
-                                        <div className="text-sm text-white/80">Reward</div>
-                                       <div className="text-xs text-white/80">
-                                            {showHint ? 'Hint used (-0.5 XP)' : 'No hint bonus'}
-                                            </div>
-                                    </div>
+                                    </button>
                                 </div>
                             </div>
 
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="bg-white/20 rounded-lg p-3">
+                                    <div className="text-sm text-white/80">Language</div>
+                                    <div className="text-lg font-bold text-white">{language.toUpperCase()}</div>
+                                </div>
+                                <div className="bg-white/20 rounded-lg p-3">
+                                    <div className="text-sm text-white/80">Difficulty</div>
+                                    <div className={`text-lg font-bold capitalize`}>
+                                        {difficulty}
+                                    </div>
+                                </div>
+                                <div className="bg-white/20 rounded-lg p-3">
+                                    <div className="text-sm text-white/80">Reward</div>
+                                    <div className="text-xs text-white/80">
+                                        {showHint ? 'Hint used (-0.5 XP)' : 'No hint bonus'}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div className="p-6">
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 {/* Left Column - Challenge Details */}
                                 <div className="space-y-6">
@@ -1126,7 +975,169 @@ const submitSolution = async () => {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            <AppLayout breadcrumbs={breadcrumbs}>
+                <Head title="AI Generated Challenges" />
+                <div className={`flex flex-col gap-6 p-4 relative z-10 ${isShaking ? 'animate-shake' : ''}`}>
+                    {/* Header */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                            <div className="flex items-center space-x-2">
+                                <Brain className={`h-8 w-8 text-purple-400 ${celebrationActive ? 'animate-spin' : ''} transition-all duration-300`} />
+                                <Sparkles className="h-6 w-6 text-yellow-400" />
+                                <Cpu className="h-8 w-8 text-cyan-400" />
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-bold">
+                                    AI CHALLENGES
+                                </h1>
+                                <p className="text-gray-400 text-sm">Unique coding challenges created by artificial intelligence</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* User Stats */}
+                    {userStats && (
+                        <div className="space-y-4">
+                            {/* Enhanced Level Progress Bar */}
+                            <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-xl p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center space-x-3">
+                                        <Crown className="h-6 w-6 text-yellow-400" />
+                                        <span className="text-xl font-bold text-white">Level {userStats.current_level}</span>
+                                        <div className="text-sm text-gray-400">
+                                            ({getCurrentLevelXP(userStats.total_xp)}/10 XP)
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-gray-400 text-sm">Next Level</div>
+                                        <div className="text-cyan-400 font-bold">{userStats.xp_to_next_level} XP needed</div>
+                                    </div>
+                                </div>
+                                <div className="w-full bg-gray-700 rounded-full h-4 overflow-hidden relative">
+                                    <div 
+                                        className={`bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 h-4 rounded-full transition-all duration-1000 ease-out progress-bar-glow ${progressAnimation ? 'animate-pulse' : ''}`}
+                                        style={{ width: `${calculateProgress(userStats.total_xp)}%` }}
+                                    >
+                                        <div className="absolute inset-0 bg-white/20 rounded-full animate-pulse"></div>
+                                    </div>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <span className="text-xs font-bold text-white drop-shadow-lg">
+                                            {Math.round(calculateProgress(userStats.total_xp))}%
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="flex justify-between text-xs text-gray-400 mt-2">
+                                    <span>Level {userStats.current_level}</span>
+                                    <span>{getCurrentLevelXP(userStats.total_xp)} / 10 XP</span>
+                                    <span>Level {userStats.current_level + 1}</span>
+                                </div>
+                            </div>
+
+                            {/* Stats Grid */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <StatCard title="Level" value={userStats.current_level} icon={Crown} color="bg-orange-500" />  
+                                <StatCard title="Total XP" value={userStats.total_xp || 0} icon={Trophy} color="bg-yellow-500" />
+                                <StatCard 
+                                    title="AI Completed" 
+                                    value={userStats.ai_successful_attempts || 0} 
+                                    icon={CheckCircle} 
+                                    color="bg-purple-500" 
+                                    animated={showSuccess}
+                                />
+                                <StatCard title="Streak" value={userStats.streak || 0} icon={Zap} color="bg-cyan-500" />
+                            </div>
+                        </div>
                     )}
+
+                    {/* Challenge Generation Interface - Always visible */}
+                    <div className="max-w-4xl mx-auto w-full">
+                        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-8">
+                            <div className="text-center mb-8">
+                                <Zap className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
+                                <h2 className="text-2xl font-bold text-white mb-2">Generate Your AI Challenge</h2>
+                                <p className="text-gray-400">Configure your preferences and let AI create a unique coding challenge</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                {/* Language Selection */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                                        Programming Language
+                                    </label>
+                                    <select
+                                        value={language}
+                                        onChange={(e) => setLanguage(e.target.value)}
+                                        className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-200 transition-all duration-300"
+                                        onMouseEnter={() => audio.play('hover')}
+                                    >
+                                        <option value="python">Python</option>
+                                        <option value="java">Java</option>
+                                    </select>
+                                </div>
+
+                                {/* Difficulty Selection */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                                        Difficulty Level
+                                    </label>
+                                    <select
+                                        value={difficulty}
+                                        onChange={(e) => setDifficulty(e.target.value)}
+                                        className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-200 transition-all duration-300"
+                                        onMouseEnter={() => audio.play('hover')}
+                                    >
+                                        <option value="easy">Easy (3.0 XP)</option>
+                                        <option value="medium">Medium (4.0 XP)</option>
+                                        <option value="hard">Hard (6.0 XP)</option>
+                                    </select>
+                                </div>
+
+                                {/* Topic Selection */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                                        Topic (Optional)
+                                    </label>
+                                    <select
+                                        value={selectedTopic}
+                                        onChange={(e) => setSelectedTopic(e.target.value)}
+                                        className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-200 transition-all duration-300"
+                                        onMouseEnter={() => audio.play('hover')}
+                                    >
+                                        <option value="">Random Topic</option>
+                                        {availableTopics.map((topic) => (
+                                            <option key={topic} value={topic}>{topic}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Generate Button */}
+                            <div className="text-center">
+                                <button
+                                    onClick={generateChallenge}
+                                    disabled={generating}
+                                    className="inline-flex items-center space-x-3 px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl hover:from-purple-600 hover:to-pink-700 disabled:opacity-50 transition-all duration-300 font-bold text-lg shadow-lg hover:scale-105"
+                                    onMouseEnter={() => audio.play('hover')}
+                                >
+                                    {generating ? (
+                                        <>
+                                            <RefreshCw className="h-6 w-6 animate-spin" />
+                                            <span>Generating Challenge...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles className="h-6 w-6" />
+                                            <span>Generate AI Challenge</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </AppLayout>
         </div>
