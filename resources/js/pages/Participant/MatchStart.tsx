@@ -249,6 +249,7 @@ export default function MatchStart() {
 const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
 
 // When opponent changes, preload default moods so first swap is instant
+// When opponent changes, preload default moods so first swap is instant
 useEffect(() => {
   let dead = false;
   (async () => {
@@ -256,16 +257,26 @@ useEffect(() => {
       setAvatarSrc(null);
       return;
     }
-    // Preload think first; if ok set it.
+    // Try "think"; if missing, fall back to "base"
     const think = buildEmotionUrl(opponent.avatar_url, 'think');
-    if (think && (await preload(think)) && !dead) setAvatarSrc(think);
-    // Warm other moods in background (no state change)
+    const base = buildEmotionUrl(opponent.avatar_url, 'base');
+
+    if (think && (await preload(think)) && !dead) {
+      setAvatarSrc(think);
+    } else if (base && (await preload(base)) && !dead) {
+      setAvatarSrc(base);
+    } else if (!dead) {
+      // last resort: whatever URL server gave us
+      setAvatarSrc(opponent.avatar_url);
+    }
+
+    // Warm other moods in background
     const sad = buildEmotionUrl(opponent.avatar_url, 'sad'); sad && preload(sad);
     const smirk = buildEmotionUrl(opponent.avatar_url, 'smirk'); smirk && preload(smirk);
-    const base = buildEmotionUrl(opponent.avatar_url, 'base'); base && preload(base);
   })();
   return () => { dead = true; };
 }, [opponent?.avatar_url]);
+
 
 // When mood changes, only switch src after target mood image is confirmed loaded
 useEffect(() => {
@@ -923,7 +934,7 @@ useEffect(() => {
                       {/* Avatar */}
                    {opponent?.avatar_url ? (
                           <img
-                            src={avatarSrc || buildEmotionUrl(opponent.avatar_url, 'think') || ''}
+                            src={avatarSrc || buildEmotionUrl(opponent.avatar_url, 'base') || opponent?.avatar_url || ''}
                             alt="Opponent avatar"
                             draggable={false}
                             loading="eager"
@@ -966,7 +977,7 @@ useEffect(() => {
                       <div className="absolute inset-0 flex items-center justify-center">
                        {opponent?.avatar_url ? (
                             <img
-                              src={avatarSrc || buildEmotionUrl(opponent.avatar_url, 'think') || ''}
+                              src={avatarSrc || buildEmotionUrl(opponent.avatar_url, 'base') || opponent?.avatar_url || ''}
                               alt="Opponent avatar"
                               draggable={false}
                               loading="eager"
