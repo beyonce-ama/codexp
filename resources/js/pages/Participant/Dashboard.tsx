@@ -406,7 +406,9 @@ const flattenAchievements = (root: any): SoloAchievementItem[] => {
 const myEntry = leaderboard.find((p) => p.id === user?.id);
 const myRank = myEntry?.rank ?? null;
 
-const [showAchievements, setShowAchievements] = useState(false);
+const [showAchievements, setShowAchievements] = useState(false); 
+const [showAchModal, setShowAchModal] = useState(false);        
+
 const [claimingId, setClaimingId] = useState<number | null>(null);
 const [achExpanded, setAchExpanded] = useState(false);
 
@@ -554,7 +556,7 @@ const handleClaim = async (achievementId: number) => {
 
   /* ---------------- Layout ---------------- */
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen relative">
       {/* Background */}
       <AnimatedBackground />
       <AppLayout breadcrumbs={breadcrumbs}>
@@ -576,18 +578,19 @@ const handleClaim = async (achievementId: number) => {
               </p>
             </div>
             <div className="flex items-center gap-3">
-                {myRank != null && <StatPill icon={Medal} label="Rank" value={`#${myRank}`} />}
-              <StatPill icon={Star} label="Stars" value={myStars} />
-              <StatPill icon={Zap} label="Total XP" value={stats?.totals?.xp ?? 0} />
-              {/* <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="inline-flex items-center gap-2 rounded-xl px-4 py-2 bg-slate-800 border border-slate-700 text-white hover:bg-slate-700 disabled:opacity-60"
-              >
-                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                <span>{refreshing ? 'Refreshing…' : 'Refresh'}</span>
-              </button> */}
-            </div>
+            {myRank != null && <StatPill icon={Medal} label="Rank" value={`#${myRank}`} />}
+            <StatPill icon={Star} label="Stars" value={myStars} />
+            <StatPill icon={Zap} label="Total XP" value={stats?.totals?.xp ?? 0} />
+
+            <button
+              onClick={() => setShowAchModal(true)}
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2 bg-slate-800 border border-slate-700 text-white hover:bg-slate-700"
+              title="View Achievements"
+            >
+              <Trophy className="h-4 w-4 text-yellow-400" />
+              <span>Achievements</span>
+            </button>
+          </div>
           </div>
         </div>
 
@@ -759,7 +762,7 @@ const handleClaim = async (achievementId: number) => {
       </div>
     }
     right={<span className="text-xs text-slate-400">XP • Stars</span>}
-    className="sticky top-6 z-10"
+    className="sticky top-4 z-10"
   >
     {/* Top 3 */}
     {leaderboard.slice(0, 3).length > 0 && (
@@ -790,7 +793,7 @@ const handleClaim = async (achievementId: number) => {
 
     {/* Full list */}
     <div className="divide-y divide-slate-700/70">
-      {leaderboard.slice(0, 15).map((p) => (
+        {leaderboard.slice(3, 12).map((p) => (
         <div key={p.id} className="py-3 flex items-center gap-3">
           <div className="w-8 text-center">
             <span className={`text-sm font-bold ${p.rank <= 3 ? 'text-yellow-400' : 'text-slate-300'}`}>#{p.rank}</span>
@@ -821,7 +824,7 @@ const handleClaim = async (achievementId: number) => {
     </div>
 
     {/* If user is not in top 15, show a pinned row for them */}
-    {myRank != null && myRank > 15 && (
+    {myRank != null && myRank > 12 && (
       <div className="mt-3 rounded-xl border border-cyan-800 bg-cyan-900/20 p-3">
         <div className="text-xs text-slate-400 mb-1">Your Position</div>
         <div className="flex items-center gap-3">
@@ -851,56 +854,109 @@ const handleClaim = async (achievementId: number) => {
     )}
   </Section>
 
-  {/* Achievements SECOND (not sticky) */}
-  <Section
-    title={
-      <div className="flex items-center gap-2">
-        <Trophy className="h-5 w-5 text-yellow-400" />
-        <span>Achievements</span>
-      </div>
-    }
-    right={
-      <button
-        onClick={() => setShowAchievements((s) => !s)}
-        className="text-xs inline-flex items-center gap-2 px-2 py-1 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-800"
-      >
-        {showAchievements ? 'Hide Tasks' : 'Show Tasks'}
-      </button>
-    }
-    className="mt-4"
-  >
-    {/* My Trophies (claimed only) — always visible */}
-    <div className="space-y-4">
-      <div>
-        <p className="text-xs text-slate-400 mb-2">My Trophies</p>
-        <div className="flex flex-wrap gap-2">
-          {soloAchievements.filter(a => a.claimed).length === 0 ? (
-            <span className="text-slate-500 text-xs">No trophies yet.</span>
-          ) : (
-            soloAchievements
-              .filter(a => a.claimed)
-              .map(a => (
-                <div key={a.id} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/60 px-2 py-1">
-                  <TrophyIcon icon_key={a.icon_key} />
-                  <span className="text-xs text-white truncate max-w-[160px]" title={a.name}>{a.name}</span>
-                </div>
-              ))
-          )}
-        </div>
-      </div>
-    </div>
 
-    {showAchievements && (
-      <div className="space-y-4">
-        {/* Tasks: unclaimed only, across ALL scopes */}
+</div>
+
+          
+        </div>
+
+        {/* Achievements Modal */}
+<AnimatePresence>
+  {showAchModal && (
+    <motion.div
+        className="fixed inset-0 z-[100] flex items-center justify-center"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={() => setShowAchModal(false)}
+      />
+
+      {/* Modal panel */}
+      <motion.div
+        className="relative z-[71] w-full max-w-3xl mx-4 rounded-2xl border border-slate-700 bg-slate-900/95 shadow-2xl p-5"
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.97, opacity: 0 }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-yellow-400" />
+            <h3 className="text-white font-semibold tracking-wide">Achievements</h3>
+          </div>
+          <button
+            onClick={() => setShowAchModal(false)}
+            className="inline-flex items-center justify-center rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-800 w-8 h-8"
+            title="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* My Trophies (claimed) */}
+        <div className="mb-6">
+          <p className="text-xs text-slate-400 mb-2">My Trophies</p>
+          <div className="flex flex-wrap gap-2">
+            {soloAchievements.filter(a => a.claimed).length === 0 ? (
+              <span className="text-slate-500 text-xs">No trophies yet.</span>
+            ) : (
+              soloAchievements
+                .filter(a => a.claimed)
+                .map(a => (
+                  <div key={a.id} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/60 px-2 py-1">
+                    {a.icon_key
+                      ? <img src={`/trophies/${a.icon_key}.svg`} alt={a.icon_key || 'trophy'} className="h-5 w-5" />
+                      : <Trophy className="h-5 w-5 text-yellow-400" />
+                    }
+                    <span className="text-xs text-white truncate max-w-[220px]" title={a.name}>{a.name}</span>
+                  </div>
+                ))
+            )}
+          </div>
+        </div>
+
+        {/* Tasks (unclaimed) */}
         <div>
-          <p className="text-xs text-slate-400 mb-2">Tasks</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-slate-400">Tasks</p>
+            <button
+              onClick={() => setShowAchievements(v => !v)}
+              className="text-xs inline-flex items-center gap-2 px-2 py-1 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-800"
+            >
+              {showAchievements ? 'Hide Details' : 'Show Details'}
+            </button>
+          </div>
+
           {soloAchievements.filter(a => !a.claimed).length === 0 ? (
             <div className="text-slate-400 text-sm">No tasks available.</div>
           ) : (
             (() => {
-              const score = (a: SoloAchievementItem) =>
-                a.can_claim ? 3 : a.unlocked ? 2 : a.progress > 0 ? 1 : 0;
+              const scopeChipClass = (scope: string) => {
+                switch (scope) {
+                  case 'Solo':        return 'bg-blue-900/30 border-blue-800 text-blue-300';
+                  case 'Solo+AI':     return 'bg-indigo-900/30 border-indigo-800 text-indigo-300';
+                  case 'Invite Duel': return 'bg-rose-900/30 border-rose-800 text-rose-300';
+                  case 'Live Match':  return 'bg-amber-900/30 border-amber-800 text-amber-300';
+                  case 'Python':      return 'bg-emerald-900/30 border-emerald-800 text-emerald-300';
+                  case 'Java':        return 'bg-orange-900/30 border-orange-800 text-orange-300';
+                  default:            return 'bg-slate-900/30 border-slate-700 text-slate-300';
+                }
+              };
+              const scopeFromCode = (code: string) => {
+                if (!code) return 'General';
+                if (code.startsWith('SOLO_AI_'))   return 'Solo+AI';
+                if (code.startsWith('SOLO_'))      return 'Solo';
+                if (code.startsWith('PVP_INVITE_'))return 'Invite Duel';
+                if (code.startsWith('PVP_LIVE_'))  return 'Live Match';
+                if (code.startsWith('LANG_PY_'))   return 'Python';
+                if (code.startsWith('LANG_JAVA_')) return 'Java';
+                return 'General';
+              };
+
+              const score = (a: SoloAchievementItem) => a.can_claim ? 3 : a.unlocked ? 2 : a.progress > 0 ? 1 : 0;
               const tasksAll = [...soloAchievements]
                 .filter(a => !a.claimed)
                 .sort((a,b) => {
@@ -908,11 +964,11 @@ const handleClaim = async (achievementId: number) => {
                   return s !== 0 ? s : (b.progress - a.progress);
                 });
 
-              const visible = achExpanded ? tasksAll : tasksAll.slice(0, 5);
+              const visible = showAchievements ? tasksAll : tasksAll.slice(0, 5);
 
               return (
                 <>
-                  <div className="space-y-3">
+                  <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
                     {visible.map(item => {
                       const scope = scopeFromCode(item.code);
                       return (
@@ -922,7 +978,10 @@ const handleClaim = async (achievementId: number) => {
                         >
                           <div className="flex items-start gap-3">
                             <div className="p-2 rounded-lg border bg-black/20">
-                              <TrophyIcon icon_key={item.icon_key} />
+                              {item.icon_key
+                                ? <img src={`/trophies/${item.icon_key}.svg`} className="h-5 w-5" />
+                                : <Trophy className="h-5 w-5 text-yellow-400" />
+                              }
                             </div>
 
                             <div className="flex-1 min-w-0">
@@ -1007,13 +1066,13 @@ const handleClaim = async (achievementId: number) => {
                     })}
                   </div>
 
-                  {(tasksAll.length > 5 || achExpanded) && (
-                    <div className="pt-2">
+                  {tasksAll.length > 5 && (
+                    <div className="pt-3">
                       <button
-                        onClick={() => setAchExpanded(v => !v)}
+                        onClick={() => setShowAchievements(v => !v)}
                         className="w-full text-center text-xs px-3 py-2 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-800"
                       >
-                        {achExpanded ? 'See less' : 'See all'}
+                        {showAchievements ? 'See less' : 'See all'}
                       </button>
                     </div>
                   )}
@@ -1022,14 +1081,11 @@ const handleClaim = async (achievementId: number) => {
             })()
           )}
         </div>
-      </div>
-    )}
-  </Section>
+      </motion.div>
+    </motion.div>
+  )}
+</AnimatePresence>
 
-</div>
-
-          
-        </div>
 {/* Reward toasts (bottom-right) */}
 <div className="fixed bottom-4 right-4 z-[60] space-y-2">
   {toasts.map(t => (
