@@ -38,16 +38,31 @@ interface User {
   name: string;
   email: string;
   stars?: number;     // from API
-  total_xp?: number;  // from API
+  total_xp?: number; 
+  avatar?: string | null;  // from API
   level?: number;     // computed on client
   profile?: {
     username?: string | null;
+    avatar?: string | null;
     avatar_url?: string | null;
   };
   is_online?: boolean;  // UI-only
   last_seen?: string;   // UI-only
 }
+const resolveAvatar = (u: User | null | undefined) => {
+  const raw =
+    (u as any)?.avatar ??
+    u?.profile?.avatar ??
+    u?.profile?.avatar_url ??
+    null;
 
+  if (!raw) return '/avatars/default.png';
+
+  const s = String(raw);
+  if (s.startsWith('http://') || s.startsWith('https://')) return s; // absolute
+  if (s.startsWith('/')) return s;                                    // rooted
+  return `/${s}`;                                                     // relative -> rooted
+};
 const xpToLevel = (xp?: number) => Math.max(1, Math.floor((xp ?? 0) / 10));
 
 
@@ -621,9 +636,10 @@ const fetchParticipants = async () => {
 
           return {
             ...p,
+            avatar: resolveAvatar(p), 
             total_xp: totalXp,
             stars,
-            level: xpToLevel(totalXp),              // 👈 compute level here
+            level: xpToLevel(totalXp),           
             is_online: Math.random() > 0.3,
             last_seen: new Date(Date.now() - Math.random() * 3600000).toISOString(),
           };
@@ -2060,7 +2076,13 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
 {selectedOpponent && (
   <div className="mt-2 flex items-center gap-3 bg-gray-900/40 border border-gray-700/50 rounded-lg px-3 py-2">
     <div className="h-8 w-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-      <User className="h-4 w-4 text-white" />
+       <img
+        src={resolveAvatar(selectedOpponent)}
+        onError={(e) => (e.currentTarget.src = '/avatars/default.png')}
+        alt={selectedOpponent.name}
+        className="w-full h-full object-cover"
+        loading="lazy"
+      />
     </div>
   <div className="text-sm">
   <div className="text-white font-medium">{selectedOpponent.name}</div>
@@ -2101,17 +2123,30 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
               : 'bg-gray-900/30 border-gray-700/50 text-gray-200 hover:bg-gray-800/40'}`}
         >
           <div className="flex items-center gap-3">
-            <div className={`h-2 w-2 rounded-full ${p.is_online ? 'bg-green-400' : 'bg-gray-500'}`} />
+            <div className="relative h-8 w-8">
+                <img
+                src={resolveAvatar(p)}
+                onError={(e) => (e.currentTarget.src = '/avatars/default.png')}
+                alt={p.name}
+                className="h-8 w-8 rounded-full object-cover ring-1 ring-gray-700/60"
+                loading="lazy"
+                />
+                <span
+                className={`absolute -bottom-0 -right-0 block h-2 w-2 rounded-full ring-2 ring-gray-900 ${
+                    p.is_online ? 'bg-green-400' : 'bg-gray-500'
+                }`}
+                />
+            </div>
             <div>
-  <div className="font-medium">{p.name}</div>
-  <div className="text-xs text-gray-400 flex items-center gap-2">
-    <span>Lv { (p.level ?? xpToLevel(p.total_xp)) ?? '—' }</span>
-    <span className="inline-flex items-center gap-1">
-      <Star className="h-3 w-3 text-yellow-400" />
-      {p.stars ?? p.profile?.stars ?? 0}
-    </span>
-  </div>
-</div>
+                <div className="font-medium">{p.name}</div>
+                <div className="text-xs text-gray-400 flex items-center gap-2">
+                    <span>Lv { (p.level ?? xpToLevel(p.total_xp)) ?? '—' }</span>
+                    <span className="inline-flex items-center gap-1">
+                    <Star className="h-3 w-3 text-yellow-400" />
+                    {p.stars ?? p.profile?.stars ?? 0}
+                    </span>
+                </div>
+                </div>
 
           </div>
           {selectedOpponent?.id === p.id ? (

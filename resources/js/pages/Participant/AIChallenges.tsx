@@ -836,14 +836,14 @@ export default function ParticipantAIChallenges() {
                                         <Clock className="h-5 w-5" />
                                         <span className="font-medium">{formatTime(timeSpent)}</span>
                                     </div>
-                                    <button
+                                    {/* <button
                                         onClick={closeChallengeModal}
                                         className="flex items-center space-x-2 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors"
                                         onMouseEnter={() => audio.play('hover')}
                                     >
                                         <X className="h-4 w-4" />
                                         <span>Close</span>
-                                    </button>
+                                    </button> */}
                                     <button
                                         onClick={surrenderAndShowAnswer}
                                         className="flex items-center space-x-2 px-4 py-2 bg-red-600/80 text-white rounded-lg hover:bg-red-600 transition-colors"

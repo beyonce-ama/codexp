@@ -1191,8 +1191,8 @@ if (isConfirmed) {
 
                     {/* Challenge Modal */}
                     {showChallengeModal && selectedChallenge && (
-                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-                            <div className="relative bg-gray-800/90 backdrop-blur-md border border-gray-700/50 w-full max-w-4xl shadow-2xl rounded-xl overflow-hidden animate-fadeInUp">
+                       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-[10000] pointer-events-auto flex items-center justify-center p-4">
+                           <div className="relative z-[10001] bg-gray-800/90 backdrop-blur-md border border-gray-700/50 w-full max-w-4xl shadow-2xl rounded-xl overflow-hidden animate-fadeInUp">
                                 <div className="bg-gradient-to-r from-cyan-600 to-blue-600 px-6 py-4">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-lg font-bold text-white flex items-center">
