@@ -157,7 +157,19 @@ const [comparison, setComparison] = useState<{
 
     const resultShownRef = useRef(false);
    
-
+useEffect(() => {
+  const isOpen = !!showDuelModal;
+  try {
+    // keep a global flag for components without props wiring
+    (window as any).__modalOpen = isOpen;
+    window.dispatchEvent(new CustomEvent('app:modal', { detail: { open: isOpen } }));
+  } catch {}
+  // lock/unlock page scroll while modal is open
+  const root = document.documentElement;
+  if (isOpen) root.classList.add('overflow-hidden');
+  else root.classList.remove('overflow-hidden');
+  return () => root.classList.remove('overflow-hidden');
+}, [showDuelModal]);
 
 
 
@@ -2166,7 +2178,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
 
                     {/* Active Duel Modal */}
                     {showDuelModal && activeDuel && activeDuel.challenge && (
-                      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-[100] flex items-center justify-center p-4">
+                  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-[9999] flex items-center justify-center p-4" role="dialog" aria-modal="true">
     <div className="relative bg-gray-800/90 backdrop-blur-md border border-gray-700/50 w-full max-w-5xl shadow-2xl rounded-xl overflow-hidden animate-fadeInUp">
       <div className="bg-gradient-to-r from-red-600 to-pink-600 px-6 py-4">
                                     <div className="flex items-center justify-between">

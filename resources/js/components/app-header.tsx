@@ -17,19 +17,26 @@ const safeCurrentPath = (pageUrl?: string) => {
 const getLevelFromXP = (totalXP?: number) => Math.floor(Number(totalXP || 0) / 10) + 1;
 
 const SafeLink = ({ href, children, ...props }: any) => {
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    // Block opening in new tab / new window behaviors
-    if (
-      e.button !== 0 ||          // not left click (e.g., middle/right)
-      e.ctrlKey || e.metaKey ||  // Ctrl/Cmd click
-      e.shiftKey || e.altKey     // Shift/Alt modifiers
-    ) {
-      e.preventDefault();
-      e.stopPropagation();
-      return;
-    }
-    // Let Inertia handle normal left-click navigation
-  };
+const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  // Block while any modal is open
+  if ((window as any).__modalOpen) {
+    e.preventDefault();
+    e.stopPropagation();
+    return;
+  }
+  // Block opening in new tab / new window behaviors
+  if (
+    e.button !== 0 ||          // not left click (e.g., middle/right)
+    e.ctrlKey || e.metaKey ||  // Ctrl/Cmd click
+    e.shiftKey || e.altKey     // Shift/Alt modifiers
+  ) {
+    e.preventDefault();
+    e.stopPropagation();
+    return;
+  }
+  // Let Inertia handle normal left-click navigation
+};
+
 
   return (
     <Link
@@ -177,7 +184,11 @@ const toggleMusic = async () => {
   const isActive = (href: string) => currentPath === href || (href !== '/' && currentPath?.startsWith(href));
 
   const QuickShortcutDock = () => (
-    <aside className="fixed left-0 top-0 bottom-0 z-40 hidden lg:flex bg-slate-950/60 backdrop-blur-md border-r border-slate-800/70 shadow-xl w-14 overflow-y-auto overflow-x-hidden overscroll-contain">
+   <aside className={[
+  "fixed left-0 top-0 bottom-0 z-40 hidden lg:flex bg-slate-950/60 backdrop-blur-md border-r border-slate-800/70 shadow-xl w-14 overflow-y-auto overflow-x-hidden overscroll-contain",
+  modalOpen ? "pointer-events-none opacity-50" : ""
+].join(" ")}>
+
       <div className="pt-18 pb-3 px-2 flex flex-col items-center gap-2 w-full">
         {navItems.map((item) => {
           const ActiveIcon = item.icon as any;
@@ -201,13 +212,22 @@ const toggleMusic = async () => {
       </div>
     </aside>
   );
+const [modalOpen, setModalOpen] = useState<boolean>(false);
+useEffect(() => {
+  const onModal = (e: any) => setModalOpen(!!e?.detail?.open);
+  window.addEventListener('app:modal', onModal);
+  return () => window.removeEventListener('app:modal', onModal);
+}, []);
 
   return (
     <>
-      <header
-  className="bg-slate-950/70 backdrop-blur-md border-b border-slate-800/70 sticky top-0 z-50"
-  onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
->
+    <header
+        className={[
+          "bg-slate-950/70 backdrop-blur-md border-b border-slate-800/70 sticky top-0 z-40",
+          modalOpen ? "pointer-events-none opacity-50" : ""
+        ].join(" ")}
+        onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
+      >
 
         <div className="mx-auto max-w-[120rem] px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
@@ -325,28 +345,34 @@ const toggleMusic = async () => {
       <QuickShortcutDock />
 
       {/* Backdrop */}
-      <div
-        className={[
-          'fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px] transition-opacity lg:hidden',
-          sidebarOpen ? 'opacity-100' : 'pointer-events-none opacity-0',
-        ].join(' ')}
-        onClick={() => setSidebarOpen(false)}
-        aria-hidden
-      />
+    
+<div
+  className={[
+    'fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px] transition-opacity lg:hidden',
+    sidebarOpen ? 'opacity-100' : 'pointer-events-none opacity-0',
+    modalOpen ? 'pointer-events-none' : ''
+  ].join(' ')}
+  onClick={() => { if (!modalOpen) setSidebarOpen(false); }}
+  aria-hidden
+/>
+
 
       {/* Panel */}
-     <div
-        className={[
-          'fixed inset-y-0 left-0 w-80 max-w-[85vw] z-50 transform transition-transform duration-300 ease-in-out',
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full',
-          'bg-slate-900/95 backdrop-blur-md border-r border-slate-800/80 shadow-xl',
-          'flex flex-col overflow-x-hidden',
-        ].join(' ')}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Navigation"
-        onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
-      >
+<div
+  className={[
+    'fixed inset-y-0 left-0 w-80 max-w-[85vw] z-50 transform transition-transform duration-300 ease-in-out',
+    sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+    'bg-slate-900/95 backdrop-blur-md border-r border-slate-800/80 shadow-xl',
+    'flex flex-col overflow-x-hidden',
+    modalOpen ? 'pointer-events-none opacity-50' : ''
+  ].join(' ')}
+  role="dialog"
+  aria-modal="true"
+  aria-label="Navigation"
+  onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
+>
+
+
 
 {/* Close button only (sticky top) */}
 <div className="sticky top-0 z-10 flex justify-end px-3 py-2 bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80">
