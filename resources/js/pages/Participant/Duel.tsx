@@ -186,6 +186,12 @@ useEffect(() => {
   return () => root.classList.remove('overflow-hidden');
 }, [showDuelModal]);
 
+// Hide header + disable quicklinks while duel modal is open
+useEffect(() => {
+  if (showDuelModal) document.body.classList.add('duel-open');
+  else document.body.classList.remove('duel-open');
+  return () => document.body.classList.remove('duel-open');
+}, [showDuelModal]);
 
 
 

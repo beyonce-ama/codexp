@@ -1748,6 +1748,22 @@ if (isConfirmed) {
                         font-size: 4rem;
                     }
                 }
+                    /* When Solo modal is open, completely disable clicks on the left quicklinks
+                (CSS-only; no JS, no events). We dim it a bit for clarity. */
+                body.modal-open .quick-dock,
+                body.modal-open .quick-dock * {
+                pointer-events: none !important;
+                }
+
+                body.modal-open .quick-dock {
+                opacity: 0.5;
+                }
+
+                /* Optional: also ignore clicks on the site header while modal is open */
+                body.modal-open header {
+                pointer-events: none !important;
+                }
+
             `}</style>
         </div>
     );
