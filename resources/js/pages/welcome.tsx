@@ -212,7 +212,7 @@ export default function CodexpLandingPage() {
           className="text-4xl md:text-6xl font-extrabold tracking-tight"
         >
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-pink-300 to-cyan-300">
-            Gamified Coding Battles
+            Gamified Coding Battles sdcdscdscdscdscdscsdcsdcsdcdscsdcsdcsdcdscds
           </span>
         </motion.h1>
 

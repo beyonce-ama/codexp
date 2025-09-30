@@ -2358,7 +2358,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                 </div>
                                             )}
                                             
-                                            <button
+                                            {/* <button
                                                 onClick={() => {
                                                     audio.play('click');
                                                     setShowDuelModal(false);
@@ -2368,7 +2368,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                 onMouseEnter={() => audio.play('hover')}
                                             >
                                                 Close
-                                            </button>
+                                            </button> */}
                                             
                                             {(!hasSubmitted || !lastSubmissionResult?.isCorrect) && (
                                                 <button
