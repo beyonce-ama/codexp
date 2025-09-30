@@ -402,7 +402,11 @@ const flattenAchievements = (root: any): SoloAchievementItem[] => {
 
   // Win Rate across all PvP (classic + live)
   const winRate = pvpPlayed ? Math.round((pvpWon / pvpPlayed) * 100) : 0;
-const [showAchievements, setShowAchievements] = useState(true);
+  // My rank (from leaderboard)
+const myEntry = leaderboard.find((p) => p.id === user?.id);
+const myRank = myEntry?.rank ?? null;
+
+const [showAchievements, setShowAchievements] = useState(false);
 const [claimingId, setClaimingId] = useState<number | null>(null);
 const [achExpanded, setAchExpanded] = useState(false);
 
@@ -572,6 +576,7 @@ const handleClaim = async (achievementId: number) => {
               </p>
             </div>
             <div className="flex items-center gap-3">
+                {myRank != null && <StatPill icon={Medal} label="Rank" value={`#${myRank}`} />}
               <StatPill icon={Star} label="Stars" value={myStars} />
               <StatPill icon={Zap} label="Total XP" value={stats?.totals?.xp ?? 0} />
               {/* <button
@@ -742,257 +747,288 @@ const handleClaim = async (achievementId: number) => {
           </div>
 
           {/* RIGHT: Leaderboard */}
-          <div className="xl:col-span-1">
+        {/* RIGHT COLUMN */}
+<div className="xl:col-span-1">
 
-            {/* RIGHT: Achievements (toggle) */}
-            <Section
-              title={
-                <div className="flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-yellow-400" />
-                  <span>Achievements</span>
-                </div>
-              }
-              right={
-                <button
-                  onClick={() => setShowAchievements((s) => !s)}
-                  className="text-xs inline-flex items-center gap-2 px-2 py-1 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-800"
-                >
-                  {showAchievements ? 'Hide Tasks' : 'Show Tasks'}
-                </button>
-              }
-              className="sticky top-6 mb-4"
-            >
-                            {/* My Trophies (claimed only) — always visible */}
-              <div className="space-y-4">
-                <div>
-                  <p className="text-xs text-slate-400 mb-2">My Trophies</p>
-                  <div className="flex flex-wrap gap-2">
-                    {soloAchievements.filter(a => a.claimed).length === 0 ? (
-                      <span className="text-slate-500 text-xs">No trophies yet.</span>
-                    ) : (
-                      soloAchievements
-                        .filter(a => a.claimed)
-                        .map(a => (
-                          <div key={a.id} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/60 px-2 py-1">
-                            <TrophyIcon icon_key={a.icon_key} />
-                            <span className="text-xs text-white truncate max-w-[160px]" title={a.name}>{a.name}</span>
-                          </div>
-                        ))
-                    )}
-                  </div>
-                </div>
+  {/* Leaderboard FIRST (sticky) */}
+  <Section
+    title={
+      <div className="flex items-center gap-2">
+        <Trophy className="h-5 w-5 text-yellow-400" />
+        <span>Leaderboard</span>
+      </div>
+    }
+    right={<span className="text-xs text-slate-400">XP • Stars</span>}
+    className="sticky top-6 z-10"
+  >
+    {/* Top 3 */}
+    {leaderboard.slice(0, 3).length > 0 && (
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        {leaderboard.slice(0, 3).map((p) => {
+          const m = medalForRank(p.rank);
+          return (
+            <div key={p.id} className={`rounded-xl p-3 border ${m.chip} text-center`}>
+              <div className="mt-2 mx-auto w-12 h-12 rounded-full overflow-hidden ring-1 ring-slate-700/60">
+                <img
+                  src={p.avatar || '/avatars/default.png'}
+                  alt={p.name}
+                  className="w-full h-full object-cover"
+                />
               </div>
+              <div className="flex items-center justify-center gap-1">
+                <Medal className={`h-5 w-5 ${m.className}`} />
+                <span className={`text-sm font-semibold ${m.className}`}>#{p.rank}</span>
+              </div>
+              <div className="mt-1 text-white text-sm font-bold truncate" title={p.name}>{p.name}</div>
+              <div className="text-[11px] text-slate-400">Lvl {p.level}</div>
+              <div className="mt-1 text-xs text-cyan-300">{p.total_xp} XP</div>
+            </div>
+          );
+        })}
+      </div>
+    )}
 
-              {showAchievements && (
-                <div className="space-y-4">
-                  
-                  {/* Tasks: unclaimed only, across ALL scopes */}
-                  <div>
-                    <p className="text-xs text-slate-400 mb-2">Tasks</p>
-                    {soloAchievements.filter(a => !a.claimed).length === 0 ? (
-                      <div className="text-slate-400 text-sm">No tasks available.</div>
-                    ) : (
-                      (() => {
-                        // sort: claimable → unlocked → in-progress → locked
-                        const score = (a: SoloAchievementItem) =>
-                          a.can_claim ? 3 : a.unlocked ? 2 : a.progress > 0 ? 1 : 0;
-                       const tasksAll = [...soloAchievements]
-                        .filter(a => !a.claimed) // include claimables + in-progress + locked
-                        .sort((a,b) => {
-                          const s = score(b) - score(a);
-                          return s !== 0 ? s : (b.progress - a.progress);
-                        });
+    {/* Full list */}
+    <div className="divide-y divide-slate-700/70">
+      {leaderboard.slice(0, 15).map((p) => (
+        <div key={p.id} className="py-3 flex items-center gap-3">
+          <div className="w-8 text-center">
+            <span className={`text-sm font-bold ${p.rank <= 3 ? 'text-yellow-400' : 'text-slate-300'}`}>#{p.rank}</span>
+          </div>
+          <div className="w-8 h-8 rounded-full overflow-hidden ring-1 ring-slate-700/60 shrink-0">
+            <img
+              src={p.avatar || '/avatars/default.png'}
+              alt={p.name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className={`text-white font-medium truncate ${p.id === user?.id ? 'underline decoration-dotted' : ''}`} title={p.name}>
+                {p.id === user?.id ? 'You' : p.name}
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-900/40 border border-cyan-800 text-cyan-300">Lvl {p.level}</span>
+            </div>
+            <div className="text-xs text-slate-400">
+              {p.total_xp} XP • <span className="inline-flex items-center gap-1"><Star className="h-3 w-3 text-yellow-400" /> {p.stars}</span>
+            </div>
+          </div>
+        </div>
+      ))}
+      {leaderboard.length === 0 && (
+        <div className="py-8 text-center text-slate-400">No participants yet.</div>
+      )}
+    </div>
 
+    {/* If user is not in top 15, show a pinned row for them */}
+    {myRank != null && myRank > 15 && (
+      <div className="mt-3 rounded-xl border border-cyan-800 bg-cyan-900/20 p-3">
+        <div className="text-xs text-slate-400 mb-1">Your Position</div>
+        <div className="flex items-center gap-3">
+          <div className="w-8 text-center">
+            <span className="text-sm font-bold text-cyan-300">#{myRank}</span>
+          </div>
+          <div className="w-8 h-8 rounded-full overflow-hidden ring-1 ring-slate-700/60 shrink-0">
+            <img
+              src={normalizeAvatar(user?.profile?.avatar ?? (user as any)?.avatar ?? null) || '/avatars/default.png'}
+              alt={user?.name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-white font-medium truncate">You</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-900/40 border border-cyan-800 text-cyan-300">
+                Lvl {myLevel}
+              </span>
+            </div>
+            <div className="text-xs text-slate-400">
+              {stats?.totals?.xp ?? 0} XP • <span className="inline-flex items-center gap-1"><Star className="h-3 w-3 text-yellow-400" /> {myStars}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+  </Section>
 
-                        const visible = achExpanded ? tasksAll : tasksAll.slice(0, 5);
+  {/* Achievements SECOND (not sticky) */}
+  <Section
+    title={
+      <div className="flex items-center gap-2">
+        <Trophy className="h-5 w-5 text-yellow-400" />
+        <span>Achievements</span>
+      </div>
+    }
+    right={
+      <button
+        onClick={() => setShowAchievements((s) => !s)}
+        className="text-xs inline-flex items-center gap-2 px-2 py-1 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-800"
+      >
+        {showAchievements ? 'Hide Tasks' : 'Show Tasks'}
+      </button>
+    }
+    className="mt-4"
+  >
+    {/* My Trophies (claimed only) — always visible */}
+    <div className="space-y-4">
+      <div>
+        <p className="text-xs text-slate-400 mb-2">My Trophies</p>
+        <div className="flex flex-wrap gap-2">
+          {soloAchievements.filter(a => a.claimed).length === 0 ? (
+            <span className="text-slate-500 text-xs">No trophies yet.</span>
+          ) : (
+            soloAchievements
+              .filter(a => a.claimed)
+              .map(a => (
+                <div key={a.id} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/60 px-2 py-1">
+                  <TrophyIcon icon_key={a.icon_key} />
+                  <span className="text-xs text-white truncate max-w-[160px]" title={a.name}>{a.name}</span>
+                </div>
+              ))
+          )}
+        </div>
+      </div>
+    </div>
 
-                        return (
-                          <>
-                            <div className="space-y-3">
-                              {visible.map(item => {
-                                const scope = scopeFromCode(item.code);
-                                return (
-                                  <div
-                                    key={item.id}
-                                    className={`rounded-xl border p-3 ${item.unlocked ? 'bg-yellow-900/10 border-yellow-800' : 'bg-slate-900/60 border-slate-700'}`}
-                                  >
-                                    <div className="flex items-start gap-3">
-                                      <div className="p-2 rounded-lg border bg-black/20">
-                                        <TrophyIcon icon_key={item.icon_key} />
-                                      </div>
+    {showAchievements && (
+      <div className="space-y-4">
+        {/* Tasks: unclaimed only, across ALL scopes */}
+        <div>
+          <p className="text-xs text-slate-400 mb-2">Tasks</p>
+          {soloAchievements.filter(a => !a.claimed).length === 0 ? (
+            <div className="text-slate-400 text-sm">No tasks available.</div>
+          ) : (
+            (() => {
+              const score = (a: SoloAchievementItem) =>
+                a.can_claim ? 3 : a.unlocked ? 2 : a.progress > 0 ? 1 : 0;
+              const tasksAll = [...soloAchievements]
+                .filter(a => !a.claimed)
+                .sort((a,b) => {
+                  const s = score(b) - score(a);
+                  return s !== 0 ? s : (b.progress - a.progress);
+                });
 
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between gap-2">
-                                          <div className="flex items-center gap-2 min-w-0">
-                                            <p className="text-white font-medium truncate" title={item.name}>{item.name}</p>
-                                            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${scopeChipClass(scope)}`}>
-                                              {scope}
-                                            </span>
-                                          </div>
+              const visible = achExpanded ? tasksAll : tasksAll.slice(0, 5);
 
-                                         {item.can_claim ? (
-                                              <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-900/30 border border-amber-800 text-amber-300">
-                                                Ready to claim
-                                              </span>
-                                            ) : item.unlocked ? (
-                                              <span className="text-[10px] px-2 py-0.5 rounded-md bg-yellow-900/20 border border-yellow-800 text-yellow-300">
-                                                Completed
-                                              </span>
-                                            ) : item.progress > 0 ? (
-                                              <span className="text-[10px] px-2 py-0.5 rounded-md bg-cyan-900/30 border border-cyan-800 text-cyan-300">
-                                                In progress
-                                              </span>
-                                            ) : (
-                                              <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 border border-slate-600 text-slate-300">
-                                                Locked
-                                              </span>
-                                            )}
-
-                                        </div>
-
-                                        {item.description && (
-                                          <p className="text-[11px] text-slate-400 mt-0.5 truncate" title={item.description}>
-                                            {item.description}
-                                          </p>
-                                        )}
-
-                                        <div className="mt-2">
-                                          <div className="w-full h-2 rounded-full bg-slate-700 overflow-hidden">
-                                            <div
-                                              className={`h-full rounded-full ${item.unlocked ? 'bg-gradient-to-r from-yellow-400 to-amber-500' : 'bg-gradient-to-r from-cyan-500 to-blue-500'}`}
-                                              style={{ width: `${item.progress}%` }}
-                                            />
-                                          </div>
-                                          <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-                                            <span>{Math.min(item.current, item.threshold)} / {item.threshold}</span>
-                                            <span>{item.progress}%</span>
-                                          </div>
-
-                                          <div className="mt-2 flex items-center justify-between gap-2">
-                                              <div className="text-[10px] text-slate-400">
-                                                Reward: <span className="text-white font-medium">+{item.xp_reward} XP</span> •{" "}
-                                                <span className="inline-flex items-center gap-1">
-                                                  <Star className="h-3 w-3 text-yellow-400" /> {item.stars_reward}
-                                                </span>
-                                              </div>
-
-                                              {item.can_claim && (
-                                                <button
-                                                  onClick={() => handleClaim(item.id)}
-                                                  disabled={claimingId === item.id}
-                                                  className="text-[11px] inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border border-yellow-700 bg-yellow-500/10 text-yellow-200 hover:bg-yellow-500/20 disabled:opacity-60"
-                                                >
-                                                  {claimingId === item.id ? (
-                                                    <>
-                                                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                      Claiming…
-                                                    </>
-                                                  ) : (
-                                                    <>
-                                                      <Trophy className="h-3.5 w-3.5" />
-                                                      Claim
-                                                    </>
-                                                  )}
-                                                </button>
-                                              )}
-                                            </div>
-
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
+              return (
+                <>
+                  <div className="space-y-3">
+                    {visible.map(item => {
+                      const scope = scopeFromCode(item.code);
+                      return (
+                        <div
+                          key={item.id}
+                          className={`rounded-xl border p-3 ${item.unlocked ? 'bg-yellow-900/10 border-yellow-800' : 'bg-slate-900/60 border-slate-700'}`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="p-2 rounded-lg border bg-black/20">
+                              <TrophyIcon icon_key={item.icon_key} />
                             </div>
 
-                           {(tasksAll.length > 5 || achExpanded) && (
-                              <div className="pt-2">
-                                <button
-                                  onClick={() => setAchExpanded(v => !v)}
-                                  className="w-full text-center text-xs px-3 py-2 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-800"
-                                >
-                                  {achExpanded ? 'See less' : 'See all'}
-                                </button>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <p className="text-white font-medium truncate" title={item.name}>{item.name}</p>
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full border ${scopeChipClass(scope)}`}>
+                                    {scope}
+                                  </span>
+                                </div>
+
+                                {item.can_claim ? (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-900/30 border border-amber-800 text-amber-300">
+                                    Ready to claim
+                                  </span>
+                                ) : item.unlocked ? (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-yellow-900/20 border border-yellow-800 text-yellow-300">
+                                    Completed
+                                  </span>
+                                ) : item.progress > 0 ? (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-cyan-900/30 border border-cyan-800 text-cyan-300">
+                                    In progress
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 border border-slate-600 text-slate-300">
+                                    Locked
+                                  </span>
+                                )}
                               </div>
 
-                            )}
+                              {item.description && (
+                                <p className="text-[11px] text-slate-400 mt-0.5 truncate" title={item.description}>
+                                  {item.description}
+                                </p>
+                              )}
 
-                          </>
-                        );
-                      })()
-                    )}
+                              <div className="mt-2">
+                                <div className="w-full h-2 rounded-full bg-slate-700 overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${item.unlocked ? 'bg-gradient-to-r from-yellow-400 to-amber-500' : 'bg-gradient-to-r from-cyan-500 to-blue-500'}`}
+                                    style={{ width: `${item.progress}%` }}
+                                  />
+                                </div>
+                                <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                                  <span>{Math.min(item.current, item.threshold)} / {item.threshold}</span>
+                                  <span>{item.progress}%</span>
+                                </div>
+
+                                <div className="mt-2 flex items-center justify-between gap-2">
+                                  <div className="text-[10px] text-slate-400">
+                                    Reward: <span className="text-white font-medium">+{item.xp_reward} XP</span> •{" "}
+                                    <span className="inline-flex items-center gap-1">
+                                      <Star className="h-3 w-3 text-yellow-400" /> {item.stars_reward}
+                                    </span>
+                                  </div>
+
+                                  {item.can_claim && (
+                                    <button
+                                      onClick={() => handleClaim(item.id)}
+                                      disabled={claimingId === item.id}
+                                      className="text-[11px] inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border border-yellow-700 bg-yellow-500/10 text-yellow-200 hover:bg-yellow-500/20 disabled:opacity-60"
+                                    >
+                                      {claimingId === item.id ? (
+                                        <>
+                                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                          Claiming…
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Trophy className="h-3.5 w-3.5" />
+                                          Claim
+                                        </>
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
-              )}
-            </Section>
 
+                  {(tasksAll.length > 5 || achExpanded) && (
+                    <div className="pt-2">
+                      <button
+                        onClick={() => setAchExpanded(v => !v)}
+                        className="w-full text-center text-xs px-3 py-2 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-800"
+                      >
+                        {achExpanded ? 'See less' : 'See all'}
+                      </button>
+                    </div>
+                  )}
+                </>
+              );
+            })()
+          )}
+        </div>
+      </div>
+    )}
+  </Section>
 
-            <Section
-              title={<div className="flex items-center gap-2"><Trophy className="h-5 w-5 text-yellow-400"/><span>Leaderboard</span></div>}
-              right={<span className="text-xs text-slate-400">XP • Stars</span>}
-              className="sticky top-6"
-            >
-              {/* Top 3 */}
-              {leaderboard.slice(0, 3).length > 0 && (
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  {leaderboard.slice(0, 3).map((p) => {
-                    const m = medalForRank(p.rank);
-                    return (
-                      
-                      <div key={p.id} className={`rounded-xl p-3 border ${m.chip} text-center`}>
-                        <div className="mt-2 mx-auto w-12 h-12 rounded-full overflow-hidden ring-1 ring-slate-700/60">
-  <img
-    src={p.avatar || '/avatars/default.png'}
-    alt={p.name}
-    className="w-full h-full object-cover"
-  />
 </div>
 
-                        <div className="flex items-center justify-center gap-1">
-                          <Medal className={`h-5 w-5 ${m.className}`} />
-                          <span className={`text-sm font-semibold ${m.className}`}>#{p.rank}</span>
-                        </div>
-                        <div className="mt-1 text-white text-sm font-bold truncate" title={p.name}>{p.name}</div>
-                        <div className="text-[11px] text-slate-400">Lvl {p.level}</div>
-                        <div className="mt-1 text-xs text-cyan-300">{p.total_xp} XP</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Full list */}
-              <div className="divide-y divide-slate-700/70">
-                {leaderboard.slice(0, 15).map((p) => (
-                  <div key={p.id} className="py-3 flex items-center gap-3">
-                    <div className="w-8 text-center">
-                      <span className={`text-sm font-bold ${p.rank <= 3 ? 'text-yellow-400' : 'text-slate-300'}`}>#{p.rank}</span>
-                    </div>
-                     <div className="w-8 h-8 rounded-full overflow-hidden ring-1 ring-slate-700/60 shrink-0">
-    <img
-      src={p.avatar || '/avatars/default.png'}
-      alt={p.name}
-      className="w-full h-full object-cover"
-    />
-  </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-white font-medium truncate" title={p.name}>{p.name}</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-900/40 border border-cyan-800 text-cyan-300">Lvl {p.level}</span>
-                      </div>
-                      <div className="text-xs text-slate-400">
-                        {p.total_xp} XP • <span className="inline-flex items-center gap-1"><Star className="h-3 w-3 text-yellow-400" /> {p.stars}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {leaderboard.length === 0 && (
-                  <div className="py-8 text-center text-slate-400">No participants yet.</div>
-                )}
-              </div>
-            </Section>
-          </div>
+          
         </div>
 {/* Reward toasts (bottom-right) */}
 <div className="fixed bottom-4 right-4 z-[60] space-y-2">

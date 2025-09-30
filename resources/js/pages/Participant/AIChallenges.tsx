@@ -94,6 +94,14 @@ export default function ParticipantAIChallenges() {
 
     // NEW: Modal state
     const [showChallengeModal, setShowChallengeModal] = useState(false);
+useEffect(() => {
+  if (showChallengeModal) {
+    document.body.classList.add('solo-open');
+  } else {
+    document.body.classList.remove('solo-open');
+  }
+  return () => document.body.classList.remove('solo-open');
+}, [showChallengeModal]);
 
     // Treat various API shapes as "ok"
     const isApiOk = (res: any) => {
@@ -1140,6 +1148,16 @@ export default function ParticipantAIChallenges() {
                     </div>
                 </div>
             </AppLayout>
+              {/* Enhanced CSS Styles */}
+            <style>{`
+            /* When the Solo challenge modal is open, completely hide the header */
+body.solo-open header {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+
+            `}</style>
         </div>
     );
 }

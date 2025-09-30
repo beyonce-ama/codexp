@@ -186,6 +186,23 @@ useEffect(() => {
     fetchTaken();               // <— NEW
     }, [modeFilter, languageFilter, difficultyFilter, searchTerm]);
 
+// near your other hooks in Solo.tsx
+useEffect(() => {
+  const isOpen = !!(showChallengeModal && selectedChallenge);
+
+  // 1) let other components (header / quick-dock / SafeLink) know
+  try {
+    (window as any).__modalOpen = isOpen;
+    window.dispatchEvent(new CustomEvent('app:modal', { detail: { open: isOpen } }));
+  } catch {}
+
+  // 2) prevent background scroll while modal is open
+  const root = document.documentElement;
+  if (isOpen) root.classList.add('overflow-hidden');
+  else root.classList.remove('overflow-hidden');
+
+  return () => root.classList.remove('overflow-hidden');
+}, [showChallengeModal, selectedChallenge]);
 
     useEffect(() => {
         let interval: NodeJS.Timeout;
