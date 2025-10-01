@@ -7,6 +7,19 @@ interface ApiResponse<T = any> {
   errors?: Record<string, string[]>;
 }
 
+function readCookie(name: string): string | null {
+  const m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/[-.$?*|{}()[\]\\/+^]/g, '\\$&') + '=([^;]*)'));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+function joinUrl(base: string, path: string): string {
+  if (path.startsWith('http')) return path;
+  if (!base) return path.startsWith('/') ? path : '/' + path;
+  const a = base.endsWith('/') ? base.slice(0, -1) : base;
+  const b = path.startsWith('/') ? path : '/' + path;
+  return a + b;
+}
+
 class ApiClient {
   private baseURL: string;
   private csrfReady = false;
@@ -16,37 +29,41 @@ class ApiClient {
       baseURL || (typeof window !== 'undefined' ? window.location.origin : '');
   }
 
-  private getCSRFToken(): string | null {
-    return (
-      document
-        .querySelector('meta[name="csrf-token"]')
-        ?.getAttribute('content') || null
-    );
+  private xsrfHeader(): Record<string, string> {
+    // Prefer Sanctum cookie (rotates safely; no stale meta)
+    const xsrf = readCookie('XSRF-TOKEN');
+    return xsrf ? { 'X-XSRF-TOKEN': xsrf } : {};
   }
 
-  private async ensureCsrfCookie(): Promise<void> {
-    if (this.csrfReady) return;
-    // Laravel Sanctum endpoint that sets XSRF-TOKEN + laravel_session
-    await fetch('/sanctum/csrf-cookie', { credentials: 'include' });
-    this.csrfReady = true;
+  private async ensureCsrfCookie(force = false): Promise<void> {
+    if (this.csrfReady && !force) return;
+    try {
+      // Sanctum endpoint; if not installed, the catch will fallback
+      await fetch('/sanctum/csrf-cookie', { credentials: 'include' });
+    } catch {
+      // Fallback: hit home to refresh session cookie on plain Laravel
+      await fetch('/', { credentials: 'include' });
+    } finally {
+      this.csrfReady = true;
+    }
   }
 
   private async request<T = any>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
+    const method = (options.method || 'GET').toUpperCase();
+    const isRead = method === 'GET' || method === 'HEAD';
+
     try {
-      const method = (options.method || 'GET').toUpperCase();
-      if (method !== 'GET' && method !== 'HEAD') {
+      if (!isRead) {
         await this.ensureCsrfCookie();
       }
-
-      const csrfToken = this.getCSRFToken();
 
       const defaultHeaders: HeadersInit = {
         Accept: 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
-        ...(csrfToken && { 'X-CSRF-TOKEN': csrfToken }),
+        ...this.xsrfHeader(), // send X-XSRF-TOKEN from cookie
       };
 
       // Only set Content-Type for JSON bodies, not FormData
@@ -60,18 +77,28 @@ class ApiClient {
         ...(options.headers || {}),
       };
 
-      const url = endpoint.startsWith('http')
-        ? endpoint
-        : `${this.baseURL}${endpoint}`;
+      const url = joinUrl(this.baseURL, endpoint);
 
       const config: RequestInit = {
         method,
         headers: mergedHeaders,
-        credentials: 'include', // always include cookies (prod needs this)
+        credentials: 'include', // send session + XSRF cookies
         ...options,
       };
 
-      const response = await fetch(url, config);
+      let response = await fetch(url, config);
+
+      // If session rotated or token stale: auto-refresh once and retry
+      if (response.status === 419 && !(config as any).__isRetry) {
+        await this.ensureCsrfCookie(true);
+        (config as any).__isRetry = true;
+        // Refresh header with the (possibly new) cookie value
+        (config.headers as any) = {
+          ...mergedHeaders,
+          ...this.xsrfHeader(),
+        };
+        response = await fetch(url, config);
+      }
 
       const contentType = response.headers.get('content-type') || '';
       const isJson = contentType.includes('application/json');
@@ -82,7 +109,7 @@ class ApiClient {
           return {
             success: false,
             message:
-              'CSRF token mismatch or session expired (419). Reload and try again.',
+              'CSRF token mismatch or session expired (419). Please try again.',
           };
         }
 
@@ -139,30 +166,21 @@ class ApiClient {
     return this.request<T>(url, { method: 'GET' });
   }
 
-  async post<T = any>(
-    endpoint: string,
-    data?: any
-  ): Promise<ApiResponse<T>> {
+  async post<T = any>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'POST',
       body: data instanceof FormData ? data : data ? JSON.stringify(data) : undefined,
     });
   }
 
-  async put<T = any>(
-    endpoint: string,
-    data?: any
-  ): Promise<ApiResponse<T>> {
+  async put<T = any>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'PUT',
       body: data instanceof FormData ? data : data ? JSON.stringify(data) : undefined,
     });
   }
 
-  async patch<T = any>(
-    endpoint: string,
-    data?: any
-  ): Promise<ApiResponse<T>> {
+  async patch<T = any>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'PATCH',
       body: data instanceof FormData ? data : data ? JSON.stringify(data) : undefined,
@@ -173,10 +191,7 @@ class ApiClient {
     return this.request<T>(endpoint, { method: 'DELETE' });
   }
 
-  async upload<T = any>(
-    endpoint: string,
-    formData: FormData
-  ): Promise<ApiResponse<T>> {
+  async upload<T = any>(endpoint: string, formData: FormData): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'POST',
       body: formData,
@@ -184,6 +199,5 @@ class ApiClient {
   }
 }
 
-// ✅ Export instance
 export const apiClient = new ApiClient();
 export { ApiClient };

@@ -42,16 +42,35 @@ const stripMood = (u?: string | null) => {
   const noExt = noQ.replace(/\.(png|jpg|jpeg|webp|gif)$/i, '');
   return noExt.replace(/_(sad|think|smirk)$/i, '');
 };
+const normalizeAvatar = (u?: string | null) => {
+  if (!u) return null;
+  let s = removeQuery(u)!;
 
+  // absolute URLs are fine
+  if (/^https?:\/\//i.test(s) || s.startsWith('//')) return s;
+
+  // drop accidental "public/" prefix
+  s = s.replace(/^\/?public\//i, '/');
+
+  // ensure it starts at site root
+  if (!s.startsWith('/')) s = '/' + s;
+
+  // collapse any accidental double slashes (but keep "http(s)://")
+  s = s.replace(/([^:])\/{2,}/g, '$1/');
+
+  return s;
+};
 /** Build a candidate URL for a given mood (no existence check). */
 const buildEmotionUrl = (avatarUrl?: string | null, mood: Mood = 'think') => {
-  if (!avatarUrl) return null;
-  const root = stripMood(avatarUrl);
-  if (!root) return avatarUrl;
-  const ext = getExt(avatarUrl);
+  const normalized = normalizeAvatar(avatarUrl);
+  if (!normalized) return null;
+
+  const root = stripMood(normalized);
+  if (!root) return normalized;
+
+  const ext = getExt(normalized);
   const emo = mood === 'base' ? '' : `_${mood}`;
   const url = `${root}${emo}${ext}`;
-  // cache-bust for mood changes (not to defeat CDN, just to avoid stale)
   return `${url}?v=${Date.now()}`;
 };
 
@@ -249,7 +268,6 @@ export default function MatchStart() {
 const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
 
 // When opponent changes, preload default moods so first swap is instant
-// When opponent changes, preload default moods so first swap is instant
 useEffect(() => {
   let dead = false;
   (async () => {
@@ -257,26 +275,16 @@ useEffect(() => {
       setAvatarSrc(null);
       return;
     }
-    // Try "think"; if missing, fall back to "base"
+    // Preload think first; if ok set it.
     const think = buildEmotionUrl(opponent.avatar_url, 'think');
-    const base = buildEmotionUrl(opponent.avatar_url, 'base');
-
-    if (think && (await preload(think)) && !dead) {
-      setAvatarSrc(think);
-    } else if (base && (await preload(base)) && !dead) {
-      setAvatarSrc(base);
-    } else if (!dead) {
-      // last resort: whatever URL server gave us
-      setAvatarSrc(opponent.avatar_url);
-    }
-
-    // Warm other moods in background
+    if (think && (await preload(think)) && !dead) setAvatarSrc(think);
+    // Warm other moods in background (no state change)
     const sad = buildEmotionUrl(opponent.avatar_url, 'sad'); sad && preload(sad);
     const smirk = buildEmotionUrl(opponent.avatar_url, 'smirk'); smirk && preload(smirk);
+    const base = buildEmotionUrl(opponent.avatar_url, 'base'); base && preload(base);
   })();
   return () => { dead = true; };
 }, [opponent?.avatar_url]);
-
 
 // When mood changes, only switch src after target mood image is confirmed loaded
 useEffect(() => {
@@ -978,6 +986,7 @@ useEffect(() => {
                        {opponent?.avatar_url ? (
                             <img
                               src={avatarSrc || buildEmotionUrl(opponent.avatar_url, 'base') || opponent?.avatar_url || ''}
+
                               alt="Opponent avatar"
                               draggable={false}
                               loading="eager"

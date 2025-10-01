@@ -571,9 +571,11 @@ const handleClaim = async (achievementId: number) => {
 
   /* ---------------- Layout ---------------- */
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative overflow-x-hidden">
       {/* Background */}
-      <AnimatedBackground />
+     <div className="pointer-events-none fixed inset-0 -z-10" aria-hidden="true">
+  <AnimatedBackground />
+</div>
       <AppLayout breadcrumbs={breadcrumbs}>
         <Head title="Dashboard" />
 
@@ -945,7 +947,7 @@ const handleClaim = async (achievementId: number) => {
       </div>
     }
     right={<span className="text-xs text-slate-400">XP • Stars</span>}
-    className="sticky top-4 z-10"
+    className="xl:sticky xl:top-4 xl:self-start"
   >
     {/* Top 3 */}
     {leaderboard.slice(0, 3).length > 0 && (
