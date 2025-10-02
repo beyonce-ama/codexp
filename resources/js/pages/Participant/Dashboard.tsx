@@ -571,7 +571,7 @@ const handleClaim = async (achievementId: number) => {
 
   /* ---------------- Layout ---------------- */
   return (
-    <div className="min-h-screen relative overflow-x-hidden">
+    <div className="min-h-screen relative overflow-x-hidden scroll-smooth">
       {/* Background */}
      <div className="pointer-events-none fixed inset-0 -z-10" aria-hidden="true">
   <AnimatedBackground />
@@ -977,7 +977,7 @@ const handleClaim = async (achievementId: number) => {
     )}
 
     {/* Full list */}
-    <div className="divide-y divide-slate-700/70">
+    <div className="divide-y divide-slate-700/70 overflow-y-visible no-scrollbar">
         {leaderboard.slice(3, 12).map((p) => (
         <div key={p.id} className="py-3 flex items-center gap-3">
           <div className="w-8 text-center">
@@ -1069,6 +1069,10 @@ const handleClaim = async (achievementId: number) => {
 </div>
 
       </AppLayout>
+             <style>{`
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+            `}</style>
     </div>
   );
 }
