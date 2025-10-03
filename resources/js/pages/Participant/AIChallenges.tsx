@@ -386,12 +386,24 @@ useEffect(() => {
         }
     };
 
-    // NEW: Close modal and reset challenge
-    const closeChallengeModal = () => {
-        setShowChallengeModal(false);
-        resetChallenge();
-        exitFullscreen();
-    };
+  const closeChallengeModal = () => {
+   // hide modal immediately
+   setShowChallengeModal(false);
+   document.body.classList.remove('solo-open');
+   exitFullscreen();
+   // clear everything else after the modal unmounts
+   setTimeout(() => {
+     setCurrentChallenge(null);
+     setUserCode('');
+     setStartTime(null);
+     setTimeSpent(0);
+     setShowHint(false);
+     setHasSubmitted(false);
+     setLastSubmissionResult(null);
+     setShowCorrectAnswer(false);
+  setHasForfeited(false);
+   }, 0);
+ };
 
     // NEW: forfeit flow that shows solution and clears the board
     const surrenderAndShowAnswer = async () => {
@@ -420,7 +432,9 @@ useEffect(() => {
                 <div class="correct-answer-modal">
                     <p class="mb-4 text-gray-300">No rewards granted for surrendered challenges.</p>
                     <div class="bg-gray-900 rounded-lg p-4 text-left">
-                        <pre class="text-green-400 text-sm overflow-auto max-h-64" style="font-family: 'Courier New', monospace; white-space: pre-wrap;">${currentChallenge.fixed_code}</pre>
+                       <pre id="ai-solution-surrender"
+          class="text-green-400 text-sm overflow-auto max-h-64"
+          style="font-family: 'Courier New', monospace; white-space: pre-wrap;"></pre>
                     </div>
                 </div>
             `,
@@ -641,11 +655,12 @@ useEffect(() => {
                         confirmButtonText: 'Generate New Challenge!',
                         background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
                         color: '#fff',
-                        confirmButtonColor: '#10B981'
+                        confirmButtonColor: '#10B981' 
                     });
                     
                     // Close modal after successful submission
                     closeChallengeModal();
+                   
 
                     setTimeout(() => {
                         setShowSuccess(false);
@@ -753,27 +768,7 @@ const showCodeModal = (title: string, code: string) => {
             audio.play('click');
             setShowCorrectAnswer(true);
             showCodeModal('AI Generated Solution', currentChallenge.fixed_code);
-            Swal.fire({
-                title: 'AI Generated Solution',
-                html: `
-                    <div class="correct-answer-modal">
-                        <p class="mb-4 text-gray-300">Here's the AI-generated solution (100% match required):</p>
-                        <div class="bg-gray-900 rounded-lg p-4 text-left">
-                            <pre class="text-green-400 text-sm overflow-auto max-h-64" style="font-family: 'Courier New', monospace; white-space: pre-wrap;">${currentChallenge.fixed_code}</pre>
-                        </div>
-                        <p class="mt-4 text-sm text-gray-400">Your code must match this exactly to pass the challenge.</p>
-                    </div>
-                `,
-                  didOpen: () => {
-                    const el = document.getElementById('ai-solution');
-                    if (el) el.textContent = currentChallenge.fixed_code!; // inject as raw text
-                    },
-                confirmButtonText: 'Got it!',
-                background: '#1f2937',
-                color: '#fff',
-                confirmButtonColor: '#10B981',
-                width: '600px'
-            });
+            
         }
     };
     

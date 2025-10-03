@@ -259,9 +259,6 @@ export default function MatchStart() {
     return 'ok';
   }, [remainingMs]);
 
-const displayLanguage = (lang: string) =>
-  LANGUAGE_LABELS[(lang as Lang)] ?? lang.toUpperCase();
-
   const fmtMmSs = (ms: number) => {
     const total = Math.max(0, Math.floor(ms / 1000));
     const m = Math.floor(total / 60);
@@ -283,6 +280,29 @@ const languages = [
   { value: 'java'   as const, label: 'Java'   },
   { value: 'cpp'    as const, label: 'C++'    }, 
 ];
+
+
+const enterFullscreen = () => {
+  const el = document.documentElement;
+  if (el.requestFullscreen) el.requestFullscreen();
+  else if ((el as any).webkitRequestFullscreen) (el as any).webkitRequestFullscreen();
+  else if ((el as any).msRequestFullscreen) (el as any).msRequestFullscreen();
+};
+
+const exitFullscreen = () => {
+  if (document.exitFullscreen) document.exitFullscreen();
+  else if ((document as any).webkitExitFullscreen) (document as any).webkitExitFullscreen();
+  else if ((document as any).msExitFullscreen) (document as any).msExitFullscreen();
+};
+
+
+useEffect(() => {
+  enterFullscreen();
+  return () => {
+    exitFullscreen();
+  };
+}, []);
+
   // ---- Opponent avatar source that only updates after the new image is loaded
 const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
 
@@ -352,10 +372,6 @@ const fadeTo = (audio: HTMLAudioElement, target: number, ms: number) => {
   requestAnimationFrame(tick);
 };
 
-  useEffect(() => {
-    document.body.classList.add('hide-app-header');
-    return () => document.body.classList.remove('hide-app-header');
-  }, []);
   
 // sounds (page-local only)
 useEffect(() => {
@@ -403,6 +419,7 @@ useEffect(() => {
 // One-time unlock on first user interaction (required by autoplay policies)
 useEffect(() => {
   const unlock = () => {
+     enterFullscreen(); 
     const list = [tickSfx.current, successSfx.current, failSfx.current, bgmRef.current]
       .filter(Boolean) as HTMLAudioElement[];
 
