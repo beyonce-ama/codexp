@@ -78,7 +78,7 @@ interface SoloChallenge {
     title: string;
     description: string | null;
     mode: 'fixbugs' | 'random';
-    language: 'python' | 'java';
+    language: 'python' | 'java' | 'cpp';
     difficulty: 'easy' | 'medium' | 'hard';
     buggy_code: string | null;
     fixed_code: string | null;
@@ -113,6 +113,16 @@ interface Particle {
     type: 'success' | 'levelup' | 'streak';
 }
 
+type LanguageCode = 'python' | 'java' | 'cpp';
+
+const LANGUAGE_LABELS: Record<LanguageCode, string> = {
+  python: 'Python',
+  java: 'Java',
+  cpp: 'C++',
+};
+
+const displayLanguage = (lang: string) =>
+  LANGUAGE_LABELS[lang as LanguageCode] ?? lang.toUpperCase();
 export default function ParticipantSolo() {
     const { auth } = usePage().props as any;
     const user = auth?.user;
@@ -1110,6 +1120,7 @@ if (isConfirmed) {
                                     <option value="all">All Languages</option>
                                     <option value="python">Python</option>
                                     <option value="java">Java</option>
+                                     <option value="cpp">C++</option>
                                 </select>
                                 <select
                                     value={difficultyFilter}
@@ -1163,7 +1174,7 @@ if (isConfirmed) {
                                             </div>
                                             <div className="flex space-x-2">
                                                 <span className={ui.chipClass} style={ui.chipBlueStyle}>
-                                                    {challenge.language.toUpperCase()}
+                                                    {displayLanguage(challenge.language)}
                                                 </span>
                                                <span className={ui.chipClass} style={getDifficultyColor(challenge.difficulty)}>
                                                     {challenge.difficulty.toUpperCase()}
@@ -1236,7 +1247,7 @@ if (isConfirmed) {
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div className="bg-gray-900/50 rounded-lg p-4">
                                             <div className="text-sm text-gray-400">Language</div>
-                                            <div className="text-lg font-bold text-white">{selectedChallenge.language.toUpperCase()}</div>
+                                           <div className="text-lg font-bold text-white">{displayLanguage(selectedChallenge.language)}</div>
                                         </div>
                                         <div className="bg-gray-900/50 rounded-lg p-4">
                                             <div className="text-sm text-gray-400">Difficulty</div>

@@ -20,7 +20,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 interface Challenge {
   id: number;
   title: string;
-  language: 'python' | 'java';
+  language: 'python' | 'java' | 'cpp';
   difficulty: 'easy' | 'medium' | 'hard';
   mode?: 'fixbugs' | 'random';
   type: 'solo' | '1v1';
@@ -33,10 +33,13 @@ interface ChallengeStats {
   total_1v1_challenges: number;
 
   // NEW: per-language
-  solo_python_challenges: number;
-  solo_java_challenges: number;
-  duel_python_challenges: number;
-  duel_java_challenges: number;
+solo_python_challenges: number;
+solo_java_challenges: number;
+solo_cpp_challenges?: number;   // NEW (optional)
+duel_python_challenges: number;
+duel_java_challenges: number;
+duel_cpp_challenges?: number;   // NEW (optional)
+
 
   // NEW: difficulty splits
   solo_easy: number;
@@ -120,15 +123,15 @@ function StatTile({
   );
 }
 type BreakdownTotals = {
-  solo: { python: number; java: number; total: number };
-  v1:   { python: number; java: number; total: number };
+  solo: { python: number; java: number; cpp: number; total: number };
+  v1:   { python: number; java: number; cpp: number; total: number };
   soloDiff: { easy: number; medium: number; hard: number };
   v1Diff:   { easy: number; medium: number; hard: number };
 };
 
 const zeroTotals: BreakdownTotals = {
-  solo:     { python: 0, java: 0, total: 0 },
-  v1:       { python: 0, java: 0, total: 0 },
+  solo:     { python: 0, java: 0, cpp: 0, total: 0 },
+  v1:       { python: 0, java: 0, cpp: 0, total: 0 },
   soloDiff: { easy: 0,  medium: 0, hard: 0 },
   v1Diff:   { easy: 0,  medium: 0, hard: 0 },
 };
@@ -146,10 +149,11 @@ export default function AdminChallenges() {
   // Import modal state
   const [showImportModal, setShowImportModal] = useState(false);
   const [importMode, setImportMode] = useState<'fixbugs' | 'random'>('fixbugs');
-  const [importLanguage, setImportLanguage] = useState<'python' | 'java'>('python');
+  const [importLanguage, setImportLanguage] = useState<'python' | 'java' | 'cpp'>('python');
   const [importDifficulty, setImportDifficulty] = useState<'easy' | 'medium' | 'hard'>('easy');
   const [importItems, setImportItems] = useState<any[]>([]);
   const [importLoading, setImportLoading] = useState(false);
+const displayLanguage = (s: string) => (s === 'cpp' ? 'C++' : (s ?? '').toUpperCase());
 
   const visibleCount = useMemo(
     () => (loading ? '—' : challenges.length),
@@ -206,9 +210,12 @@ const fetchStats = async () => {
 
         // include fields so TS is happy even if you don't render all of them
         solo_python_challenges: d.solo_python_challenges ?? 0,
-        solo_java_challenges:   d.solo_java_challenges   ?? 0,
-        duel_python_challenges: d.duel_python_challenges ?? 0,
-        duel_java_challenges:   d.duel_java_challenges   ?? 0,
+solo_java_challenges:   d.solo_java_challenges   ?? 0,
+solo_cpp_challenges:    d.solo_cpp_challenges    ?? 0, // NEW
+duel_python_challenges: d.duel_python_challenges ?? 0,
+duel_java_challenges:   d.duel_java_challenges   ?? 0,
+duel_cpp_challenges:    d.duel_cpp_challenges    ?? 0, // NEW
+
         solo_easy:   d.solo_easy   ?? 0,
         solo_medium: d.solo_medium ?? 0,
         solo_hard:   d.solo_hard   ?? 0,
@@ -219,16 +226,19 @@ const fetchStats = async () => {
 
       // derive the “breakdown” tiles once, from the same payload
       setTotals({
-  solo: {
-    python: d.solo_python_challenges ?? 0,
-    java:   d.solo_java_challenges   ?? 0,
-    total:  d.total_solo_challenges  ?? 0,
-  },
-  v1: {
-    python: d.duel_python_challenges ?? 0,
-    java:   d.duel_java_challenges   ?? 0,
-    total:  d.total_1v1_challenges   ?? 0,
-  },
+solo: {
+  python: d.solo_python_challenges ?? 0,
+  java:   d.solo_java_challenges   ?? 0,
+  cpp:    d.solo_cpp_challenges    ?? 0, // NEW
+  total:  d.total_solo_challenges  ?? 0,
+},
+v1: {
+  python: d.duel_python_challenges ?? 0,
+  java:   d.duel_java_challenges   ?? 0,
+  cpp:    d.duel_cpp_challenges    ?? 0, // NEW
+  total:  d.total_1v1_challenges   ?? 0,
+},
+
   // difficulty separated by mode (no sum)
   soloDiff: {
     easy:   d.solo_easy   ?? 0,
@@ -461,7 +471,7 @@ const modalShell = (opts: {
 
  const openViewModal = (c: any) => {
   const meta = [
-    c.language ? pill('Language', String(c.language).toUpperCase()) : '',
+   c.language ? pill('Language', displayLanguage(String(c.language))) : '',
     c.difficulty ? pill('Difficulty', String(c.difficulty).toUpperCase()) : '',
     c.mode ? pill('Mode', String(c.mode)) : '',
     c.reward_xp != null ? pill('Reward', String(c.reward_xp)) : '',
@@ -538,6 +548,7 @@ const openEditModal = (c: any, type: 'solo' | '1v1') => {
               <select id="f_lang" class="w-full bg-slate-950/70 border border-white/15 rounded-lg text-slate-100 px-3 py-2">
                 <option value="python" ${c.language==='python'?'selected':''}>Python</option>
                 <option value="java" ${c.language==='java'?'selected':''}>Java</option>
+                <option value="cpp"    ${c.language==='cpp'   ?'selected':''}>C++</option>
               </select>
             </div>
             <div>
@@ -921,7 +932,7 @@ const openCreateModal = (type: 'solo' | '1v1') => {
                       <option value="all">All Languages</option>
                       <option value="python">Python</option>
                       <option value="java">Java</option>
-                      <option value="Cpp">C++</option>
+                      <option value="cpp">C++</option>
                     </select>
                     <select
                       value={difficultyFilter}
@@ -995,7 +1006,7 @@ const openCreateModal = (type: 'solo' | '1v1') => {
                             </td>
                             <td className="px-6 py-4">
                               <span className="px-2 py-1 text-xs font-semibold rounded-full border bg-blue-500/10 text-blue-300 border-blue-500/30">
-                                {challenge.language.toUpperCase()}
+                                {displayLanguage(challenge.language)}
                               </span>
                             </td>
                             <td className="px-6 py-4">
@@ -1092,7 +1103,7 @@ const openCreateModal = (type: 'solo' | '1v1') => {
                       >
                         <option value="python">Python</option>
                         <option value="java">Java</option>
-                        <option value="Cpp">C++</option>
+                        <option value="cpp">C++</option>
                       </select>
                     </div>
                     <div>

@@ -29,9 +29,11 @@ type AdminStats = {
   total_solo_challenges: number;
   solo_python_challenges: number;
   solo_java_challenges: number;
+  solo_cpp_challenges?: number;
   solo_easy: number;
   solo_medium: number;
   solo_hard: number;
+  duel_cpp_challenges?: number; 
 
   total_1v1_challenges: number;
   duel_python_challenges: number;
@@ -59,6 +61,7 @@ type AdminStats = {
   // Lang attempts
   python_attempts: number;
   java_attempts: number;
+  cpp_attempts?: number; 
 
   total_characters: number;
 };
@@ -307,6 +310,7 @@ export default function AdminDashboard() {
           <StatTile icon={BookOpen} label="Total Solo" value={stats?.total_solo_challenges ?? 0} tone="slate" />
           <StatTile icon={Code} label="Python" value={stats?.solo_python_challenges ?? 0} tone="blue" />
           <StatTile icon={Code} label="Java" value={stats?.solo_java_challenges ?? 0} tone="red" />
+          <StatTile icon={Code} label="C++"    value={stats?.solo_cpp_challenges    ?? 0} tone="purple" />
           <StatTile icon={Target} label="Easy" value={stats?.solo_easy ?? 0} tone="green" />
           <StatTile icon={Target} label="Medium" value={stats?.solo_medium ?? 0} tone="yellow" />
           <StatTile icon={Target} label="Hard" value={stats?.solo_hard ?? 0} tone="purple" />
@@ -320,6 +324,7 @@ export default function AdminDashboard() {
           <StatTile icon={Swords} label="Total 1v1" value={stats?.total_1v1_challenges ?? 0} tone="slate" />
           <StatTile icon={Code} label="Python" value={stats?.duel_python_challenges ?? 0} tone="blue" />
           <StatTile icon={Code} label="Java" value={stats?.duel_java_challenges ?? 0} tone="red" />
+           <StatTile icon={Code} label="C++"    value={stats?.duel_cpp_challenges    ?? 0} tone="purple" /> {/* NEW */}
           <StatTile icon={Target} label="Easy" value={stats?.duel_easy ?? 0} tone="green" />
           <StatTile icon={Target} label="Medium" value={stats?.duel_medium ?? 0} tone="yellow" />
           <StatTile icon={Target} label="Hard" value={stats?.duel_hard ?? 0} tone="purple" />
@@ -435,75 +440,20 @@ export default function AdminDashboard() {
                     </div>
                     <span className="text-lg font-bold text-white">{stats?.java_attempts ?? 0}</span>
                   </div>
+                  <div className="flex items-center justify-between">{/* NEW */}
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg border border-white/10 bg-white/5">
+                        <Code className="h-4 w-4 text-white" />
+                      </div>
+                      <span className="text-sm text-white/90">C++ Attempts</span>
+                    </div>
+                    <span className="text-lg font-bold text-white">{stats?.cpp_attempts ?? 0}</span>
+                  </div>
                 </div>
               )}
             </Section>
           </div>
 
-          {/* QUICK LINKS */}
-          {/* <Section
-            title={
-              <>
-                <LayoutGrid className="h-5 w-5 text-pink-300" />
-                <span className="text-white font-semibold">Quick Admin Links</span>
-              </>
-            }
-            right={
-              <button
-                onClick={() => setShowQuick(s => !s)}
-                className="text-xs inline-flex items-center gap-2 px-2 py-1 rounded-lg border border-white/10 text-slate-200 hover:bg-white/5"
-              >
-                {showQuick ? 'Hide' : 'Show'}
-              </button>
-            }
-          >
-            {showQuick && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <Link
-                  href="/admin/users"
-                  className="rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg border border-white/10 bg-white/5">
-                      <Users className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <div className="text-white font-semibold">User Directory</div>
-                      <p className="text-sm text-white/70">Add, edit, manage all users</p>
-                    </div>
-                  </div>
-                </Link>
-                <Link
-                  href="/admin/challenges"
-                  className="rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg border border-white/10 bg-white/5">
-                      <Trophy className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <div className="text-white font-semibold">Challenges</div>
-                      <p className="text-sm text-white/70">Review & curate challenges</p>
-                    </div>
-                  </div>
-                </Link>
-                <Link
-                  href="/admin/feedback"
-                  className="rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg border border-white/10 bg-white/5">
-                      <MessageSquare className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <div className="text-white font-semibold">Feedback</div>
-                      <p className="text-sm text-white/70">Track open & resolved</p>
-                    </div>
-                  </div>
-                </Link>
-              </div>
-            )}
-          </Section> */}
 
           {/* Footer tiny stat */}
           <div className="text-xs text-white/50">

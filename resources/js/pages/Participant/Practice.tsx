@@ -466,7 +466,7 @@ const nextQuestion = async () => {
               <Code className="h-6 w-6 text-purple-400" />
               <Lightbulb className="h-8 w-8 text-yellow-400" />
               <div>
-                <h1 className="text-2xl font-bold">PRACTICE REVIEWyw</h1>
+                <h1 className="text-2xl font-bold">PRACTICE REVIEW</h1>
                 <p className="text-gray-400 text-sm">Review programming questions and learn from explanations</p>
               </div>
             </div>
