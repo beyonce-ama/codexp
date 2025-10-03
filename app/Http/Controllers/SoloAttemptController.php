@@ -16,7 +16,7 @@ class SoloAttemptController extends Controller
     {
         $data = $request->validate([
             'challenge_id'   => 'required|exists:challenges_solo,id',
-            'language'       => 'required|in:python,java',
+            'language'       => 'required|in:python,java,cpp',
             'mode'           => 'required|in:fixbugs,random',
             'time_spent_sec' => 'required|integer|min:0',
             'is_correct'     => 'required|boolean',
