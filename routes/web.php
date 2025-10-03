@@ -23,6 +23,7 @@ use App\Http\Controllers\MatchRuntimeController;
 use App\Http\Controllers\SoloUsageController;
 
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\PracticeController;
 
 
 // Home (Welcome) Page
@@ -46,6 +47,7 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
         Route::post('/match/{match}/award', [MatchRuntimeController::class, 'award'])
             ->middleware('auth:sanctum');
         
+
         Route::post('/match/{match}/surrender', [MatchRuntimeController::class, 'surrender']);
         Route::post('/matchmaking/poll',   [MatchmakingController::class, 'poll']);
         Route::post('/matchmaking/cancel', [MatchmakingController::class, 'cancel']);
@@ -464,6 +466,13 @@ Route::get('/dashboard/stats', function () {
 Route::middleware('guest')->group(function () {
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
     Route::post('/register', [RegisteredUserController::class, 'store']);
+});
+Route::middleware(['auth'])->group(function () {
+    // Practice routes
+    Route::get('/practice/current', [PracticeController::class, 'current'])->name('practice.current');
+    Route::post('/practice/taken', [PracticeController::class, 'markTaken'])->name('practice.taken');
+    Route::post('/practice/finish', [PracticeController::class, 'finishSet'])->name('practice.finish');
+    Route::get('/practice/sets', [PracticeController::class, 'listSets'])->name('practice.sets');
 });
 
 

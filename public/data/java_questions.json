@@ -1,702 +1,454 @@
 [
   {
-    "category": "Arrays",
-    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
-    "choices": [
-      "new",
-      "create",
-      "make",
-      "array"
-    ],
-    "answer": "new",
-    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
-    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "category": "Basics",
+    "question": "Fill in the blank to declare a method entry point for a Java program:\n\npublic static void ____(String[] args) { }",
+    "choices": ["main", "start", "run", "execute"],
+    "answer": "main",
+    "explanation_correct": "✅ Correct! The entry point of every Java application is 'main'.",
+    "explanation_wrong": "❌ Incorrect. Use 'main' as the starting method in Java programs.",
     "id": 1
   },
   {
-    "category": "Conditionals",
-    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
-    "choices": [
-      "==",
-      "=",
-      "!=",
-      "equals"
-    ],
-    "answer": "==",
-    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
-    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "category": "Variables",
+    "question": "Fill in the blank to declare a constant in Java:\n\n____ double PI = 3.14;",
+    "choices": ["const", "final", "static", "constant"],
+    "answer": "final",
+    "explanation_correct": "✅ Correct! 'final' makes the variable a constant in Java.",
+    "explanation_wrong": "❌ Incorrect. The correct keyword is 'final'.",
     "id": 2
   },
   {
-    "category": "Arrays",
-    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
-    "choices": [
-      "new",
-      "create",
-      "make",
-      "array"
-    ],
-    "answer": "new",
-    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
-    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "category": "Loops",
+    "question": "Fill in the blank to loop through numbers 1 to 5:\n\nfor(int i = 1; i <= 5; i____) {\n   System.out.println(i);\n}",
+    "choices": ["++", "--", "+=", "-="],
+    "answer": "++",
+    "explanation_correct": "✅ Correct! 'i++' increments the loop counter by 1.",
+    "explanation_wrong": "❌ Incorrect. Use 'i++' for incrementing by 1.",
     "id": 3
   },
   {
-    "category": "Arrays",
-    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
-    "choices": [
-      "new",
-      "create",
-      "make",
-      "array"
-    ],
-    "answer": "new",
-    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
-    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "category": "Conditionals",
+    "question": "Fill in the blank to check if x is equal to 10:\n\nif(x ____ 10) {\n   System.out.println(\"Equal\");\n}",
+    "choices": ["=", "==", "===", "equals"],
+    "answer": "==",
+    "explanation_correct": "✅ Correct! '==' compares primitive values in Java.",
+    "explanation_wrong": "❌ Incorrect. Use '==' to compare primitives.",
     "id": 4
   },
   {
-    "category": "Conditionals",
-    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
-    "choices": [
-      "==",
-      "=",
-      "!=",
-      "equals"
-    ],
-    "answer": "==",
-    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
-    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "category": "Strings",
+    "question": "Fill in the blank to compare two strings:\n\nif(str1.____(str2)) {\n   System.out.println(\"Same\");\n}",
+    "choices": ["equals", "==", "compare", "same"],
+    "answer": "equals",
+    "explanation_correct": "✅ Correct! 'equals()' compares string content in Java.",
+    "explanation_wrong": "❌ Incorrect. Use 'equals()' for comparing strings.",
     "id": 5
   },
   {
-    "category": "Strings",
-    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
-    "choices": [
-      "length",
-      "len",
-      "size",
-      "count"
-    ],
-    "answer": "length",
-    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
-    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "category": "Arrays",
+    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = new ____(5);",
+    "choices": ["array", "int[5]", "int", "Integer"],
+    "answer": "int",
+    "explanation_correct": "✅ Correct! 'new int(5)' creates an array of length 5.",
+    "explanation_wrong": "❌ Incorrect. Use 'int' when creating an array of primitives.",
     "id": 6
   },
   {
-    "category": "Functions",
-    "question": "Fill in the blank to define a method that returns an integer:\n\npublic ____ int add(int a, int b) {\n    return a + b;\n}",
-    "choices": [
-      "static",
-      "final",
-      "private",
-      "public"
-    ],
-    "answer": "static",
-    "explanation_correct": "\u2705 Correct! 'static' allows the method to be called without an object.",
-    "explanation_wrong": "\u274c Incorrect. 'static' is needed to call the method without an instance.",
+    "category": "Classes",
+    "question": "Fill in the blank to inherit from a superclass:\n\nclass Dog ____ Animal { }",
+    "choices": ["extends", "implements", "inherits", "super"],
+    "answer": "extends",
+    "explanation_correct": "✅ Correct! 'extends' is used to inherit from a class.",
+    "explanation_wrong": "❌ Incorrect. The correct keyword is 'extends'.",
     "id": 7
   },
   {
-    "category": "Functions",
-    "question": "Fill in the blank to define a method that returns an integer:\n\npublic ____ int add(int a, int b) {\n    return a + b;\n}",
-    "choices": [
-      "static",
-      "final",
-      "private",
-      "public"
-    ],
-    "answer": "static",
-    "explanation_correct": "\u2705 Correct! 'static' allows the method to be called without an object.",
-    "explanation_wrong": "\u274c Incorrect. 'static' is needed to call the method without an instance.",
+    "category": "Interfaces",
+    "question": "Fill in the blank to implement an interface:\n\nclass Circle ____ Drawable { }",
+    "choices": ["extends", "implements", "inherits", "interface"],
+    "answer": "implements",
+    "explanation_correct": "✅ Correct! 'implements' is used with interfaces.",
+    "explanation_wrong": "❌ Incorrect. Use 'implements' when using an interface.",
     "id": 8
   },
   {
-    "category": "Loops",
-    "question": "Fill in the blank to create a for loop that prints numbers 0 to 4:\n\nfor (int i = 0; i < 5; ____)\n    System.out.println(i);",
-    "choices": [
-      "i++",
-      "i+1",
-      "++i",
-      "i += 2"
-    ],
-    "answer": "i++",
-    "explanation_correct": "\u2705 Correct! 'i++' increments i by 1 after each loop iteration.",
-    "explanation_wrong": "\u274c Incorrect. Use 'i++' to increment the loop variable.",
+    "category": "Exceptions",
+    "question": "Fill in the blank to handle an exception:\n\ntry {\n   int x = 5 / 0;\n} ____ (Exception e) {\n   System.out.println(\"Error\");\n}",
+    "choices": ["throw", "catch", "final", "handle"],
+    "answer": "catch",
+    "explanation_correct": "✅ Correct! 'catch' handles exceptions in Java.",
+    "explanation_wrong": "❌ Incorrect. Use 'catch' for handling exceptions.",
     "id": 9
   },
   {
-    "category": "Loops",
-    "question": "Fill in the blank to create a for loop that prints numbers 0 to 4:\n\nfor (int i = 0; i < 5; ____)\n    System.out.println(i);",
-    "choices": [
-      "i++",
-      "i+1",
-      "++i",
-      "i += 2"
-    ],
-    "answer": "i++",
-    "explanation_correct": "\u2705 Correct! 'i++' increments i by 1 after each loop iteration.",
-    "explanation_wrong": "\u274c Incorrect. Use 'i++' to increment the loop variable.",
+    "category": "Modifiers",
+    "question": "Fill in the blank to restrict access to a variable:\n\n____ int age = 30;",
+    "choices": ["private", "public", "protected", "final"],
+    "answer": "private",
+    "explanation_correct": "✅ Correct! 'private' restricts variable access to the same class.",
+    "explanation_wrong": "❌ Incorrect. The correct keyword here is 'private'.",
     "id": 10
   },
   {
-    "category": "Strings",
-    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
-    "choices": [
-      "length",
-      "len",
-      "size",
-      "count"
-    ],
-    "answer": "length",
-    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
-    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "category": "Methods",
+    "question": "Fill in the blank to define a method that returns an integer:\n\npublic ____ int add(int a, int b) {\n   return a + b;\n}",
+    "choices": ["static", "final", "abstract", "default"],
+    "answer": "static",
+    "explanation_correct": "✅ Correct! 'static' allows the method to be called without an instance.",
+    "explanation_wrong": "❌ Incorrect. The correct keyword here is 'static'.",
     "id": 11
   },
   {
-    "category": "Strings",
-    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
-    "choices": [
-      "length",
-      "len",
-      "size",
-      "count"
-    ],
-    "answer": "length",
-    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
-    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "category": "Overriding",
+    "question": "Fill in the blank to override a method from a superclass:\n\n@Override\npublic ____ String toString() {\n   return \"Custom\";\n}",
+    "choices": ["void", "String", "Object", "super"],
+    "answer": "String",
+    "explanation_correct": "✅ Correct! 'toString()' must return a String when overridden.",
+    "explanation_wrong": "❌ Incorrect. The return type must be 'String'.",
     "id": 12
   },
   {
-    "category": "Strings",
-    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
-    "choices": [
-      "length",
-      "len",
-      "size",
-      "count"
-    ],
-    "answer": "length",
-    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
-    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "category": "Constructors",
+    "question": "Fill in the blank to call the constructor of a superclass:\n\npublic Dog() {\n   ____();\n}",
+    "choices": ["super", "this", "parent", "base"],
+    "answer": "super",
+    "explanation_correct": "✅ Correct! 'super()' calls the superclass constructor.",
+    "explanation_wrong": "❌ Incorrect. Use 'super()' for superclass constructors.",
     "id": 13
   },
   {
-    "category": "Arrays",
-    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
-    "choices": [
-      "new",
-      "create",
-      "make",
-      "array"
-    ],
-    "answer": "new",
-    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
-    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "category": "Abstract Classes",
+    "question": "Fill in the blank to declare an abstract class:\n\n____ class Shape {\n   abstract void draw();\n}",
+    "choices": ["abstract", "interface", "virtual", "static"],
+    "answer": "abstract",
+    "explanation_correct": "✅ Correct! Use 'abstract' to declare a class that cannot be instantiated.",
+    "explanation_wrong": "❌ Incorrect. The keyword is 'abstract'.",
     "id": 14
   },
   {
-    "category": "Strings",
-    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
-    "choices": [
-      "length",
-      "len",
-      "size",
-      "count"
-    ],
-    "answer": "length",
-    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
-    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "category": "Generics",
+    "question": "Fill in the blank to declare a generic class:\n\nclass Box<____> {\n   T value;\n}",
+    "choices": ["T", "E", "V", "K"],
+    "answer": "T",
+    "explanation_correct": "✅ Correct! 'T' is a conventional type parameter for generics.",
+    "explanation_wrong": "❌ Incorrect. Use 'T' as a generic placeholder.",
     "id": 15
   },
   {
-    "category": "Arrays",
-    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
-    "choices": [
-      "new",
-      "create",
-      "make",
-      "array"
-    ],
-    "answer": "new",
-    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
-    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "category": "Nested Loops",
+    "question": "Fill in the blank to print a multiplication table:\n\nfor(int i=1;i<=3;i++) {\n   for(int j=1;j<=3;j++) {\n      System.out.print(i ____ j + \" \");\n   }\n}",
+    "choices": ["*", "+", "-", "/"],
+    "answer": "*",
+    "explanation_correct": "✅ Correct! Multiplication uses '*'.",
+    "explanation_wrong": "❌ Incorrect. Use '*' to multiply numbers.",
     "id": 16
   },
   {
-    "category": "Conditionals",
-    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
-    "choices": [
-      "==",
-      "=",
-      "!=",
-      "equals"
-    ],
-    "answer": "==",
-    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
-    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "category": "Collections",
+    "question": "Fill in the blank to declare a list of strings:\n\nList<String> names = new ____( );",
+    "choices": ["ArrayList<>()", "List<>()", "HashMap<>()", "Set<>()"],
+    "answer": "ArrayList<>()",
+    "explanation_correct": "✅ Correct! 'ArrayList<>()' creates a dynamic list.",
+    "explanation_wrong": "❌ Incorrect. The correct implementation is 'ArrayList'.",
     "id": 17
   },
   {
-    "category": "Strings",
-    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
-    "choices": [
-      "length",
-      "len",
-      "size",
-      "count"
-    ],
-    "answer": "length",
-    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
-    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "category": "HashMap",
+    "question": "Fill in the blank to put a key-value pair in a HashMap:\n\nmap.____(\"name\", \"John\");",
+    "choices": ["add", "put", "insert", "append"],
+    "answer": "put",
+    "explanation_correct": "✅ Correct! Use 'put' to insert into a HashMap.",
+    "explanation_wrong": "❌ Incorrect. The correct method is 'put'.",
     "id": 18
   },
   {
-    "category": "Arrays",
-    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
-    "choices": [
-      "new",
-      "create",
-      "make",
-      "array"
-    ],
-    "answer": "new",
-    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
-    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "category": "Exceptions",
+    "question": "Fill in the blank to throw an exception:\n\nif(x < 0) {\n   ____ new IllegalArgumentException(\"x must be positive\");\n}",
+    "choices": ["throw", "catch", "throws", "error"],
+    "answer": "throw",
+    "explanation_correct": "✅ Correct! Use 'throw' to signal an exception.",
+    "explanation_wrong": "❌ Incorrect. The correct keyword is 'throw'.",
     "id": 19
   },
   {
-    "category": "Arrays",
-    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
-    "choices": [
-      "new",
-      "create",
-      "make",
-      "array"
-    ],
-    "answer": "new",
-    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
-    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "category": "Inheritance",
+    "question": "Fill in the blank to prevent a class from being inherited:\n\n____ class Utility { }",
+    "choices": ["final", "private", "abstract", "sealed"],
+    "answer": "final",
+    "explanation_correct": "✅ Correct! 'final' prevents inheritance in Java.",
+    "explanation_wrong": "❌ Incorrect. The keyword is 'final'.",
     "id": 20
   },
   {
-    "category": "Functions",
-    "question": "Fill in the blank to define a method that returns an integer:\n\npublic ____ int add(int a, int b) {\n    return a + b;\n}",
-    "choices": [
-      "static",
-      "final",
-      "private",
-      "public"
-    ],
-    "answer": "static",
-    "explanation_correct": "\u2705 Correct! 'static' allows the method to be called without an object.",
-    "explanation_wrong": "\u274c Incorrect. 'static' is needed to call the method without an instance.",
+    "category": "Lambdas",
+    "question": "Fill in the blank to create a lambda that prints each element of a list:\n\nlist.forEach(e -> System.out.____(e));",
+    "choices": ["println", "print", "write", "out"],
+    "answer": "println",
+    "explanation_correct": "✅ Correct! 'println' prints the element followed by a newline.",
+    "explanation_wrong": "❌ Incorrect. The correct method is 'println'.",
     "id": 21
   },
   {
-    "category": "Strings",
-    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
-    "choices": [
-      "length",
-      "len",
-      "size",
-      "count"
-    ],
-    "answer": "length",
-    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
-    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "category": "Streams",
+    "question": "Fill in the blank to filter a stream of integers greater than 10:\n\nlist.stream().____(x -> x > 10).forEach(System.out::println);",
+    "choices": ["filter", "map", "reduce", "collect"],
+    "answer": "filter",
+    "explanation_correct": "✅ Correct! 'filter' is used to include elements based on a condition.",
+    "explanation_wrong": "❌ Incorrect. Use 'filter' in streams to select elements.",
     "id": 22
   },
   {
-    "category": "Strings",
-    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
-    "choices": [
-      "length",
-      "len",
-      "size",
-      "count"
-    ],
-    "answer": "length",
-    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
-    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "category": "Streams",
+    "question": "Fill in the blank to convert all strings in a stream to uppercase:\n\nlist.stream().____(String::toUpperCase).forEach(System.out::println);",
+    "choices": ["map", "filter", "flatMap", "collect"],
+    "answer": "map",
+    "explanation_correct": "✅ Correct! 'map' transforms each element of the stream.",
+    "explanation_wrong": "❌ Incorrect. Use 'map' to transform elements in streams.",
     "id": 23
   },
   {
-    "category": "Strings",
-    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
-    "choices": [
-      "length",
-      "len",
-      "size",
-      "count"
-    ],
-    "answer": "length",
-    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
-    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "category": "Try-With-Resources",
+    "question": "Fill in the blank to auto-close a FileReader:\n\ntry(____ FileReader fr = new FileReader(\"file.txt\")) {\n   // read file\n}",
+    "choices": ["FileReader", "new", "AutoCloseable", "BufferedReader"],
+    "answer": "FileReader",
+    "explanation_correct": "✅ Correct! Declare the resource type inside try().",
+    "explanation_wrong": "❌ Incorrect. The correct declaration is 'FileReader'.",
     "id": 24
   },
   {
-    "category": "Arrays",
-    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
-    "choices": [
-      "new",
-      "create",
-      "make",
-      "array"
-    ],
-    "answer": "new",
-    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
-    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "category": "Method References",
+    "question": "Fill in the blank to reference a static method:\n\nlist.forEach(MyClass::____);",
+    "choices": ["doWork", "method", "main", "print"],
+    "answer": "doWork",
+    "explanation_correct": "✅ Correct! Method references use 'ClassName::methodName'.",
+    "explanation_wrong": "❌ Incorrect. Provide the method name after '::'.",
     "id": 25
   },
   {
-    "category": "Conditionals",
-    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
-    "choices": [
-      "==",
-      "=",
-      "!=",
-      "equals"
-    ],
-    "answer": "==",
-    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
-    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "category": "Enums",
+    "question": "Fill in the blank to declare an enum with constants:\n\n____ Day { MONDAY, TUESDAY, WEDNESDAY }",
+    "choices": ["enum", "class", "final", "static"],
+    "answer": "enum",
+    "explanation_correct": "✅ Correct! Use 'enum' to declare enumeration types.",
+    "explanation_wrong": "❌ Incorrect. The keyword is 'enum'.",
     "id": 26
   },
   {
-    "category": "Strings",
-    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
-    "choices": [
-      "length",
-      "len",
-      "size",
-      "count"
-    ],
-    "answer": "length",
-    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
-    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "category": "Threads",
+    "question": "Fill in the blank to start a thread:\n\nThread t = new Thread(runnable);\nt.____();",
+    "choices": ["run", "start", "execute", "launch"],
+    "answer": "start",
+    "explanation_correct": "✅ Correct! 'start()' begins execution of a thread.",
+    "explanation_wrong": "❌ Incorrect. Use 'start()' instead of 'run()'.",
     "id": 27
   },
   {
-    "category": "Conditionals",
-    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
-    "choices": [
-      "==",
-      "=",
-      "!=",
-      "equals"
-    ],
-    "answer": "==",
-    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
-    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "category": "Synchronization",
+    "question": "Fill in the blank to create a synchronized method:\n\npublic ____ synchronized void increment() {\n   count++;\n}",
+    "choices": ["static", "final", "private", "protected"],
+    "answer": "static",
+    "explanation_correct": "✅ Correct! 'static synchronized' can be used for class-level locks.",
+    "explanation_wrong": "❌ Incorrect. The correct modifier here is 'static' for class locking.",
     "id": 28
   },
   {
-    "category": "Conditionals",
-    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
-    "choices": [
-      "==",
-      "=",
-      "!=",
-      "equals"
-    ],
-    "answer": "==",
-    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
-    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "category": "Packages",
+    "question": "Fill in the blank to declare a package at the top of a file:\n\n____ com.example.myapp;",
+    "choices": ["package", "import", "namespace", "module"],
+    "answer": "package",
+    "explanation_correct": "✅ Correct! 'package' defines the namespace of a Java class.",
+    "explanation_wrong": "❌ Incorrect. The keyword is 'package'.",
     "id": 29
   },
   {
-    "category": "Strings",
-    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
-    "choices": [
-      "length",
-      "len",
-      "size",
-      "count"
-    ],
-    "answer": "length",
-    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
-    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "category": "Imports",
+    "question": "Fill in the blank to import all classes from java.util:\n\n____ java.util.*;",
+    "choices": ["import", "package", "include", "use"],
+    "answer": "import",
+    "explanation_correct": "✅ Correct! 'import' is used to bring in classes or packages.",
+    "explanation_wrong": "❌ Incorrect. Use 'import' for external packages.",
     "id": 30
   },
   {
-    "category": "Strings",
-    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
-    "choices": [
-      "length",
-      "len",
-      "size",
-      "count"
-    ],
-    "answer": "length",
-    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
-    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "category": "Inner Classes",
+    "question": "Fill in the blank to declare a static nested class:\n\nclass Outer {\n   ____ class Nested {\n   }\n}",
+    "choices": ["static", "inner", "nested", "final"],
+    "answer": "static",
+    "explanation_correct": "✅ Correct! 'static' creates a static nested class inside another class.",
+    "explanation_wrong": "❌ Incorrect. Use 'static' to declare a nested class.",
     "id": 31
   },
   {
-    "category": "Conditionals",
-    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
-    "choices": [
-      "==",
-      "=",
-      "!=",
-      "equals"
-    ],
-    "answer": "==",
-    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
-    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "category": "Static Blocks",
+    "question": "Fill in the blank to initialize a static block:\n\nclass Config {\n   ____ {\n      System.out.println(\"Loaded\");\n   }\n}",
+    "choices": ["static", "final", "public", "class"],
+    "answer": "static",
+    "explanation_correct": "✅ Correct! 'static' blocks are executed once when the class is loaded.",
+    "explanation_wrong": "❌ Incorrect. The correct keyword is 'static'.",
     "id": 32
   },
   {
-    "category": "Arrays",
-    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
-    "choices": [
-      "new",
-      "create",
-      "make",
-      "array"
-    ],
-    "answer": "new",
-    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
-    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "category": "Annotations",
+    "question": "Fill in the blank to mark a method as deprecated:\n\n@____\npublic void oldMethod() { }",
+    "choices": ["Deprecated", "Override", "SuppressWarnings", "Annotation"],
+    "answer": "Deprecated",
+    "explanation_correct": "✅ Correct! Use '@Deprecated' to indicate obsolete methods.",
+    "explanation_wrong": "❌ Incorrect. The correct annotation is '@Deprecated'.",
     "id": 33
   },
   {
-    "category": "Conditionals",
-    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
-    "choices": [
-      "==",
-      "=",
-      "!=",
-      "equals"
-    ],
-    "answer": "==",
-    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
-    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "category": "Switch Expressions",
+    "question": "Fill in the blank to use the new switch expression syntax:\n\nString day = switch(x) {\n   case 1 -> \"Monday\";\n   ____;\n};",
+    "choices": ["default -> \"Other\"", "case default", "else ->", "fallback ->"],
+    "answer": "default -> \"Other\"",
+    "explanation_correct": "✅ Correct! Switch expressions use 'default ->'.",
+    "explanation_wrong": "❌ Incorrect. Use 'default ->' for the default case.",
     "id": 34
   },
   {
-    "category": "Conditionals",
-    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
-    "choices": [
-      "==",
-      "=",
-      "!=",
-      "equals"
-    ],
-    "answer": "==",
-    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
-    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "category": "Local Variables",
+    "question": "Fill in the blank to declare a local variable with inferred type:\n\n____ message = \"Hello\";",
+    "choices": ["var", "let", "auto", "val"],
+    "answer": "var",
+    "explanation_correct": "✅ Correct! Since Java 10, 'var' allows local variable type inference.",
+    "explanation_wrong": "❌ Incorrect. The correct keyword is 'var'.",
     "id": 35
   },
   {
-    "category": "Arrays",
-    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
-    "choices": [
-      "new",
-      "create",
-      "make",
-      "array"
-    ],
-    "answer": "new",
-    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
-    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "category": "Records",
+    "question": "Fill in the blank to declare a record in Java:\n\n____ Point(int x, int y) { }",
+    "choices": ["record", "struct", "data", "tuple"],
+    "answer": "record",
+    "explanation_correct": "✅ Correct! 'record' defines immutable data carrier classes.",
+    "explanation_wrong": "❌ Incorrect. Use 'record' for data classes in Java.",
     "id": 36
   },
   {
-    "category": "Arrays",
-    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
-    "choices": [
-      "new",
-      "create",
-      "make",
-      "array"
-    ],
-    "answer": "new",
-    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
-    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "category": "Sealed Classes",
+    "question": "Fill in the blank to declare a sealed class:\n\n____ abstract sealed class Shape permits Circle, Square { }",
+    "choices": ["public", "final", "sealed", "default"],
+    "answer": "sealed",
+    "explanation_correct": "✅ Correct! 'sealed' restricts which classes can extend a type.",
+    "explanation_wrong": "❌ Incorrect. The keyword is 'sealed'.",
     "id": 37
   },
   {
-    "category": "Conditionals",
-    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
-    "choices": [
-      "==",
-      "=",
-      "!=",
-      "equals"
-    ],
-    "answer": "==",
-    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
-    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "category": "Pattern Matching",
+    "question": "Fill in the blank to use pattern matching for instanceof:\n\nif(obj ____ String s) {\n   System.out.println(s.toUpperCase());\n}",
+    "choices": ["instanceof", "is", "as", "typeof"],
+    "answer": "instanceof",
+    "explanation_correct": "✅ Correct! 'instanceof' with pattern matching binds a variable.",
+    "explanation_wrong": "❌ Incorrect. The syntax is 'instanceof Type variable'.",
     "id": 38
   },
   {
-    "category": "Conditionals",
-    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
-    "choices": [
-      "==",
-      "=",
-      "!=",
-      "equals"
-    ],
-    "answer": "==",
-    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
-    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "category": "Varargs",
+    "question": "Fill in the blank to declare a method with variable arguments:\n\npublic void printAll(String____ args) {\n   for(String s: args) System.out.println(s);\n}",
+    "choices": ["...", "[]", "var", "*"],
+    "answer": "...",
+    "explanation_correct": "✅ Correct! Varargs use '...'.",
+    "explanation_wrong": "❌ Incorrect. The syntax is 'String... args'.",
     "id": 39
   },
   {
-    "category": "Loops",
-    "question": "Fill in the blank to create a for loop that prints numbers 0 to 4:\n\nfor (int i = 0; i < 5; ____)\n    System.out.println(i);",
-    "choices": [
-      "i++",
-      "i+1",
-      "++i",
-      "i += 2"
-    ],
-    "answer": "i++",
-    "explanation_correct": "\u2705 Correct! 'i++' increments i by 1 after each loop iteration.",
-    "explanation_wrong": "\u274c Incorrect. Use 'i++' to increment the loop variable.",
+    "category": "Final Variables",
+    "question": "Fill in the blank to declare a constant reference:\n\n____ String APP_NAME = \"MyApp\";",
+    "choices": ["final", "const", "static", "var"],
+    "answer": "final",
+    "explanation_correct": "✅ Correct! 'final' prevents reassignment of variables.",
+    "explanation_wrong": "❌ Incorrect. Use 'final' for constants.",
     "id": 40
   },
   {
-    "category": "Arrays",
-    "question": "Fill in the blank to declare an array of integers:\n\nint[] numbers = ____ int[5];",
-    "choices": [
-      "new",
-      "create",
-      "make",
-      "array"
-    ],
-    "answer": "new",
-    "explanation_correct": "\u2705 Correct! 'new int[5]' creates a new integer array of size 5.",
-    "explanation_wrong": "\u274c Incorrect. Use 'new' to instantiate arrays in Java.",
+    "category": "Generics",
+    "question": "Fill in the blank to declare a method with a bounded type parameter:\n\npublic <T ____ Number> void print(T value) {\n   System.out.println(value);\n}",
+    "choices": ["extends", "implements", "super", "is"],
+    "answer": "extends",
+    "explanation_correct": "✅ Correct! Use 'extends' to declare upper bounds for generic types.",
+    "explanation_wrong": "❌ Incorrect. The correct syntax is '<T extends Number>'.",
     "id": 41
   },
   {
-    "category": "Conditionals",
-    "question": "Fill in the blank to compare if a is equal to b:\n\nif (a ____ b) {\n    System.out.println(\"Equal\");\n}",
-    "choices": [
-      "==",
-      "=",
-      "!=",
-      "equals"
-    ],
-    "answer": "==",
-    "explanation_correct": "\u2705 Correct! '==' is used to compare primitive values in Java.",
-    "explanation_wrong": "\u274c Incorrect. Use '==' to compare primitive values, not '='.",
+    "category": "Wildcards",
+    "question": "Fill in the blank to accept any type of list:\n\npublic void process(List<? ____> list) { }",
+    "choices": ["extends Object", "super Object", "extends", "super"],
+    "answer": "extends Object",
+    "explanation_correct": "✅ Correct! '? extends Object' matches any list type.",
+    "explanation_wrong": "❌ Incorrect. The safe wildcard is '? extends Object'.",
     "id": 42
   },
   {
-    "category": "Functions",
-    "question": "Fill in the blank to define a method that returns an integer:\n\npublic ____ int add(int a, int b) {\n    return a + b;\n}",
-    "choices": [
-      "static",
-      "final",
-      "private",
-      "public"
-    ],
-    "answer": "static",
-    "explanation_correct": "\u2705 Correct! 'static' allows the method to be called without an object.",
-    "explanation_wrong": "\u274c Incorrect. 'static' is needed to call the method without an instance.",
+    "category": "Reflection",
+    "question": "Fill in the blank to get the class of an object:\n\nClass<?> clazz = obj.____();",
+    "choices": ["class", "getClass", "type", "getType"],
+    "answer": "getClass",
+    "explanation_correct": "✅ Correct! Use 'getClass()' to retrieve the runtime class.",
+    "explanation_wrong": "❌ Incorrect. The method is 'getClass()'.",
     "id": 43
   },
   {
-    "category": "Strings",
-    "question": "Fill in the blank to get the length of a string:\n\nString s = \"Hello\";\nint len = s.____();",
-    "choices": [
-      "length",
-      "len",
-      "size",
-      "count"
-    ],
-    "answer": "length",
-    "explanation_correct": "\u2705 Correct! 'length()' returns the number of characters in a string.",
-    "explanation_wrong": "\u274c Incorrect. Use 'length()' for the size of a string in Java.",
+    "category": "Reflection",
+    "question": "Fill in the blank to get a method by name:\n\nMethod m = clazz.____(\"toString\");",
+    "choices": ["getMethod", "method", "findMethod", "getDeclared"],
+    "answer": "getMethod",
+    "explanation_correct": "✅ Correct! 'getMethod' retrieves a public method by name.",
+    "explanation_wrong": "❌ Incorrect. Use 'getMethod(\"name\")'.",
     "id": 44
   },
   {
-    "category": "Loops",
-    "question": "Fill in the blank to create a for loop that prints numbers 0 to 4:\n\nfor (int i = 0; i < 5; ____)\n    System.out.println(i);",
-    "choices": [
-      "i++",
-      "i+1",
-      "++i",
-      "i += 2"
-    ],
-    "answer": "i++",
-    "explanation_correct": "\u2705 Correct! 'i++' increments i by 1 after each loop iteration.",
-    "explanation_wrong": "\u274c Incorrect. Use 'i++' to increment the loop variable.",
+    "category": "Annotations",
+    "question": "Fill in the blank to define an annotation with parameters:\n\npublic @____ interface Author {\n   String name();\n   int year();\n}",
+    "choices": ["interface", "annotation", "Author", "interface annotation"],
+    "answer": "interface",
+    "explanation_correct": "✅ Correct! Annotations are defined as '@interface'.",
+    "explanation_wrong": "❌ Incorrect. Use '@interface' for annotations.",
     "id": 45
   },
   {
-    "category": "Loops",
-    "question": "Fill in the blank to create a for loop that prints numbers 0 to 4:\n\nfor (int i = 0; i < 5; ____)\n    System.out.println(i);",
-    "choices": [
-      "i++",
-      "i+1",
-      "++i",
-      "i += 2"
-    ],
-    "answer": "i++",
-    "explanation_correct": "\u2705 Correct! 'i++' increments i by 1 after each loop iteration.",
-    "explanation_wrong": "\u274c Incorrect. Use 'i++' to increment the loop variable.",
+    "category": "Interfaces",
+    "question": "Fill in the blank to define a default method in an interface:\n\ninterface Vehicle {\n   ____ void start() {\n      System.out.println(\"Starting\");\n   }\n}",
+    "choices": ["default", "static", "final", "abstract"],
+    "answer": "default",
+    "explanation_correct": "✅ Correct! 'default' allows method bodies inside interfaces.",
+    "explanation_wrong": "❌ Incorrect. Use 'default' keyword here.",
     "id": 46
   },
   {
-    "category": "Functions",
-    "question": "Fill in the blank to define a method that returns an integer:\n\npublic ____ int add(int a, int b) {\n    return a + b;\n}",
-    "choices": [
-      "static",
-      "final",
-      "private",
-      "public"
-    ],
+    "category": "Static Imports",
+    "question": "Fill in the blank to statically import Math.PI:\n\nimport ____ java.lang.Math.PI;",
+    "choices": ["static", "final", "public", "const"],
     "answer": "static",
-    "explanation_correct": "\u2705 Correct! 'static' allows the method to be called without an object.",
-    "explanation_wrong": "\u274c Incorrect. 'static' is needed to call the method without an instance.",
+    "explanation_correct": "✅ Correct! 'static import' lets you access static members directly.",
+    "explanation_wrong": "❌ Incorrect. The correct syntax is 'import static ...'.",
     "id": 47
   },
   {
-    "category": "Loops",
-    "question": "Fill in the blank to create a for loop that prints numbers 0 to 4:\n\nfor (int i = 0; i < 5; ____)\n    System.out.println(i);",
-    "choices": [
-      "i++",
-      "i+1",
-      "++i",
-      "i += 2"
-    ],
-    "answer": "i++",
-    "explanation_correct": "\u2705 Correct! 'i++' increments i by 1 after each loop iteration.",
-    "explanation_wrong": "\u274c Incorrect. Use 'i++' to increment the loop variable.",
+    "category": "Nested Generics",
+    "question": "Fill in the blank for a Map of lists:\n\nMap<String, List<____>> map = new HashMap<>();",
+    "choices": ["String", "Object", "T", "Any"],
+    "answer": "String",
+    "explanation_correct": "✅ Correct! This is a Map from String to List<String>.",
+    "explanation_wrong": "❌ Incorrect. The generic should be 'String'.",
     "id": 48
   },
   {
-    "category": "Loops",
-    "question": "Fill in the blank to create a for loop that prints numbers 0 to 4:\n\nfor (int i = 0; i < 5; ____)\n    System.out.println(i);",
-    "choices": [
-      "i++",
-      "i+1",
-      "++i",
-      "i += 2"
-    ],
-    "answer": "i++",
-    "explanation_correct": "\u2705 Correct! 'i++' increments i by 1 after each loop iteration.",
-    "explanation_wrong": "\u274c Incorrect. Use 'i++' to increment the loop variable.",
+    "category": "Records",
+    "question": "Fill in the blank to create a compact constructor in a record:\n\nrecord User(String name, int age) {\n   ____ {\n      if(age < 0) throw new IllegalArgumentException();\n   }\n}",
+    "choices": ["this", "User", "constructor", "init"],
+    "answer": "this",
+    "explanation_correct": "✅ Correct! Records allow compact constructors using 'this'.",
+    "explanation_wrong": "❌ Incorrect. The correct keyword is 'this'.",
     "id": 49
   },
   {
-    "category": "Loops",
-    "question": "Fill in the blank to create a for loop that prints numbers 0 to 4:\n\nfor (int i = 0; i < 5; ____)\n    System.out.println(i);",
-    "choices": [
-      "i++",
-      "i+1",
-      "++i",
-      "i += 2"
-    ],
-    "answer": "i++",
-    "explanation_correct": "\u2705 Correct! 'i++' increments i by 1 after each loop iteration.",
-    "explanation_wrong": "\u274c Incorrect. Use 'i++' to increment the loop variable.",
+    "category": "Modules",
+    "question": "Fill in the blank to declare a module in module-info.java:\n\n____ my.module { }",
+    "choices": ["module", "package", "namespace", "import"],
+    "answer": "module",
+    "explanation_correct": "✅ Correct! Use 'module' to declare a module in Java 9+.",
+    "explanation_wrong": "❌ Incorrect. The keyword is 'module'.",
     "id": 50
   }
 ]
+
+

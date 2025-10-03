@@ -48,6 +48,12 @@ export default function ParticipantPractice() {
   const [categories, setCategories] = useState<string[]>([]);
   const [takenIds, setTakenIds] = useState<Set<number>>(new Set());
 
+  const currentSetRef = useRef<{ id:number; filename:string; total_questions:number } | null>(null);
+
+  const csrfToken =
+    (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ||
+    (window as any).Laravel?.csrfToken ||
+    '';
   // audio
   const [soundEnabled, setSoundEnabled] = useState(true);
   const bgMusicRef = useRef<HTMLAudioElement | null>(null);
@@ -91,29 +97,50 @@ export default function ParticipantPractice() {
 
   const loadQuestions = async () => {
     const ac = new AbortController();
-    try {
-      setLoading(true);
-      const filename = language === 'python' ? 'python_questions.json' : 'java_questions.json';
-      const response = await fetch(`/data/${filename}`, { signal: ac.signal });
-      if (!response.ok) throw new Error(`Failed to load ${filename}`);
-      const data: Question[] = await response.json();
-      setQuestions(data);
-      setCategories([...new Set(data.map(q => q.category))]);
-      resetPerQuestionState();
-      setCurrentQuestionIndex(0);
-    } catch (error: any) {
-      if (error?.name !== 'AbortError') {
-        console.error('Error loading questions:', error);
-        setQuestions([]);
-        Swal.fire({
-          icon: 'error',
-          title: 'Loading Error',
-          text: 'Failed to load questions. Please make sure the JSON files are in the public/data folder.',
-        });
-      }
-    } finally {
-      setLoading(false);
-    }
+   try {
+  setLoading(true);
+
+  // If your routes are in web.php, use /practice/current. If kept in api.php, change back to /api/practice/current.
+  const metaResp = await fetch(`/practice/current?language=${language}`, { signal: ac.signal });
+  if (!metaResp.ok) throw new Error('Failed to fetch current set');
+  const meta = await metaResp.json();
+  const { set, progress } = meta;
+
+  // Save current set meta for POSTs
+  currentSetRef.current = {
+    id: set.id,
+    filename: set.filename,
+    total_questions: set.total_questions,
+  };
+
+  // Load JSON file for this set
+  const response = await fetch(`/data/${set.filename}`, { signal: ac.signal });
+  if (!response.ok) throw new Error(`Failed to load ${set.filename}`);
+
+  const data: Question[] = await response.json();
+  setQuestions(data);
+  setCategories([...new Set(data.map(q => q.category))]);
+
+  // Apply server-side progress (prevents repeats)
+  const takenFromServer = Array.isArray(progress?.taken_ids) ? progress.taken_ids as number[] : [];
+  setTakenIds(new Set(takenFromServer));
+
+  resetPerQuestionState();
+  setCurrentQuestionIndex(0);
+} catch (error: any) {
+  if (error?.name !== 'AbortError') {
+    console.error('Error loading questions:', error);
+    setQuestions([]);
+    Swal.fire({
+      icon: 'error',
+      title: 'Loading Error',
+      text: 'Failed to load questions or set metadata. Make sure the routes and JSON files exist.',
+    });
+  }
+} finally {
+  setLoading(false);
+}
+
     return () => ac.abort();
   };
 
@@ -143,15 +170,40 @@ export default function ParticipantPractice() {
   const currentQuestion = filteredQuestions[currentQuestionIndex];
   const isCorrect = isAnswered && selectedChoice === currentQuestion?.answer;
 
-  const nextQuestion = () => {
-    if (currentQuestion) {
-      setTakenIds(prev => new Set(prev).add(currentQuestion.id));
+const nextQuestion = async () => {
+  if (currentQuestion && currentSetRef.current) {
+    // Optimistic UI update
+    setTakenIds(prev => new Set(prev).add(currentQuestion.id));
+
+    // Persist to DB
+    try {
+      await fetch('/practice/taken', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-CSRF-TOKEN': csrfToken,
+  },
+  body: JSON.stringify({
+    question_set_id: currentSetRef.current.id,
+    question_id: currentQuestion.id
+  }),
+});
+
+    } catch (e) {
+      console.error('Failed to mark taken', e);
     }
-    if (currentQuestionIndex < filteredQuestions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
-      resetPerQuestionState();
-    }
-  };
+  }
+
+  if (currentQuestionIndex < filteredQuestions.length - 1) {
+    setCurrentQuestionIndex(prev => prev + 1);
+    resetPerQuestionState();
+  } else {
+    // End of pool for this set -> reload to auto-advance to next set (if finished)
+    // You can show a modal here; then:
+    await loadQuestions(); // /api/practice/current will return next set if the server marked finished
+  }
+};
+
 
   const previousQuestion = () => {
     if (currentQuestionIndex > 0) {
@@ -203,7 +255,7 @@ export default function ParticipantPractice() {
               <Code className="h-6 w-6 text-purple-400" />
               <Lightbulb className="h-8 w-8 text-yellow-400" />
               <div>
-                <h1 className="text-2xl font-bold">PRACTICE REVIEW</h1>
+                <h1 className="text-2xl font-bold">PRACTICE REVIEWywfbgvsjvsd</h1>
                 <p className="text-gray-400 text-sm">Review programming questions and learn from explanations</p>
               </div>
             </div>
@@ -335,7 +387,17 @@ export default function ParticipantPractice() {
                 <div className="bg-gray-800/50 rounded-xl p-12 text-center">
                   <Code className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-xl text-gray-300 mb-2">No Questions Found</h3>
-                  <p className="text-gray-500">Try adjusting your filters or search terms</p>
+                  <p className="text-gray-500 mb-4">You may have completed all questions for this set/filter.</p>
+                  <button
+                    onClick={() => {
+                      setTakenIds(new Set()); // soft reset for current filter; server will still remember overall progress
+                      setCurrentQuestionIndex(0);
+                      resetPerQuestionState();
+                    }}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                  >
+                    Revisit Questions in This Set
+                  </button>
                 </div>
               ) : currentQuestion && (
                 <div className="bg-gray-900/60 rounded-xl shadow-lg overflow-hidden border border-gray-700">

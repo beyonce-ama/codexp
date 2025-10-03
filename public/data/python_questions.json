@@ -1,977 +1,453 @@
 [
   {
-    "category": "Lists",
-    "question": "Fill in the blank to append an item to a list:\n\nmy_list = []\nmy_list.____('apple')",
-    "choices": [
-      "append",
-      "add",
-      "insert",
-      "push"
-    ],
-    "answer": "append",
-    "explanation_correct": "\u2705 Correct! 'append()' adds an item to the end of a list.",
-    "explanation_wrong": "\u274c Incorrect. Use 'append()' to add an item to a list.",
+    "category": "Basics",
+    "question": "Fill in the blank to print 'Hello World' in Python:\n\n____(\"Hello World\")",
+    "choices": ["print", "echo", "say", "write"],
+    "answer": "print",
+    "explanation_correct": "✅ Correct! 'print()' displays text in Python.",
+    "explanation_wrong": "❌ Incorrect. Use 'print()' to output text.",
     "id": 1
   },
   {
-    "category": "Conditionals",
-    "question": "Fill in the blank to check if x is equal to 10:\n\nif x ____ 10:\n    print('Ten')",
-    "choices": [
-      "==",
-      "=",
-      "!=",
-      ">="
-    ],
-    "answer": "==",
-    "explanation_correct": "\u2705 Correct! '==' is used to check equality.",
-    "explanation_wrong": "\u274c Incorrect. Use '==' to compare values, not '='.",
+    "category": "Variables",
+    "question": "Fill in the blank to assign 10 to x:\n\n____ = 10",
+    "choices": ["x", "var x", "int x", "let x"],
+    "answer": "x",
+    "explanation_correct": "✅ Correct! In Python, assignment is just 'x = 10'.",
+    "explanation_wrong": "❌ Incorrect. Python does not require type keywords for assignment.",
     "id": 2
   },
   {
-    "category": "Functions",
-    "question": "Fill in the blank to define a function:\n\ndef ____():\n    print('Hello')",
-    "choices": [
-      "greet",
-      "hello",
-      "func",
-      "myFunc"
-    ],
-    "answer": "greet",
-    "explanation_correct": "\u2705 Correct! 'greet' is the name of the function.",
-    "explanation_wrong": "\u274c Incorrect. A function should have a name, like 'greet'.",
+    "category": "Data Types",
+    "question": "Fill in the blank to create a list:\n\nfruits = ____(\"apple\", \"banana\", \"cherry\")",
+    "choices": ["[ ]", "list", "set", "dict"],
+    "answer": "list",
+    "explanation_correct": "✅ Correct! The 'list()' constructor creates a list.",
+    "explanation_wrong": "❌ Incorrect. Use 'list()' or [ ] to make lists.",
     "id": 3
   },
   {
-    "category": "Strings",
-    "question": "Fill in the blank to get the length of a string:\n\nlength = ____('Hello')",
-    "choices": [
-      "len",
-      "count",
-      "size",
-      "length"
-    ],
-    "answer": "len",
-    "explanation_correct": "\u2705 Correct! 'len()' returns the number of characters in a string.",
-    "explanation_wrong": "\u274c Incorrect. Use 'len()' to get string length.",
+    "category": "Conditionals",
+    "question": "Fill in the blank to check if x equals 5:\n\nif x ____ 5:\n    print(\"Yes\")",
+    "choices": ["==", "=", "===", "is"],
+    "answer": "==",
+    "explanation_correct": "✅ Correct! '==' checks equality in Python.",
+    "explanation_wrong": "❌ Incorrect. Use '==' not '='.",
     "id": 4
   },
   {
-    "category": "Functions",
-    "question": "Fill in the blank to define a function:\n\ndef ____():\n    print('Hello')",
-    "choices": [
-      "greet",
-      "hello",
-      "func",
-      "myFunc"
-    ],
-    "answer": "greet",
-    "explanation_correct": "\u2705 Correct! 'greet' is the name of the function.",
-    "explanation_wrong": "\u274c Incorrect. A function should have a name, like 'greet'.",
+    "category": "Loops",
+    "question": "Fill in the blank to loop through numbers 0 to 4:\n\nfor i in ____(5):\n    print(i)",
+    "choices": ["range", "list", "loop", "seq"],
+    "answer": "range",
+    "explanation_correct": "✅ Correct! 'range(5)' generates numbers 0–4.",
+    "explanation_wrong": "❌ Incorrect. The function is 'range'.",
     "id": 5
   },
   {
-    "category": "Loops",
-    "question": "Fill in the blank to iterate through a list:\n\nfor ____ in ['apple', 'banana', 'cherry']:\n    print(fruit)",
-    "choices": [
-      "fruit",
-      "item",
-      "element",
-      "x"
-    ],
-    "answer": "fruit",
-    "explanation_correct": "\u2705 Correct! 'fruit' is the loop variable used to access each element.",
-    "explanation_wrong": "\u274c Incorrect. 'fruit' is the variable used in the loop to access each item.",
+    "category": "Functions",
+    "question": "Fill in the blank to define a function:\n\n____ greet():\n    print(\"Hi\")",
+    "choices": ["def", "func", "function", "lambda"],
+    "answer": "def",
+    "explanation_correct": "✅ Correct! Use 'def' to define a function.",
+    "explanation_wrong": "❌ Incorrect. The keyword is 'def'.",
     "id": 6
   },
   {
-    "category": "Loops",
-    "question": "Fill in the blank to iterate through a list:\n\nfor ____ in ['apple', 'banana', 'cherry']:\n    print(fruit)",
-    "choices": [
-      "fruit",
-      "item",
-      "element",
-      "x"
-    ],
-    "answer": "fruit",
-    "explanation_correct": "\u2705 Correct! 'fruit' is the loop variable used to access each element.",
-    "explanation_wrong": "\u274c Incorrect. 'fruit' is the variable used in the loop to access each item.",
+    "category": "Strings",
+    "question": "Fill in the blank to get the length of a string:\n\nname = \"Alice\"\nprint(____(name))",
+    "choices": ["len", "count", "size", "length"],
+    "answer": "len",
+    "explanation_correct": "✅ Correct! 'len()' gives the length of a string.",
+    "explanation_wrong": "❌ Incorrect. Use 'len()' not 'size'.",
     "id": 7
   },
   {
-    "category": "Loops",
-    "question": "Fill in the blank to iterate through a list:\n\nfor ____ in ['apple', 'banana', 'cherry']:\n    print(fruit)",
-    "choices": [
-      "fruit",
-      "item",
-      "element",
-      "x"
-    ],
-    "answer": "fruit",
-    "explanation_correct": "\u2705 Correct! 'fruit' is the loop variable used to access each element.",
-    "explanation_wrong": "\u274c Incorrect. 'fruit' is the variable used in the loop to access each item.",
+    "category": "Lists",
+    "question": "Fill in the blank to append 'orange' to a list:\n\nfruits = []\nfruits.____('orange')",
+    "choices": ["append", "add", "insert", "push"],
+    "answer": "append",
+    "explanation_correct": "✅ Correct! 'append()' adds an element at the end of a list.",
+    "explanation_wrong": "❌ Incorrect. The correct method is 'append()'.",
     "id": 8
   },
   {
-    "category": "Conditionals",
-    "question": "Fill in the blank to check if x is equal to 10:\n\nif x ____ 10:\n    print('Ten')",
-    "choices": [
-      "==",
-      "=",
-      "!=",
-      ">="
-    ],
-    "answer": "==",
-    "explanation_correct": "\u2705 Correct! '==' is used to check equality.",
-    "explanation_wrong": "\u274c Incorrect. Use '==' to compare values, not '='.",
+    "category": "Dictionaries",
+    "question": "Fill in the blank to get a value from a dictionary:\n\nperson = {\"name\": \"John\"}\nprint(person[____])",
+    "choices": ["\"name\"", "\"John\"", "0", "key"],
+    "answer": "\"name\"",
+    "explanation_correct": "✅ Correct! Access dictionary values with their keys.",
+    "explanation_wrong": "❌ Incorrect. Use the key string inside [].",
     "id": 9
   },
   {
-    "category": "Conditionals",
-    "question": "Fill in the blank to check if x is equal to 10:\n\nif x ____ 10:\n    print('Ten')",
-    "choices": [
-      "==",
-      "=",
-      "!=",
-      ">="
-    ],
-    "answer": "==",
-    "explanation_correct": "\u2705 Correct! '==' is used to check equality.",
-    "explanation_wrong": "\u274c Incorrect. Use '==' to compare values, not '='.",
+    "category": "Boolean Logic",
+    "question": "Fill in the blank to check multiple conditions:\n\nif a > 0 ____ b > 0:\n    print(\"Both positive\")",
+    "choices": ["and", "or", "&&", "||"],
+    "answer": "and",
+    "explanation_correct": "✅ Correct! 'and' checks if both conditions are true.",
+    "explanation_wrong": "❌ Incorrect. Python uses 'and' instead of &&.",
     "id": 10
   },
   {
-    "category": "Lists",
-    "question": "Fill in the blank to append an item to a list:\n\nmy_list = []\nmy_list.____('apple')",
-    "choices": [
-      "append",
-      "add",
-      "insert",
-      "push"
-    ],
-    "answer": "append",
-    "explanation_correct": "\u2705 Correct! 'append()' adds an item to the end of a list.",
-    "explanation_wrong": "\u274c Incorrect. Use 'append()' to add an item to a list.",
+    "category": "Slicing",
+    "question": "Fill in the blank to get the first 3 characters of a string:\n\ntext = \"Python\"\nprint(text[0:____])",
+    "choices": ["3", "2", "4", "5"],
+    "answer": "3",
+    "explanation_correct": "✅ Correct! Index 0:3 gives the first 3 characters.",
+    "explanation_wrong": "❌ Incorrect. The correct slice is 0:3.",
     "id": 11
   },
   {
-    "category": "Loops",
-    "question": "Fill in the blank to iterate through a list:\n\nfor ____ in ['apple', 'banana', 'cherry']:\n    print(fruit)",
-    "choices": [
-      "fruit",
-      "item",
-      "element",
-      "x"
-    ],
-    "answer": "fruit",
-    "explanation_correct": "\u2705 Correct! 'fruit' is the loop variable used to access each element.",
-    "explanation_wrong": "\u274c Incorrect. 'fruit' is the variable used in the loop to access each item.",
+    "category": "List Comprehension",
+    "question": "Fill in the blank to create a list of squares from 0 to 4:\n\nsquares = [x**2 for x in ____(5)]",
+    "choices": ["range", "list", "seq", "loop"],
+    "answer": "range",
+    "explanation_correct": "✅ Correct! 'range(5)' generates 0–4 for the comprehension.",
+    "explanation_wrong": "❌ Incorrect. The correct function is 'range'.",
     "id": 12
   },
   {
     "category": "Strings",
-    "question": "Fill in the blank to get the length of a string:\n\nlength = ____('Hello')",
-    "choices": [
-      "len",
-      "count",
-      "size",
-      "length"
-    ],
-    "answer": "len",
-    "explanation_correct": "\u2705 Correct! 'len()' returns the number of characters in a string.",
-    "explanation_wrong": "\u274c Incorrect. Use 'len()' to get string length.",
+    "question": "Fill in the blank to convert a string to uppercase:\n\nname = \"alice\"\nprint(name.____())",
+    "choices": ["upper", "capitalize", "uppercase", "toUpper"],
+    "answer": "upper",
+    "explanation_correct": "✅ Correct! 'upper()' converts all letters to uppercase.",
+    "explanation_wrong": "❌ Incorrect. Use 'upper()'.",
     "id": 13
   },
   {
     "category": "Strings",
-    "question": "Fill in the blank to get the length of a string:\n\nlength = ____('Hello')",
-    "choices": [
-      "len",
-      "count",
-      "size",
-      "length"
-    ],
-    "answer": "len",
-    "explanation_correct": "\u2705 Correct! 'len()' returns the number of characters in a string.",
-    "explanation_wrong": "\u274c Incorrect. Use 'len()' to get string length.",
+    "question": "Fill in the blank to check if a string starts with 'Py':\n\nlang = \"Python\"\nprint(lang.____(\"Py\"))",
+    "choices": ["startswith", "endswith", "contains", "match"],
+    "answer": "startswith",
+    "explanation_correct": "✅ Correct! 'startswith()' checks string prefixes.",
+    "explanation_wrong": "❌ Incorrect. The method is 'startswith'.",
     "id": 14
   },
   {
-    "category": "Loops",
-    "question": "Fill in the blank to iterate through a list:\n\nfor ____ in ['apple', 'banana', 'cherry']:\n    print(fruit)",
-    "choices": [
-      "fruit",
-      "item",
-      "element",
-      "x"
-    ],
-    "answer": "fruit",
-    "explanation_correct": "\u2705 Correct! 'fruit' is the loop variable used to access each element.",
-    "explanation_wrong": "\u274c Incorrect. 'fruit' is the variable used in the loop to access each item.",
+    "category": "Conditionals",
+    "question": "Fill in the blank to check if a variable exists in a list:\n\nif 'apple' ____ fruits:\n    print(\"Yes\")",
+    "choices": ["in", "inside", "within", "contains"],
+    "answer": "in",
+    "explanation_correct": "✅ Correct! Use 'in' to check membership in Python.",
+    "explanation_wrong": "❌ Incorrect. The correct keyword is 'in'.",
     "id": 15
   },
   {
-    "category": "Lists",
-    "question": "Fill in the blank to append an item to a list:\n\nmy_list = []\nmy_list.____('apple')",
-    "choices": [
-      "append",
-      "add",
-      "insert",
-      "push"
-    ],
-    "answer": "append",
-    "explanation_correct": "\u2705 Correct! 'append()' adds an item to the end of a list.",
-    "explanation_wrong": "\u274c Incorrect. Use 'append()' to add an item to a list.",
+    "category": "Loops",
+    "question": "Fill in the blank to create a while loop:\n\ncount = 0\n____ count < 5:\n    print(count)\n    count += 1",
+    "choices": ["while", "for", "loop", "until"],
+    "answer": "while",
+    "explanation_correct": "✅ Correct! 'while' repeats while the condition is true.",
+    "explanation_wrong": "❌ Incorrect. Use 'while' not 'for'.",
     "id": 16
   },
   {
-    "category": "Lists",
-    "question": "Fill in the blank to append an item to a list:\n\nmy_list = []\nmy_list.____('apple')",
-    "choices": [
-      "append",
-      "add",
-      "insert",
-      "push"
-    ],
-    "answer": "append",
-    "explanation_correct": "\u2705 Correct! 'append()' adds an item to the end of a list.",
-    "explanation_wrong": "\u274c Incorrect. Use 'append()' to add an item to a list.",
+    "category": "Loops",
+    "question": "Fill in the blank to skip an iteration:\n\nfor i in range(5):\n    if i == 2:\n        ____\n    print(i)",
+    "choices": ["continue", "break", "skip", "pass"],
+    "answer": "continue",
+    "explanation_correct": "✅ Correct! 'continue' skips to the next loop iteration.",
+    "explanation_wrong": "❌ Incorrect. Use 'continue'.",
     "id": 17
   },
   {
-    "category": "Strings",
-    "question": "Fill in the blank to get the length of a string:\n\nlength = ____('Hello')",
-    "choices": [
-      "len",
-      "count",
-      "size",
-      "length"
-    ],
-    "answer": "len",
-    "explanation_correct": "\u2705 Correct! 'len()' returns the number of characters in a string.",
-    "explanation_wrong": "\u274c Incorrect. Use 'len()' to get string length.",
+    "category": "Loops",
+    "question": "Fill in the blank to exit a loop early:\n\nfor i in range(5):\n    if i == 3:\n        ____\n    print(i)",
+    "choices": ["break", "stop", "exit", "end"],
+    "answer": "break",
+    "explanation_correct": "✅ Correct! 'break' exits the loop immediately.",
+    "explanation_wrong": "❌ Incorrect. The keyword is 'break'.",
     "id": 18
   },
   {
     "category": "Functions",
-    "question": "Fill in the blank to define a function:\n\ndef ____():\n    print('Hello')",
-    "choices": [
-      "greet",
-      "hello",
-      "func",
-      "myFunc"
-    ],
-    "answer": "greet",
-    "explanation_correct": "\u2705 Correct! 'greet' is the name of the function.",
-    "explanation_wrong": "\u274c Incorrect. A function should have a name, like 'greet'.",
+    "question": "Fill in the blank to give a default parameter value:\n\ndef greet(name='____'):\n    print(\"Hello\", name)",
+    "choices": ["World", "Guest", "None", "User"],
+    "answer": "World",
+    "explanation_correct": "✅ Correct! Default arguments are set in function definitions.",
+    "explanation_wrong": "❌ Incorrect. The default given here is 'World'.",
     "id": 19
   },
   {
-    "category": "Lists",
-    "question": "Fill in the blank to append an item to a list:\n\nmy_list = []\nmy_list.____('apple')",
-    "choices": [
-      "append",
-      "add",
-      "insert",
-      "push"
-    ],
-    "answer": "append",
-    "explanation_correct": "\u2705 Correct! 'append()' adds an item to the end of a list.",
-    "explanation_wrong": "\u274c Incorrect. Use 'append()' to add an item to a list.",
+    "category": "Functions",
+    "question": "Fill in the blank to accept any number of arguments:\n\ndef add(____):\n    return sum(nums)",
+    "choices": ["*nums", "**nums", "args[]", "var nums"],
+    "answer": "*nums",
+    "explanation_correct": "✅ Correct! '*args' collects multiple arguments into a tuple.",
+    "explanation_wrong": "❌ Incorrect. Use '*nums' for varargs.",
     "id": 20
   },
   {
-    "category": "Lists",
-    "question": "Fill in the blank to append an item to a list:\n\nmy_list = []\nmy_list.____('apple')",
-    "choices": [
-      "append",
-      "add",
-      "insert",
-      "push"
-    ],
-    "answer": "append",
-    "explanation_correct": "\u2705 Correct! 'append()' adds an item to the end of a list.",
-    "explanation_wrong": "\u274c Incorrect. Use 'append()' to add an item to a list.",
+    "category": "Functions",
+    "question": "Fill in the blank to accept keyword arguments:\n\ndef config(____):\n    print(settings)",
+    "choices": ["**settings", "*settings", "settings{}", "dict settings"],
+    "answer": "**settings",
+    "explanation_correct": "✅ Correct! '**kwargs' allows keyword arguments in Python.",
+    "explanation_wrong": "❌ Incorrect. Use '**settings'.",
     "id": 21
   },
   {
-    "category": "Conditionals",
-    "question": "Fill in the blank to check if x is equal to 10:\n\nif x ____ 10:\n    print('Ten')",
-    "choices": [
-      "==",
-      "=",
-      "!=",
-      ">="
-    ],
-    "answer": "==",
-    "explanation_correct": "\u2705 Correct! '==' is used to check equality.",
-    "explanation_wrong": "\u274c Incorrect. Use '==' to compare values, not '='.",
+    "category": "Error Handling",
+    "question": "Fill in the blank to handle exceptions:\n\ntry:\n    x = 1 / 0\n____ ZeroDivisionError:\n    print(\"Error!\")",
+    "choices": ["except", "catch", "handle", "rescue"],
+    "answer": "except",
+    "explanation_correct": "✅ Correct! 'except' handles exceptions in Python.",
+    "explanation_wrong": "❌ Incorrect. Use 'except' not 'catch'.",
     "id": 22
   },
   {
-    "category": "Conditionals",
-    "question": "Fill in the blank to check if x is equal to 10:\n\nif x ____ 10:\n    print('Ten')",
-    "choices": [
-      "==",
-      "=",
-      "!=",
-      ">="
-    ],
-    "answer": "==",
-    "explanation_correct": "\u2705 Correct! '==' is used to check equality.",
-    "explanation_wrong": "\u274c Incorrect. Use '==' to compare values, not '='.",
+    "category": "Error Handling",
+    "question": "Fill in the blank to always run code after try-except:\n\ntry:\n    f = open(\"file.txt\")\nexcept:\n    print(\"Error\")\n____:\n    f.close()",
+    "choices": ["finally", "end", "always", "last"],
+    "answer": "finally",
+    "explanation_correct": "✅ Correct! 'finally' executes regardless of exceptions.",
+    "explanation_wrong": "❌ Incorrect. The correct keyword is 'finally'.",
     "id": 23
   },
   {
-    "category": "Lists",
-    "question": "Fill in the blank to append an item to a list:\n\nmy_list = []\nmy_list.____('apple')",
-    "choices": [
-      "append",
-      "add",
-      "insert",
-      "push"
-    ],
-    "answer": "append",
-    "explanation_correct": "\u2705 Correct! 'append()' adds an item to the end of a list.",
-    "explanation_wrong": "\u274c Incorrect. Use 'append()' to add an item to a list.",
+    "category": "With Statement",
+    "question": "Fill in the blank to open a file safely:\n\n____ open(\"data.txt\") as f:\n    print(f.read())",
+    "choices": ["with", "use", "as", "open"],
+    "answer": "with",
+    "explanation_correct": "✅ Correct! 'with' ensures the file is closed automatically.",
+    "explanation_wrong": "❌ Incorrect. The keyword is 'with'.",
     "id": 24
   },
   {
-    "category": "Functions",
-    "question": "Fill in the blank to define a function:\n\ndef ____():\n    print('Hello')",
-    "choices": [
-      "greet",
-      "hello",
-      "func",
-      "myFunc"
-    ],
-    "answer": "greet",
-    "explanation_correct": "\u2705 Correct! 'greet' is the name of the function.",
-    "explanation_wrong": "\u274c Incorrect. A function should have a name, like 'greet'.",
+    "category": "Dictionaries",
+    "question": "Fill in the blank to get all dictionary keys:\n\nperson = {\"name\": \"Alice\"}\nprint(person.____())",
+    "choices": ["keys", "values", "items", "all"],
+    "answer": "keys",
+    "explanation_correct": "✅ Correct! 'keys()' returns all dictionary keys.",
+    "explanation_wrong": "❌ Incorrect. Use 'keys()'.",
     "id": 25
   },
   {
-    "category": "Strings",
-    "question": "Fill in the blank to get the length of a string:\n\nlength = ____('Hello')",
-    "choices": [
-      "len",
-      "count",
-      "size",
-      "length"
-    ],
-    "answer": "len",
-    "explanation_correct": "\u2705 Correct! 'len()' returns the number of characters in a string.",
-    "explanation_wrong": "\u274c Incorrect. Use 'len()' to get string length.",
+    "category": "Dictionaries",
+    "question": "Fill in the blank to loop through key-value pairs:\n\nfor k, v in person.____():\n    print(k, v)",
+    "choices": ["items", "pairs", "entries", "values"],
+    "answer": "items",
+    "explanation_correct": "✅ Correct! 'items()' gives key-value pairs.",
+    "explanation_wrong": "❌ Incorrect. Use 'items()'.",
     "id": 26
   },
   {
-    "category": "Functions",
-    "question": "Fill in the blank to define a function:\n\ndef ____():\n    print('Hello')",
-    "choices": [
-      "greet",
-      "hello",
-      "func",
-      "myFunc"
-    ],
-    "answer": "greet",
-    "explanation_correct": "\u2705 Correct! 'greet' is the name of the function.",
-    "explanation_wrong": "\u274c Incorrect. A function should have a name, like 'greet'.",
+    "category": "Sets",
+    "question": "Fill in the blank to create a set literal:\n\ncolors = {\"red\", \"green\", ____}",
+    "choices": ["\"blue\"", "\"yellow\"", "\"pink\"", "\"black\""],
+    "answer": "\"blue\"",
+    "explanation_correct": "✅ Correct! Use curly braces to define a set.",
+    "explanation_wrong": "❌ Incorrect. Add '\"blue\"' as the last item.",
     "id": 27
   },
   {
-    "category": "Lists",
-    "question": "Fill in the blank to append an item to a list:\n\nmy_list = []\nmy_list.____('apple')",
-    "choices": [
-      "append",
-      "add",
-      "insert",
-      "push"
-    ],
-    "answer": "append",
-    "explanation_correct": "\u2705 Correct! 'append()' adds an item to the end of a list.",
-    "explanation_wrong": "\u274c Incorrect. Use 'append()' to add an item to a list.",
+    "category": "Sets",
+    "question": "Fill in the blank to check if 'apple' is not in a set:\n\nif 'apple' ____ fruits:\n    print(\"Not present\")",
+    "choices": ["not in", "!in", "outside", "exclude"],
+    "answer": "not in",
+    "explanation_correct": "✅ Correct! 'not in' checks absence in Python.",
+    "explanation_wrong": "❌ Incorrect. Use 'not in'.",
     "id": 28
   },
   {
-    "category": "Functions",
-    "question": "Fill in the blank to define a function:\n\ndef ____():\n    print('Hello')",
-    "choices": [
-      "greet",
-      "hello",
-      "func",
-      "myFunc"
-    ],
-    "answer": "greet",
-    "explanation_correct": "\u2705 Correct! 'greet' is the name of the function.",
-    "explanation_wrong": "\u274c Incorrect. A function should have a name, like 'greet'.",
+    "category": "Boolean Logic",
+    "question": "Fill in the blank to check if either condition is true:\n\nif a > 0 ____ b > 0:\n    print(\"One positive\")",
+    "choices": ["or", "and", "||", "either"],
+    "answer": "or",
+    "explanation_correct": "✅ Correct! 'or' is true if at least one condition is true.",
+    "explanation_wrong": "❌ Incorrect. Python uses 'or'.",
     "id": 29
   },
   {
-    "category": "Functions",
-    "question": "Fill in the blank to define a function:\n\ndef ____():\n    print('Hello')",
-    "choices": [
-      "greet",
-      "hello",
-      "func",
-      "myFunc"
-    ],
-    "answer": "greet",
-    "explanation_correct": "\u2705 Correct! 'greet' is the name of the function.",
-    "explanation_wrong": "\u274c Incorrect. A function should have a name, like 'greet'.",
+    "category": "Boolean Logic",
+    "question": "Fill in the blank to negate a condition:\n\nif ____ is_active:\n    print(\"Not active\")",
+    "choices": ["not", "!", "no", "none"],
+    "answer": "not",
+    "explanation_correct": "✅ Correct! 'not' inverts a Boolean in Python.",
+    "explanation_wrong": "❌ Incorrect. The correct keyword is 'not'.",
     "id": 30
   },
   {
-    "category": "Lists",
-    "question": "Fill in the blank to append an item to a list:\n\nmy_list = []\nmy_list.____('apple')",
-    "choices": [
-      "append",
-      "add",
-      "insert",
-      "push"
-    ],
-    "answer": "append",
-    "explanation_correct": "\u2705 Correct! 'append()' adds an item to the end of a list.",
-    "explanation_wrong": "\u274c Incorrect. Use 'append()' to add an item to a list.",
+    "category": "Classes",
+    "question": "Fill in the blank to define a class named Dog:\n\n____ Dog:\n    pass",
+    "choices": ["class", "def", "struct", "type"],
+    "answer": "class",
+    "explanation_correct": "✅ Correct! Use 'class' to define classes in Python.",
+    "explanation_wrong": "❌ Incorrect. The keyword is 'class'.",
     "id": 31
   },
   {
-    "category": "Functions",
-    "question": "Fill in the blank to define a function:\n\ndef ____():\n    print('Hello')",
-    "choices": [
-      "greet",
-      "hello",
-      "func",
-      "myFunc"
-    ],
-    "answer": "greet",
-    "explanation_correct": "\u2705 Correct! 'greet' is the name of the function.",
-    "explanation_wrong": "\u274c Incorrect. A function should have a name, like 'greet'.",
+    "category": "Classes",
+    "question": "Fill in the blank to define an initializer method:\n\nclass Dog:\n    def ____ (self, name):\n        self.name = name",
+    "choices": ["__init__", "init", "constructor", "__start__"],
+    "answer": "__init__",
+    "explanation_correct": "✅ Correct! '__init__' is the constructor in Python.",
+    "explanation_wrong": "❌ Incorrect. The correct method is '__init__'.",
     "id": 32
   },
   {
-    "category": "Conditionals",
-    "question": "Fill in the blank to check if x is equal to 10:\n\nif x ____ 10:\n    print('Ten')",
-    "choices": [
-      "==",
-      "=",
-      "!=",
-      ">="
-    ],
-    "answer": "==",
-    "explanation_correct": "\u2705 Correct! '==' is used to check equality.",
-    "explanation_wrong": "\u274c Incorrect. Use '==' to compare values, not '='.",
+    "category": "Inheritance",
+    "question": "Fill in the blank for a class inheriting from Animal:\n\nclass Dog(____):\n    pass",
+    "choices": ["Animal", "object", "Base", "Parent"],
+    "answer": "Animal",
+    "explanation_correct": "✅ Correct! 'class Dog(Animal)' inherits from Animal.",
+    "explanation_wrong": "❌ Incorrect. Use the superclass name.",
     "id": 33
   },
   {
-    "category": "Strings",
-    "question": "Fill in the blank to get the length of a string:\n\nlength = ____('Hello')",
-    "choices": [
-      "len",
-      "count",
-      "size",
-      "length"
-    ],
-    "answer": "len",
-    "explanation_correct": "\u2705 Correct! 'len()' returns the number of characters in a string.",
-    "explanation_wrong": "\u274c Incorrect. Use 'len()' to get string length.",
+    "category": "Super",
+    "question": "Fill in the blank to call a superclass initializer:\n\nclass Dog(Animal):\n    def __init__(self, name):\n        ____.__init__(self, name)",
+    "choices": ["super", "base", "parent", "self"],
+    "answer": "super",
+    "explanation_correct": "✅ Correct! 'super()' calls parent methods in Python.",
+    "explanation_wrong": "❌ Incorrect. Use 'super'.",
     "id": 34
   },
   {
-    "category": "Lists",
-    "question": "Fill in the blank to append an item to a list:\n\nmy_list = []\nmy_list.____('apple')",
-    "choices": [
-      "append",
-      "add",
-      "insert",
-      "push"
-    ],
-    "answer": "append",
-    "explanation_correct": "\u2705 Correct! 'append()' adds an item to the end of a list.",
-    "explanation_wrong": "\u274c Incorrect. Use 'append()' to add an item to a list.",
+    "category": "Decorators",
+    "question": "Fill in the blank to create a class method:\n\nclass Math:\n    @____\n    def identity(cls):\n        return cls",
+    "choices": ["classmethod", "staticmethod", "property", "abstractmethod"],
+    "answer": "classmethod",
+    "explanation_correct": "✅ Correct! Use '@classmethod' for methods that receive 'cls'.",
+    "explanation_wrong": "❌ Incorrect. The correct decorator is '@classmethod'.",
     "id": 35
   },
   {
-    "category": "Lists",
-    "question": "Fill in the blank to append an item to a list:\n\nmy_list = []\nmy_list.____('apple')",
-    "choices": [
-      "append",
-      "add",
-      "insert",
-      "push"
-    ],
-    "answer": "append",
-    "explanation_correct": "\u2705 Correct! 'append()' adds an item to the end of a list.",
-    "explanation_wrong": "\u274c Incorrect. Use 'append()' to add an item to a list.",
+    "category": "Decorators",
+    "question": "Fill in the blank to create a static method:\n\nclass Math:\n    @____\n    def add(a, b):\n        return a + b",
+    "choices": ["staticmethod", "classmethod", "abstractmethod", "property"],
+    "answer": "staticmethod",
+    "explanation_correct": "✅ Correct! Use '@staticmethod' for methods without self or cls.",
+    "explanation_wrong": "❌ Incorrect. The correct decorator is '@staticmethod'.",
     "id": 36
   },
   {
-    "category": "Lists",
-    "question": "Fill in the blank to append an item to a list:\n\nmy_list = []\nmy_list.____('apple')",
-    "choices": [
-      "append",
-      "add",
-      "insert",
-      "push"
-    ],
-    "answer": "append",
-    "explanation_correct": "\u2705 Correct! 'append()' adds an item to the end of a list.",
-    "explanation_wrong": "\u274c Incorrect. Use 'append()' to add an item to a list.",
+    "category": "Properties",
+    "question": "Fill in the blank to define a property:\n\nclass Person:\n    @____\n    def name(self):\n        return self._name",
+    "choices": ["property", "get", "attr", "prop"],
+    "answer": "property",
+    "explanation_correct": "✅ Correct! '@property' turns a method into an attribute.",
+    "explanation_wrong": "❌ Incorrect. Use '@property'.",
     "id": 37
   },
   {
-    "category": "Loops",
-    "question": "Fill in the blank to iterate through a list:\n\nfor ____ in ['apple', 'banana', 'cherry']:\n    print(fruit)",
-    "choices": [
-      "fruit",
-      "item",
-      "element",
-      "x"
-    ],
-    "answer": "fruit",
-    "explanation_correct": "\u2705 Correct! 'fruit' is the loop variable used to access each element.",
-    "explanation_wrong": "\u274c Incorrect. 'fruit' is the variable used in the loop to access each item.",
+    "category": "Generators",
+    "question": "Fill in the blank to create a generator:\n\ndef countdown(n):\n    while n > 0:\n        ____ n\n        n -= 1",
+    "choices": ["yield", "return", "give", "output"],
+    "answer": "yield",
+    "explanation_correct": "✅ Correct! 'yield' creates generator functions.",
+    "explanation_wrong": "❌ Incorrect. Use 'yield'.",
     "id": 38
   },
   {
-    "category": "Strings",
-    "question": "Fill in the blank to get the length of a string:\n\nlength = ____('Hello')",
-    "choices": [
-      "len",
-      "count",
-      "size",
-      "length"
-    ],
-    "answer": "len",
-    "explanation_correct": "\u2705 Correct! 'len()' returns the number of characters in a string.",
-    "explanation_wrong": "\u274c Incorrect. Use 'len()' to get string length.",
+    "category": "Generator Expressions",
+    "question": "Fill in the blank to create a generator expression:\n\nsquares = (x**2 for x in ____ (5))",
+    "choices": ["range", "list", "len", "iter"],
+    "answer": "range",
+    "explanation_correct": "✅ Correct! 'range(5)' feeds values into the generator.",
+    "explanation_wrong": "❌ Incorrect. The correct answer is 'range'.",
     "id": 39
   },
   {
-    "category": "Functions",
-    "question": "Fill in the blank to define a function:\n\ndef ____():\n    print('Hello')",
-    "choices": [
-      "greet",
-      "hello",
-      "func",
-      "myFunc"
-    ],
-    "answer": "greet",
-    "explanation_correct": "\u2705 Correct! 'greet' is the name of the function.",
-    "explanation_wrong": "\u274c Incorrect. A function should have a name, like 'greet'.",
+    "category": "Comprehensions",
+    "question": "Fill in the blank to create a dictionary comprehension:\n\nsquares = {x: x**2 for x in ____ (5)}",
+    "choices": ["range", "list", "iter", "dict"],
+    "answer": "range",
+    "explanation_correct": "✅ Correct! 'range(5)' is often used in dict comprehensions.",
+    "explanation_wrong": "❌ Incorrect. Use 'range'.",
     "id": 40
   },
   {
-    "category": "Strings",
-    "question": "Fill in the blank to get the length of a string:\n\nlength = ____('Hello')",
-    "choices": [
-      "len",
-      "count",
-      "size",
-      "length"
-    ],
-    "answer": "len",
-    "explanation_correct": "\u2705 Correct! 'len()' returns the number of characters in a string.",
-    "explanation_wrong": "\u274c Incorrect. Use 'len()' to get string length.",
+    "category": "Modules",
+    "question": "Fill in the blank to import the math module:\n\n____ math",
+    "choices": ["import", "from", "using", "include"],
+    "answer": "import",
+    "explanation_correct": "✅ Correct! 'import math' loads the module.",
+    "explanation_wrong": "❌ Incorrect. Use 'import'.",
     "id": 41
   },
   {
-    "category": "Lists",
-    "question": "Fill in the blank to append an item to a list:\n\nmy_list = []\nmy_list.____('apple')",
-    "choices": [
-      "append",
-      "add",
-      "insert",
-      "push"
-    ],
-    "answer": "append",
-    "explanation_correct": "\u2705 Correct! 'append()' adds an item to the end of a list.",
-    "explanation_wrong": "\u274c Incorrect. Use 'append()' to add an item to a list.",
+    "category": "Modules",
+    "question": "Fill in the blank to import only sqrt from math:\n\nfrom math ____ sqrt",
+    "choices": ["import", "use", "include", "take"],
+    "answer": "import",
+    "explanation_correct": "✅ Correct! 'from math import sqrt' imports only sqrt.",
+    "explanation_wrong": "❌ Incorrect. Use 'import'.",
     "id": 42
   },
   {
-    "category": "Strings",
-    "question": "Fill in the blank to get the length of a string:\n\nlength = ____('Hello')",
-    "choices": [
-      "len",
-      "count",
-      "size",
-      "length"
-    ],
-    "answer": "len",
-    "explanation_correct": "\u2705 Correct! 'len()' returns the number of characters in a string.",
-    "explanation_wrong": "\u274c Incorrect. Use 'len()' to get string length.",
+    "category": "Aliasing",
+    "question": "Fill in the blank to alias a module:\n\nimport numpy as ____",
+    "choices": ["np", "n", "num", "py"],
+    "answer": "np",
+    "explanation_correct": "✅ Correct! 'np' is the standard alias for numpy.",
+    "explanation_wrong": "❌ Incorrect. The common alias is 'np'.",
     "id": 43
   },
   {
-    "category": "Conditionals",
-    "question": "Fill in the blank to check if x is equal to 10:\n\nif x ____ 10:\n    print('Ten')",
-    "choices": [
-      "==",
-      "=",
-      "!=",
-      ">="
-    ],
-    "answer": "==",
-    "explanation_correct": "\u2705 Correct! '==' is used to check equality.",
-    "explanation_wrong": "\u274c Incorrect. Use '==' to compare values, not '='.",
+    "category": "Typing",
+    "question": "Fill in the blank to annotate a function return type:\n\ndef add(a: int, b: int) ____ int:\n    return a + b",
+    "choices": ["->", ":", "=>", "as"],
+    "answer": "->",
+    "explanation_correct": "✅ Correct! Use '->' for return type hints.",
+    "explanation_wrong": "❌ Incorrect. The syntax is '-> type'.",
     "id": 44
   },
   {
-    "category": "Conditionals",
-    "question": "Fill in the blank to check if x is equal to 10:\n\nif x ____ 10:\n    print('Ten')",
-    "choices": [
-      "==",
-      "=",
-      "!=",
-      ">="
-    ],
-    "answer": "==",
-    "explanation_correct": "\u2705 Correct! '==' is used to check equality.",
-    "explanation_wrong": "\u274c Incorrect. Use '==' to compare values, not '='.",
+    "category": "Typing",
+    "question": "Fill in the blank to annotate a list of strings:\n\nnames: List[____] = [\"a\", \"b\"]",
+    "choices": ["str", "int", "object", "text"],
+    "answer": "str",
+    "explanation_correct": "✅ Correct! 'List[str]' is a typed list of strings.",
+    "explanation_wrong": "❌ Incorrect. The correct type is 'str'.",
     "id": 45
   },
   {
-    "category": "Lists",
-    "question": "Fill in the blank to append an item to a list:\n\nmy_list = []\nmy_list.____('apple')",
-    "choices": [
-      "append",
-      "add",
-      "insert",
-      "push"
-    ],
-    "answer": "append",
-    "explanation_correct": "\u2705 Correct! 'append()' adds an item to the end of a list.",
-    "explanation_wrong": "\u274c Incorrect. Use 'append()' to add an item to a list.",
+    "category": "Context Managers",
+    "question": "Fill in the blank to define a custom context manager:\n\nclass Resource:\n    def __enter__(self):\n        return self\n    def ____(self, exc_type, exc_value, traceback):\n        print(\"Closed\")",
+    "choices": ["__exit__", "__close__", "__end__", "__stop__"],
+    "answer": "__exit__",
+    "explanation_correct": "✅ Correct! '__exit__' is called when leaving a context manager.",
+    "explanation_wrong": "❌ Incorrect. The method is '__exit__'.",
     "id": 46
   },
   {
-    "category": "Functions",
-    "question": "Fill in the blank to define a function:\n\ndef ____():\n    print('Hello')",
-    "choices": [
-      "greet",
-      "hello",
-      "func",
-      "myFunc"
-    ],
-    "answer": "greet",
-    "explanation_correct": "\u2705 Correct! 'greet' is the name of the function.",
-    "explanation_wrong": "\u274c Incorrect. A function should have a name, like 'greet'.",
+    "category": "F-Strings",
+    "question": "Fill in the blank to format a variable into a string:\n\nname = \"Alice\"\nprint(f\"Hello {____}\")",
+    "choices": ["name", "\"name\"", "self.name", "$name"],
+    "answer": "name",
+    "explanation_correct": "✅ Correct! f-strings insert variable values directly.",
+    "explanation_wrong": "❌ Incorrect. Use the variable name directly.",
     "id": 47
   },
   {
-    "category": "Lists",
-    "question": "Fill in the blank to append an item to a list:\n\nmy_list = []\nmy_list.____('apple')",
-    "choices": [
-      "append",
-      "add",
-      "insert",
-      "push"
-    ],
-    "answer": "append",
-    "explanation_correct": "\u2705 Correct! 'append()' adds an item to the end of a list.",
-    "explanation_wrong": "\u274c Incorrect. Use 'append()' to add an item to a list.",
+    "category": "Unpacking",
+    "question": "Fill in the blank to unpack a list into variables:\n\nnums = [1, 2, 3]\na, b, ____ = nums",
+    "choices": ["c", "nums[2]", "d", "rest"],
+    "answer": "c",
+    "explanation_correct": "✅ Correct! The third variable must be 'c'.",
+    "explanation_wrong": "❌ Incorrect. Assign directly to 'c'.",
     "id": 48
   },
   {
-    "category": "Lists",
-    "question": "Fill in the blank to append an item to a list:\n\nmy_list = []\nmy_list.____('apple')",
-    "choices": [
-      "append",
-      "add",
-      "insert",
-      "push"
-    ],
-    "answer": "append",
-    "explanation_correct": "\u2705 Correct! 'append()' adds an item to the end of a list.",
-    "explanation_wrong": "\u274c Incorrect. Use 'append()' to add an item to a list.",
+    "category": "Extended Unpacking",
+    "question": "Fill in the blank to collect remaining elements:\n\nnums = [1, 2, 3, 4]\na, *b, c = nums\nprint(b)  # prints ____",
+    "choices": ["[2, 3]", "[1, 2]", "[3, 4]", "[2]"],
+    "answer": "[2, 3]",
+    "explanation_correct": "✅ Correct! '*b' collects the middle elements.",
+    "explanation_wrong": "❌ Incorrect. The result is [2, 3].",
     "id": 49
   },
   {
-    "category": "Lists",
-    "question": "Fill in the blank to append an item to a list:\n\nmy_list = []\nmy_list.____('apple')",
-    "choices": [
-      "append",
-      "add",
-      "insert",
-      "push"
-    ],
-    "answer": "append",
-    "explanation_correct": "\u2705 Correct! 'append()' adds an item to the end of a list.",
-    "explanation_wrong": "\u274c Incorrect. Use 'append()' to add an item to a list.",
+    "category": "Walrus Operator",
+    "question": "Fill in the blank to assign inside an expression:\n\nif (n := ____ ) > 0:\n    print(n)",
+    "choices": ["5", "None", "0", "-1"],
+    "answer": "5",
+    "explanation_correct": "✅ Correct! 'n := 5' assigns and checks in one step.",
+    "explanation_wrong": "❌ Incorrect. The expression uses ':='.",
     "id": 50
-  },
-  {
-    "category": "Loops",
-    "question": "Fill in the blank to use a while loop:\n\nx = 0\nwhile x < 5:\n    print(x)\n    x ____ 1",
-    "choices": [
-      "+=",
-      "=+",
-      "++",
-      "+1"
-    ],
-    "answer": "+=",
-    "explanation_correct": "\u2705 Correct! 'x += 1' increments x by 1.",
-    "explanation_wrong": "\u274c Incorrect. Use 'x += 1' to increment x in Python."
-  },
-  {
-    "category": "Functions",
-    "question": "Fill in the blank to return a value from a function:\n\ndef square(x):\n    ____ x * x",
-    "choices": [
-      "return",
-      "print",
-      "yield",
-      "output"
-    ],
-    "answer": "return",
-    "explanation_correct": "\u2705 Correct! 'return' is used to send back the result.",
-    "explanation_wrong": "\u274c Incorrect. Use 'return' to send a result from a function."
-  },
-  {
-    "category": "Lists",
-    "question": "Fill in the blank to get the second item in a list:\n\nmy_list = [3, 7, 9]\nprint(my_list[____])",
-    "choices": [
-      "1",
-      "0",
-      "2",
-      "-1"
-    ],
-    "answer": "1",
-    "explanation_correct": "\u2705 Correct! Index 1 refers to the second item.",
-    "explanation_wrong": "\u274c Incorrect. Lists are zero-indexed. Second item is at index 1."
-  },
-  {
-    "category": "Strings",
-    "question": "Fill in the blank to convert text to lowercase:\n\ntext = 'HELLO'\nprint(text.____())",
-    "choices": [
-      "lower",
-      "down",
-      "small",
-      "min"
-    ],
-    "answer": "lower",
-    "explanation_correct": "\u2705 Correct! 'lower()' converts a string to lowercase.",
-    "explanation_wrong": "\u274c Incorrect. Use 'lower()' to convert strings to lowercase."
-  },
-  {
-    "category": "Dictionaries",
-    "question": "Fill in the blank to get a value from a dictionary:\n\nperson = {'name': 'Alice'}\nprint(person[____])",
-    "choices": [
-      "'name'",
-      "name",
-      "'Alice'",
-      "key"
-    ],
-    "answer": "'name'",
-    "explanation_correct": "\u2705 Correct! 'person['name']' accesses the value for key 'name'.",
-    "explanation_wrong": "\u274c Incorrect. Dictionary keys must be in quotes unless they're variables."
-  },
-  {
-    "category": "Strings",
-    "question": "Fill in the blank to convert text to lowercase:\n\ntext = 'HELLO'\nprint(text.____())",
-    "choices": [
-      "lower",
-      "down",
-      "small",
-      "min"
-    ],
-    "answer": "lower",
-    "explanation_correct": "\u2705 Correct! 'lower()' converts a string to lowercase.",
-    "explanation_wrong": "\u274c Incorrect. Use 'lower()' to convert strings to lowercase.",
-    "id": 56
-  },
-  {
-    "category": "Functions",
-    "question": "Fill in the blank to return a value from a function:\n\ndef square(x):\n    ____ x * x",
-    "choices": [
-      "return",
-      "print",
-      "yield",
-      "output"
-    ],
-    "answer": "return",
-    "explanation_correct": "\u2705 Correct! 'return' is used to send back the result.",
-    "explanation_wrong": "\u274c Incorrect. Use 'return' to send a result from a function.",
-    "id": 57
-  },
-  {
-    "category": "Loops",
-    "question": "Fill in the blank to use a while loop:\n\nx = 0\nwhile x < 5:\n    print(x)\n    x ____ 1",
-    "choices": [
-      "+=",
-      "=+",
-      "++",
-      "+1"
-    ],
-    "answer": "+=",
-    "explanation_correct": "\u2705 Correct! 'x += 1' increments x by 1.",
-    "explanation_wrong": "\u274c Incorrect. Use 'x += 1' to increment x in Python.",
-    "id": 58
-  },
-  {
-    "category": "Loops",
-    "question": "Fill in the blank to use a while loop:\n\nx = 0\nwhile x < 5:\n    print(x)\n    x ____ 1",
-    "choices": [
-      "+=",
-      "=+",
-      "++",
-      "+1"
-    ],
-    "answer": "+=",
-    "explanation_correct": "\u2705 Correct! 'x += 1' increments x by 1.",
-    "explanation_wrong": "\u274c Incorrect. Use 'x += 1' to increment x in Python.",
-    "id": 59
-  },
-  {
-    "category": "Dictionaries",
-    "question": "Fill in the blank to get a value from a dictionary:\n\nperson = {'name': 'Alice'}\nprint(person[____])",
-    "choices": [
-      "'name'",
-      "name",
-      "'Alice'",
-      "key"
-    ],
-    "answer": "'name'",
-    "explanation_correct": "\u2705 Correct! 'person['name']' accesses the value for key 'name'.",
-    "explanation_wrong": "\u274c Incorrect. Dictionary keys must be in quotes unless they're variables.",
-    "id": 60
-  },
-  {
-    "category": "Loops",
-    "question": "Fill in the blank to use a while loop:\n\nx = 0\nwhile x < 5:\n    print(x)\n    x ____ 1",
-    "choices": [
-      "+=",
-      "=+",
-      "++",
-      "+1"
-    ],
-    "answer": "+=",
-    "explanation_correct": "\u2705 Correct! 'x += 1' increments x by 1.",
-    "explanation_wrong": "\u274c Incorrect. Use 'x += 1' to increment x in Python.",
-    "id": 61
-  },
-  {
-    "category": "Strings",
-    "question": "Fill in the blank to convert text to lowercase:\n\ntext = 'HELLO'\nprint(text.____())",
-    "choices": [
-      "lower",
-      "down",
-      "small",
-      "min"
-    ],
-    "answer": "lower",
-    "explanation_correct": "\u2705 Correct! 'lower()' converts a string to lowercase.",
-    "explanation_wrong": "\u274c Incorrect. Use 'lower()' to convert strings to lowercase.",
-    "id": 62
-  },
-  {
-    "category": "Lists",
-    "question": "Fill in the blank to get the second item in a list:\n\nmy_list = [3, 7, 9]\nprint(my_list[____])",
-    "choices": [
-      "1",
-      "0",
-      "2",
-      "-1"
-    ],
-    "answer": "1",
-    "explanation_correct": "\u2705 Correct! Index 1 refers to the second item.",
-    "explanation_wrong": "\u274c Incorrect. Lists are zero-indexed. Second item is at index 1.",
-    "id": 63
-  },
-  {
-    "category": "Functions",
-    "question": "Fill in the blank to return a value from a function:\n\ndef square(x):\n    ____ x * x",
-    "choices": [
-      "return",
-      "print",
-      "yield",
-      "output"
-    ],
-    "answer": "return",
-    "explanation_correct": "\u2705 Correct! 'return' is used to send back the result.",
-    "explanation_wrong": "\u274c Incorrect. Use 'return' to send a result from a function.",
-    "id": 64
-  },
-  {
-    "category": "Functions",
-    "question": "Fill in the blank to return a value from a function:\n\ndef square(x):\n    ____ x * x",
-    "choices": [
-      "return",
-      "print",
-      "yield",
-      "output"
-    ],
-    "answer": "return",
-    "explanation_correct": "\u2705 Correct! 'return' is used to send back the result.",
-    "explanation_wrong": "\u274c Incorrect. Use 'return' to send a result from a function.",
-    "id": 65
-  },
-  {
-    "category": "Functions",
-    "question": "Fill in the blank to return a value from a function:\n\ndef square(x):\n    ____ x * x",
-    "choices": [
-      "return",
-      "print",
-      "yield",
-      "output"
-    ],
-    "answer": "return",
-    "explanation_correct": "\u2705 Correct! 'return' is used to send back the result.",
-    "explanation_wrong": "\u274c Incorrect. Use 'return' to send a result from a function.",
-    "id": 66
-  },
-  {
-    "category": "Functions",
-    "question": "Fill in the blank to return a value from a function:\n\ndef square(x):\n    ____ x * x",
-    "choices": [
-      "return",
-      "print",
-      "yield",
-      "output"
-    ],
-    "answer": "return",
-    "explanation_correct": "\u2705 Correct! 'return' is used to send back the result.",
-    "explanation_wrong": "\u274c Incorrect. Use 'return' to send a result from a function.",
-    "id": 67
-  },
-  {
-    "category": "Functions",
-    "question": "Fill in the blank to return a value from a function:\n\ndef square(x):\n    ____ x * x",
-    "choices": [
-      "return",
-      "print",
-      "yield",
-      "output"
-    ],
-    "answer": "return",
-    "explanation_correct": "\u2705 Correct! 'return' is used to send back the result.",
-    "explanation_wrong": "\u274c Incorrect. Use 'return' to send a result from a function.",
-    "id": 68
-  },
-  {
-    "category": "Loops",
-    "question": "Fill in the blank to use a while loop:\n\nx = 0\nwhile x < 5:\n    print(x)\n    x ____ 1",
-    "choices": [
-      "+=",
-      "=+",
-      "++",
-      "+1"
-    ],
-    "answer": "+=",
-    "explanation_correct": "\u2705 Correct! 'x += 1' increments x by 1.",
-    "explanation_wrong": "\u274c Incorrect. Use 'x += 1' to increment x in Python.",
-    "id": 69
-  },
-  {
-    "category": "Strings",
-    "question": "Fill in the blank to convert text to lowercase:\n\ntext = 'HELLO'\nprint(text.____())",
-    "choices": [
-      "lower",
-      "down",
-      "small",
-      "min"
-    ],
-    "answer": "lower",
-    "explanation_correct": "\u2705 Correct! 'lower()' converts a string to lowercase.",
-    "explanation_wrong": "\u274c Incorrect. Use 'lower()' to convert strings to lowercase.",
-    "id": 70
   }
 ]
+
