@@ -857,8 +857,10 @@ const openCreateModal = (type: 'solo' | '1v1') => {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
       <StatTile icon={Target} label="Solo • Python" value={totals.solo.python} tone="blue" />
       <StatTile icon={Target} label="Solo • Java"   value={totals.solo.java}   tone="blue" />
+      <StatTile icon={Target} label="Solo • C++"    value={totals.solo.cpp}    tone="blue" />
       <StatTile icon={Swords} label="1v1 • Python"  value={totals.v1.python}   tone="purple" />
       <StatTile icon={Swords} label="1v1 • Java"    value={totals.v1.java}     tone="purple" />
+        <StatTile icon={Swords} label="1v1 • C++"     value={totals.v1.cpp}      tone="purple" />
     </div>
 
     {/* NEW: difficulty breakdown (all challenges) */}

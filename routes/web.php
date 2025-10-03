@@ -70,7 +70,7 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
 
 
 Route::get('/dashboard/stats', function () {
-    $user = auth()->user();
+   $user = auth()->user();
 
     // Helpers
     $safeCount = function ($table) {
@@ -111,6 +111,7 @@ Route::get('/dashboard/stats', function () {
                 'total_solo_challenges'   => $safeCount('challenges_solo'),
                 'solo_python_challenges'  => $safeCountWhere('challenges_solo', 'language', 'python'),
                 'solo_java_challenges'    => $safeCountWhere('challenges_solo', 'language', 'java'),
+                'solo_cpp_challenges'     => $safeCountWhere('challenges_solo', 'language', 'cpp'), // NEW
                 'solo_easy'   => $safeCountWhere('challenges_solo', 'difficulty', 'easy'),
                 'solo_medium' => $safeCountWhere('challenges_solo', 'difficulty', 'medium'),
                 'solo_hard'   => $safeCountWhere('challenges_solo', 'difficulty', 'hard'),
@@ -119,33 +120,36 @@ Route::get('/dashboard/stats', function () {
                 'total_1v1_challenges'   => $safeCount('challenges_1v1'),
                 'duel_python_challenges' => $safeCountWhere('challenges_1v1', 'language', 'python'),
                 'duel_java_challenges'   => $safeCountWhere('challenges_1v1', 'language', 'java'),
+                'duel_cpp_challenges'    => $safeCountWhere('challenges_1v1', 'language', 'cpp'), // NEW
                 'duel_easy'   => $safeCountWhere('challenges_1v1', 'difficulty', 'easy'),
                 'duel_medium' => $safeCountWhere('challenges_1v1', 'difficulty', 'medium'),
                 'duel_hard'   => $safeCountWhere('challenges_1v1', 'difficulty', 'hard'),
 
-              // --- Platform Activity ---
-'total_solo_attempts'      => $safeCount('solo_taken'),
-'successful_solo_attempts' => $safeCountWhere('solo_taken', 'status', 'completed'),
+                // --- Platform Activity ---
+                'total_solo_attempts'      => $safeCount('solo_taken'),
+                'successful_solo_attempts' => $safeCountWhere('solo_taken', 'status', 'completed'),
 
-'total_duels'              => $safeCount('duels_taken'),
-'completed_duels'          => $safeCountWhere('duels_taken', 'status', 'finished'),
-'pending_duels'            => $safeCountWhere('duels_taken', 'status', 'started'),
+                'total_duels'              => $safeCount('duels_taken'),
+                'completed_duels'          => $safeCountWhere('duels_taken', 'status', 'finished'),
+                'pending_duels'            => $safeCountWhere('duels_taken', 'status', 'started'),
 
-// --- Today's Activity ---
-'solo_attempts_today' => $safeCountWhereDate('solo_taken', 'created_at', today()),
-'duels_today'         => $safeCountWhereDate('duels_taken', 'created_at', today()),
+                // --- Today's Activity ---
+                'solo_attempts_today' => $safeCountWhereDate('solo_taken', 'created_at', today()),
+                'duels_today'         => $safeCountWhereDate('duels_taken', 'created_at', today()),
 
-// --- Language Popularity ---
-'python_attempts' => DB::table('solo_taken')->where('language','python')->count()
-                   + DB::table('duels_taken')->where('language','python')->count(),
-'java_attempts'   => DB::table('solo_taken')->where('language','java')->count()
-                   + DB::table('duels_taken')->where('language','java')->count(),
+                // --- Language Popularity ---
+                'python_attempts' => DB::table('solo_taken')->where('language','python')->count()
+                                  + DB::table('duels_taken')->where('language','python')->count(),
+                'java_attempts'   => DB::table('solo_taken')->where('language','java')->count()
+                                  + DB::table('duels_taken')->where('language','java')->count(),
+                'cpp_attempts'    => DB::table('solo_taken')->where('language','cpp')->count()   // NEW
+                                  + DB::table('duels_taken')->where('language','cpp')->count(), // NEW
 
-
-                // --- Feedback (safe fallback) ---
+                // --- Feedback ---
                 'total_feedbacks'   => $safeCount('feedback'),
                 'open_feedbacks'    => $safeCountWhere('feedback', 'status', 'open'),
                 'resolved_feedbacks'=> $safeCountWhere('feedback', 'status', 'resolved'),
+
                 // --- Characters ---
                 'total_characters' => $safeCount('characters'),
             ]
