@@ -51,7 +51,7 @@ export default function ParticipantPractice() {
   const [takenIds, setTakenIds] = useState<Set<number>>(new Set());
   const [totalInSet, setTotalInSet] = useState<number>(0);
   const resumeFromLastRef = useRef<number | null>(null);
-
+ const shownErrorKeyRef = useRef<string | null>(null);
   const currentSetRef = useRef<{ id:number; filename:string; total_questions:number; set_index:number; language:string } | null>(null);
 
   const csrfToken =
@@ -231,53 +231,65 @@ if (uniqueIds.size !== data.length) {
   resetPerQuestionState();
   // NOTE: don't force index here; filterQuestions will position us correctly
 } catch (error: any) {
-  if (error?.name !== 'AbortError') {
-    console.error('Error loading questions:', error);
-    setQuestions([]);
+  if (error?.name === 'AbortError') return;
 
-    const otherLang = (LANGS.find(l => l !== language) ?? 'python') as Lang;
+  console.error('Error loading questions:', error);
+  setQuestions([]);
 
+  // build a unique key for “same error again”
+  const key =
+    (error?.code ?? 'GENERIC') +
+    ':' + (error?.setIndex ?? '') +
+    ':' + (error?.lang ?? '');
 
-    let title = 'Can’t load questions';
-    let html  = 'We ran into a hiccup loading this practice set. Please try again.';
-    let confirmText = 'Retry';
-    let showDeny = false;
-    let denyText = '';
-    let action: (() => void) | null = () => loadQuestions();
+  const alreadyShown = shownErrorKeyRef.current === key;
+  if (!alreadyShown) shownErrorKeyRef.current = key;
 
-    switch (error?.code) {
-      case 'NO_SET':
-        title = 'Practice set coming soon';
-        html  = `We’re preparing the next <b>${language}</b> question set. Check back soon!`;
-        confirmText = 'Got it';
-        action = null; // nothing to do
-        showDeny = true;
-        denyText = `Try ${otherLang}`;
-        break;
+  // choose a fallback language label for the deny button
+  const idx = LANGS.indexOf(language);
+  const nextLang = LANGS[(idx + 1) % LANGS.length];
 
-      case 'FILE_MISSING':
-        title = 'Updating questions';
-        html  = `We’re updating <b>Set #${error.setIndex}</b> (${error.lang}). Please try again a little later.`;
-        confirmText = 'Retry';
-        action = () => loadQuestions();
-        break;
+  let title = 'Can’t load questions';
+  let html  = 'We ran into a hiccup loading this practice set. Please try again.';
+  let confirmText = 'Retry';
+  let showDeny = false;
+  let denyText = '';
+  let action: (() => Promise<void> | void) | null = () => loadQuestions();
 
-      case 'SESSION':
-        title = 'Session expired';
-        html  = 'Please refresh the page and sign in again.';
-        confirmText = 'Refresh';
-        action = () => window.location.reload();
-        break;
+  switch (error?.code) {
+    case 'NO_SET':
+      title = 'Practice set coming soon';
+      html  = `We’re preparing the next <b>${language}</b> question set. Check back soon!`;
+      confirmText = 'Got it';
+      action = null;
+      showDeny = true;
+      denyText = `Try ${nextLang.toUpperCase()}`;
+      break;
 
-      default:
-        // GENERIC / network
-        title = 'Can’t load questions';
-        html  = 'Looks like a network hiccup. Please try again.';
-        confirmText = 'Retry';
-        action = () => loadQuestions();
-        break;
-    }
+    case 'FILE_MISSING':
+      title = 'Updating questions';
+      html  = `We’re updating <b>Set #${error.setIndex}</b> (${error.lang}). Please try again a little later.`;
+      confirmText = 'Retry';
+      action = () => loadQuestions();
+      break;
 
+    case 'SESSION':
+      title = 'Session expired';
+      html  = 'Please refresh the page and sign in again.';
+      confirmText = 'Refresh';
+      action = () => window.location.reload();
+      break;
+
+    default:
+      title = 'Can’t load questions';
+      html  = 'Looks like a network hiccup. Please try again.';
+      confirmText = 'Retry';
+      action = () => loadQuestions();
+      break;
+  }
+
+  if (!alreadyShown) {
+    // First time for this specific error → show blocking modal
     const res = await Swal.fire({
       icon: 'info',
       title,
@@ -288,14 +300,26 @@ if (uniqueIds.size !== data.length) {
       customClass: { popup: 'bg-gray-900 text-gray-100' },
     });
 
-    if (res.isConfirmed && action) action();
-    if (res.isDenied) setLanguage(otherLang as 'python' | 'java');
+    if (res.isConfirmed && action) await action();
+    if (res.isDenied) setLanguage(nextLang);
+  } else {
+    // Same error happening again → lightweight toast only
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'info',
+      title: error?.code === 'FILE_MISSING'
+        ? 'Still updating — please check back later.'
+        : 'Still can’t load — try again soon.',
+      showConfirmButton: false,
+      timer: 2000,
+    });
   }
-} finally {
+}
+ finally {
   setLoading(false);
 }
 
-    return () => ac.abort();
   };
 const filterQuestions = () => {
   // build filtered list
