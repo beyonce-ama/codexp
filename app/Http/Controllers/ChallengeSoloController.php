@@ -11,20 +11,31 @@ use Inertia\Inertia;
 class ChallengeSoloController extends Controller
 {
     public function index(Request $request)
-    {
-        $q = ChallengeSolo::query();
-        if ($request->filled('mode')) $q->where('mode', $request->mode);
-        if ($request->filled('language')) $q->where('language', $request->language);
-        if ($request->filled('difficulty')) $q->where('difficulty', $request->difficulty);
-        return response()->json(['success'=>true,'data'=>$q->latest()->paginate(20)]);
+{
+    $q = ChallengeSolo::query();
+
+    if ($request->filled('mode')) $q->where('mode', $request->mode);
+    if ($request->filled('language')) $q->where('language', $request->language);
+    if ($request->filled('difficulty')) $q->where('difficulty', $request->difficulty);
+
+    // NEW: search by title or description
+    if ($request->filled('search')) {
+        $term = trim($request->input('search'));
+        $q->where(function($qq) use ($term) {
+            $qq->where('title', 'LIKE', "%{$term}%")
+               ->orWhere('description', 'LIKE', "%{$term}%");
+        });
     }
+
+    return response()->json(['success'=>true,'data'=>$q->latest()->paginate(20)]);
+}
 
     // Admin JSON import (array of items)
     public function import(Request $request)
     {
         $data = $request->validate([
             'mode'        => 'required|in:fixbugs,random',
-            'language'    => 'required|in:python,java',
+            'language'    => 'required|in:python,java,cpp', 
             'difficulty'  => 'required|in:easy,medium,hard',
             'source_file' => 'nullable|string',
             'items'       => 'required|array'
@@ -56,7 +67,7 @@ public function store(Request $request)
     $data = $request->validate([
         'title' => 'required|string|max:255',
         'description' => 'nullable|string',
-        'language' => 'required|in:python,java',
+        'language' => 'required|in:python,java,cpp',
         'difficulty' => 'required|in:easy,medium,hard',
         'buggy_code' => 'nullable|string',
         'fixed_code' => 'nullable|string',
@@ -77,7 +88,7 @@ public function update(Request $request, $id)
     $data = $request->validate([
         'title' => 'sometimes|string|max:255',
         'description' => 'nullable|string',
-        'language' => 'sometimes|in:python,java',
+        'language' => 'sometimes|in:python,java,cpp',
         'difficulty' => 'sometimes|in:easy,medium,hard',
         'buggy_code' => 'nullable|string',
         'fixed_code' => 'nullable|string',
@@ -103,11 +114,12 @@ public function update(Request $request, $id)
             'adminMode'  => 'create',
             'activeType' => 'solo',
             // you can pass dropdown meta if you’ll use it:
-            'meta' => [
-                'languages' => ['python','java'],
+           'meta' => [
+                'languages' => ['python','java','cpp'], // ← added cpp
                 'difficulties' => ['easy','medium','hard'],
                 'modes' => ['fixbugs'],
             ],
+
         ]);
     }
 
