@@ -404,6 +404,10 @@ useEffect(() => {
                     </div>
                 </div>
             `,
+             didOpen: () => {
+                const el = document.getElementById('ai-solution-surrender');
+                if (el) el.textContent = currentChallenge.fixed_code!;
+                },
             confirmButtonText: 'Close',
             background: '#1f2937',
             color: '#fff',
@@ -710,6 +714,10 @@ useEffect(() => {
                         <p class="mt-4 text-sm text-gray-400">Your code must match this exactly to pass the challenge.</p>
                     </div>
                 `,
+                  didOpen: () => {
+                    const el = document.getElementById('ai-solution');
+                    if (el) el.textContent = currentChallenge.fixed_code!; // inject as raw text
+                    },
                 confirmButtonText: 'Got it!',
                 background: '#1f2937',
                 color: '#fff',

@@ -173,26 +173,30 @@ const [comparison, setComparison] = useState<{
 
     const resultShownRef = useRef(false);
    
+// One switch to control global UI when ANY duel modal is open
 useEffect(() => {
-  const isOpen = !!showDuelModal;
+  const isOpen = showDuelModal || showCreateModal || showReviewModal;
+
+  // let other components (header / quick-dock / SafeLink) know
   try {
-    // keep a global flag for components without props wiring
     (window as any).__modalOpen = isOpen;
     window.dispatchEvent(new CustomEvent('app:modal', { detail: { open: isOpen } }));
   } catch {}
-  // lock/unlock page scroll while modal is open
+
+  // lock/unlock background scroll
   const root = document.documentElement;
   if (isOpen) root.classList.add('overflow-hidden');
   else root.classList.remove('overflow-hidden');
-  return () => root.classList.remove('overflow-hidden');
-}, [showDuelModal]);
 
-// Hide header + disable quicklinks while duel modal is open
-useEffect(() => {
-  if (showDuelModal) document.body.classList.add('duel-open');
+  // toggle a body flag for CSS-based header/quick-dock hiding
+  if (isOpen) document.body.classList.add('duel-open');
   else document.body.classList.remove('duel-open');
-  return () => document.body.classList.remove('duel-open');
-}, [showDuelModal]);
+
+  return () => {
+    root.classList.remove('overflow-hidden');
+    document.body.classList.remove('duel-open');
+  };
+}, [showDuelModal, showCreateModal, showReviewModal]);
 
 
 
@@ -204,7 +208,6 @@ useEffect(() => {
         }
         return d;
     };
-
 
     useEffect(() => {
         if (activeTab === 'browse') {

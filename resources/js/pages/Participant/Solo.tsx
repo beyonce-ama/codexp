@@ -863,6 +863,10 @@ if (isConfirmed) {
                         <p class="mt-4 text-sm text-gray-400">Your code must match this exactly to pass the challenge.</p>
                     </div>
                 `,
+                didOpen: () => {
+                const el = document.getElementById('solo-solution');
+                if (el) el.textContent = selectedChallenge.fixed_code!; // <-- raw text, safe for C++
+                },
                 confirmButtonText: 'Got it!',
                 background: '#1f2937',
                 color: '#fff',
