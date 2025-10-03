@@ -47,6 +47,8 @@ export default function ParticipantPractice() {
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<string[]>([]);
   const [takenIds, setTakenIds] = useState<Set<number>>(new Set());
+  const [totalInSet, setTotalInSet] = useState<number>(0);
+  const resumeFromLastRef = useRef<number | null>(null);
 
   const currentSetRef = useRef<{ id:number; filename:string; total_questions:number } | null>(null);
 
@@ -95,38 +97,64 @@ export default function ParticipantPractice() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questions, selectedCategory, searchTerm, takenIds]);
 
+
+  useEffect(() => {
+  if (!currentSetRef.current) return;
+  if (totalInSet > 0 && takenIds.size >= totalInSet) {
+    // mark finished (optional) then reload next set
+    fetch('/practice/finish', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+      },
+      body: JSON.stringify({ question_set_id: currentSetRef.current.id }),
+    }).finally(() => {
+      loadQuestions();
+    });
+  }
+}, [takenIds, totalInSet]); // eslint-disable-line react-hooks/exhaustive-deps
+
+
   const loadQuestions = async () => {
     const ac = new AbortController();
-   try {
+try {
   setLoading(true);
 
-  // If your routes are in web.php, use /practice/current. If kept in api.php, change back to /api/practice/current.
-  const metaResp = await fetch(`/practice/current?language=${language}`, { signal: ac.signal });
+  const metaResp = await fetch(`/practice/current?language=${language}`, {
+    signal: ac.signal,
+    credentials: 'same-origin',
+  });
   if (!metaResp.ok) throw new Error('Failed to fetch current set');
   const meta = await metaResp.json();
   const { set, progress } = meta;
 
-  // Save current set meta for POSTs
   currentSetRef.current = {
     id: set.id,
     filename: set.filename,
     total_questions: set.total_questions,
   };
+  setTotalInSet(set.total_questions || 0);
 
-  // Load JSON file for this set
-  const response = await fetch(`/data/${set.filename}`, { signal: ac.signal });
+  // stash last taken so we can jump to the next one after filters apply
+  resumeFromLastRef.current = progress?.last_question_id ?? null;
+
+  const response = await fetch(`/data/${set.filename}`, {
+    signal: ac.signal,
+    credentials: 'same-origin',
+  });
   if (!response.ok) throw new Error(`Failed to load ${set.filename}`);
 
   const data: Question[] = await response.json();
   setQuestions(data);
   setCategories([...new Set(data.map(q => q.category))]);
 
-  // Apply server-side progress (prevents repeats)
-  const takenFromServer = Array.isArray(progress?.taken_ids) ? progress.taken_ids as number[] : [];
+  const takenFromServer = Array.isArray(progress?.taken_ids) ? (progress.taken_ids as number[]) : [];
   setTakenIds(new Set(takenFromServer));
 
   resetPerQuestionState();
-  setCurrentQuestionIndex(0);
+  // NOTE: don't force index here; filterQuestions will position us correctly
 } catch (error: any) {
   if (error?.name !== 'AbortError') {
     console.error('Error loading questions:', error);
@@ -143,23 +171,54 @@ export default function ParticipantPractice() {
 
     return () => ac.abort();
   };
+const filterQuestions = () => {
+  // build filtered list
+  const needle = searchTerm.trim().toLowerCase();
+  let filtered = questions.filter(q => !takenIds.has(q.id));
+  if (selectedCategory !== 'all') filtered = filtered.filter(q => q.category === selectedCategory);
+  if (needle) filtered = filtered.filter(q =>
+    q.question.toLowerCase().includes(needle) || q.category.toLowerCase().includes(needle)
+  );
 
-  const filterQuestions = () => {
-    let filtered = questions;
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(q => q.category === selectedCategory);
+  setFilteredQuestions(filtered);
+
+  // decide where to place the pointer
+  if (filtered.length === 0) {
+    setCurrentQuestionIndex(0);
+    return;
+  }
+
+  // If we have a last taken id, try to jump to the very next available question in the original order
+  if (resumeFromLastRef.current != null) {
+    const lastId = resumeFromLastRef.current;
+    // find the next un-taken question after lastId by original order
+    let targetId: number | null = null;
+    const idToIdx: Record<number, number> = {};
+    questions.forEach((q, i) => (idToIdx[q.id] = i));
+
+    const lastIdxInAll = idToIdx[lastId] ?? -1;
+    for (let i = lastIdxInAll + 1; i < questions.length; i++) {
+      const q = questions[i];
+      const matchesCat = selectedCategory === 'all' || q.category === selectedCategory;
+      const matchesSearch = !needle || q.question.toLowerCase().includes(needle) || q.category.toLowerCase().includes(needle);
+      if (!takenIds.has(q.id) && matchesCat && matchesSearch) {
+        targetId = q.id;
+        break;
+      }
     }
-    if (searchTerm.trim()) {
-      const needle = searchTerm.toLowerCase();
-      filtered = filtered.filter(q =>
-        q.question.toLowerCase().includes(needle) ||
-        q.category.toLowerCase().includes(needle)
-      );
-    }
-    filtered = filtered.filter(q => !takenIds.has(q.id));
-    setFilteredQuestions(filtered);
+    if (targetId == null) targetId = filtered[0].id; // fallback: first available
+
+    const idxInFiltered = filtered.findIndex(q => q.id === targetId);
+    setCurrentQuestionIndex(idxInFiltered >= 0 ? idxInFiltered : 0);
+
+    // consume once
+    resumeFromLastRef.current = null;
+  } else {
+    // normal clamp on list changes
     setCurrentQuestionIndex(idx => Math.min(idx, Math.max(0, filtered.length - 1)));
-  };
+  }
+};
+
 
   const resetPerQuestionState = () => {
     setSelectedChoice(null);
@@ -172,36 +231,37 @@ export default function ParticipantPractice() {
 
 const nextQuestion = async () => {
   if (currentQuestion && currentSetRef.current) {
-    // Optimistic UI update
-    setTakenIds(prev => new Set(prev).add(currentQuestion.id));
+    // Optimistic: mark as taken
+    setTakenIds(prev => {
+      const next = new Set(prev);
+      next.add(currentQuestion.id);
+      return next;
+    });
 
-    // Persist to DB
+    // Persist to DB (send cookies + CSRF)
     try {
       await fetch('/practice/taken', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'X-CSRF-TOKEN': csrfToken,
-  },
-  body: JSON.stringify({
-    question_set_id: currentSetRef.current.id,
-    question_id: currentQuestion.id
-  }),
-});
-
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': csrfToken,
+        },
+        body: JSON.stringify({
+          question_set_id: currentSetRef.current.id,
+          question_id: currentQuestion.id,
+        }),
+      });
+      // Remember this as last taken so if the page reloads instantly, we still resume
+      resumeFromLastRef.current = currentQuestion.id;
     } catch (e) {
       console.error('Failed to mark taken', e);
     }
   }
 
-  if (currentQuestionIndex < filteredQuestions.length - 1) {
-    setCurrentQuestionIndex(prev => prev + 1);
-    resetPerQuestionState();
-  } else {
-    // End of pool for this set -> reload to auto-advance to next set (if finished)
-    // You can show a modal here; then:
-    await loadQuestions(); // /api/practice/current will return next set if the server marked finished
-  }
+  // IMPORTANT: do NOT increment index here.
+  // The filtered list shrinks by 1, so the next item slides into the same index.
+  resetPerQuestionState();
 };
 
 
@@ -255,7 +315,7 @@ const nextQuestion = async () => {
               <Code className="h-6 w-6 text-purple-400" />
               <Lightbulb className="h-8 w-8 text-yellow-400" />
               <div>
-                <h1 className="text-2xl font-bold">PRACTICE REVIEWywfbgvsjvsd</h1>
+                <h1 className="text-2xl font-bold">PRACTICE REVIEWywfbg</h1>
                 <p className="text-gray-400 text-sm">Review programming questions and learn from explanations</p>
               </div>
             </div>
@@ -335,13 +395,14 @@ const nextQuestion = async () => {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-400">Total Questions:</span>
-                    <span className="text-blue-300 font-medium">{filteredQuestions.length}</span>
+                    <span className="text-blue-300 font-medium">{totalInSet}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-400">Current Progress:</span>
                     <span className="text-purple-300 font-medium">
-                      {filteredQuestions.length === 0 ? 0 : (currentQuestionIndex + 1)}/{filteredQuestions.length}
+                      {takenIds.size}/{totalInSet}
                     </span>
+
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-400">Language:</span>
@@ -368,13 +429,8 @@ const nextQuestion = async () => {
                   <div className="w-full bg-gray-700 rounded-full h-2">
                     <div
                       className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-300"
-                      style={{
-                        width: `${
-                          filteredQuestions.length > 0
-                            ? ((currentQuestionIndex + 1) / filteredQuestions.length) * 100
-                            : 0
-                        }%`
-                      }}
+                      style={{ width: `${totalInSet > 0 ? Math.round((takenIds.size / totalInSet) * 100) : 0}%` }}
+
                     />
                   </div>
                 </div>
@@ -512,7 +568,7 @@ const nextQuestion = async () => {
                       <ArrowLeft className="h-4 w-4 inline" /> Previous
                     </button>
                     <div className="text-gray-400 text-sm">
-                      {currentQuestionIndex + 1} / {filteredQuestions.length}
+                    Answered {takenIds.size} / {totalInSet}
                     </div>
                     <button
                       onClick={() => { nextQuestion(); playSfx('click'); }}

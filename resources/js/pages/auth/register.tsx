@@ -100,7 +100,7 @@ export default function Register() {
                 value={data.name}
                 onChange={(e) => setData('name', e.target.value)}
                 required
-                placeholder="Jane Doe"
+                placeholder="Jane"
                 className="peer w-full rounded-xl px-4 py-3 bg-slate-50 text-slate-900 border-2 border-transparent focus:border-cyan-500/70 outline-none transition"
               />
               {errors.name && <p className="text-xs text-red-400">{errors.name}</p>}
