@@ -50,7 +50,7 @@ export default function ParticipantPractice() {
   const [totalInSet, setTotalInSet] = useState<number>(0);
   const resumeFromLastRef = useRef<number | null>(null);
 
-  const currentSetRef = useRef<{ id:number; filename:string; total_questions:number } | null>(null);
+  const currentSetRef = useRef<{ id:number; filename:string; total_questions:number; set_index:number; language:string } | null>(null);
 
   const csrfToken =
     (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ||
@@ -98,10 +98,12 @@ export default function ParticipantPractice() {
   }, [questions, selectedCategory, searchTerm, takenIds]);
 
 
-  useEffect(() => {
+useEffect(() => {
   if (!currentSetRef.current) return;
   if (totalInSet > 0 && takenIds.size >= totalInSet) {
-    // mark finished (optional) then reload next set
+    const { id, set_index, language } = currentSetRef.current;
+
+    // 1) Mark finished on the server
     fetch('/practice/finish', {
       method: 'POST',
       credentials: 'same-origin',
@@ -109,9 +111,51 @@ export default function ParticipantPractice() {
         'Content-Type': 'application/json',
         'X-CSRF-TOKEN': csrfToken,
       },
-      body: JSON.stringify({ question_set_id: currentSetRef.current.id }),
-    }).finally(() => {
-      loadQuestions();
+      body: JSON.stringify({ question_set_id: id }),
+    })
+    .catch(() => {})
+    .finally(async () => {
+      try {
+        // 2) Check if there's a next set
+        const setsResp = await fetch(`/practice/sets?language=${language}`, { credentials: 'same-origin' });
+        const setsJson = await setsResp.json();
+        const sets = Array.isArray(setsJson?.sets) ? setsJson.sets : [];
+        const next = sets.find((s: any) => s.set_index > set_index); // sets are returned ordered by set_index
+
+        if (next) {
+          try { audio.play('success'); } catch {}
+          await Swal.fire({
+            icon: 'success',
+            title: '🎉 Congratulations!',
+            html: `<div class="text-left">
+              <p>You’ve finished <b>Set #${set_index}</b> (${language}).</p>
+              <p class="mt-2">The next set <b>#${next.set_index}</b> is available. Ready to continue?</p>
+            </div>`,
+            confirmButtonText: `Start Set #${next.set_index}`,
+            showCancelButton: true,
+            cancelButtonText: 'Later',
+            customClass: { popup: 'bg-gray-900 text-gray-100' },
+          });
+          // Move to the next not-finished set (server /practice/current will now serve it)
+          loadQuestions();
+        } else {
+          try { audio.play('success'); } catch {}
+          await Swal.fire({
+            icon: 'success',
+            title: '🎉 Great job!',
+            html: `<div class="text-left">
+              <p>You’ve finished <b>Set #${set_index}</b> (${language}).</p>
+              <p class="mt-2">No next set is uploaded yet. <b>Stay tuned</b> for more questions!</p>
+            </div>`,
+            confirmButtonText: 'Okay',
+            customClass: { popup: 'bg-gray-900 text-gray-100' },
+          });
+          // No reload; user stays on the finished view
+        }
+      } catch {
+        // If the check fails, just refresh to whatever current() resolves to
+        loadQuestions();
+      }
     });
   }
 }, [takenIds, totalInSet]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -130,11 +174,14 @@ try {
   const meta = await metaResp.json();
   const { set, progress } = meta;
 
-  currentSetRef.current = {
-    id: set.id,
-    filename: set.filename,
-    total_questions: set.total_questions,
-  };
+ currentSetRef.current = {
+  id: set.id,
+  filename: set.filename,
+  total_questions: set.total_questions,
+  set_index: set.set_index,
+  language: set.language,
+};
+
   setTotalInSet(set.total_questions || 0);
 
   // stash last taken so we can jump to the next one after filters apply
@@ -421,9 +468,7 @@ const nextQuestion = async () => {
                   <div className="flex justify-between text-sm text-gray-400 mb-2">
                     <span>Completion</span>
                     <span>
-                      {filteredQuestions.length > 0
-                        ? Math.round(((currentQuestionIndex + 1) / filteredQuestions.length) * 100)
-                        : 0}%
+                      {totalInSet > 0 ? Math.round((takenIds.size / totalInSet) * 100) : 0}%
                     </span>
                   </div>
                   <div className="w-full bg-gray-700 rounded-full h-2">
