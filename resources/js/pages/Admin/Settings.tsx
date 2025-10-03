@@ -74,7 +74,7 @@ export default function AdminSettings() {
         // Challenge Settings
         default_time_limit: 60,
         max_attempts_per_challenge: 5,
-        supported_languages: ['python', 'java'],
+        supported_languages: ['python', 'java', 'cpp'],
         difficulty_levels: ['easy', 'medium', 'hard'],
         
         // Security Settings
@@ -352,7 +352,7 @@ export default function AdminSettings() {
 
             <SettingCard title="Supported Languages" description="Programming languages available on the platform">
                 <div className="space-y-4">
-                    {['Python', 'Java', 'JavaScript', 'C++', 'Go'].map(lang => (
+                    {['Python', 'Java', 'C++'].map(lang => (
                         <ToggleField
                             key={lang}
                             label={lang}

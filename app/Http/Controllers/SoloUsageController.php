@@ -13,7 +13,7 @@ class SoloUsageController extends Controller
     public function markTaken(Request $req)
     {
         $rules = [
-            'language'        => ['nullable', Rule::in(['python','java'])],
+            'language'        => ['nullable', Rule::in(['python','java', 'cpp'])],
             'difficulty'      => ['nullable', Rule::in(['easy','medium','hard'])],
             'mode'            => ['required', Rule::in(['fixbugs','random','aigenerated'])],
             'status'          => ['required', Rule::in(['viewed','started','abandoned','completed','submitted_incorrect'])],
@@ -86,7 +86,7 @@ class SoloUsageController extends Controller
     public function storeAttempt(Request $req)
     {
         $rules = [
-            'language'        => ['required', Rule::in(['python','java'])],
+            'language'        => ['required', Rule::in(['python','java', 'cpp'])],
             'mode'            => ['required', Rule::in(['fixbugs','random','aigenerated'])],
             'time_spent_sec'  => ['required','integer','min:0'],
             'is_correct'      => ['required','boolean'],

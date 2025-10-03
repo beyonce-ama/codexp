@@ -20,12 +20,12 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Practice', href: '#' },
     { title: 'Duel Challenge', href: '/play/duel' }
 ];
-
+type Language = 'python' | 'java' | 'cpp';
 interface Challenge1v1 {
     id: number;
     title: string;
     description: string | null;
-    language: 'python' | 'java';
+    language: Language; 
     difficulty: 'easy' | 'medium' | 'hard';
     buggy_code: string | null;
     fixed_code: string | null;
@@ -153,6 +153,7 @@ export default function ParticipantDuel() {
 
 const sessionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+const displayLanguage = (s: string) => (s === 'cpp' ? 'C++' : (s ?? '').toUpperCase());
 
 // New, independent review modal state
 
@@ -1746,7 +1747,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
     <div className="relative z-[101] w-full max-w-3xl rounded-2xl bg-gray-900 text-white shadow-xl border border-white/10">
       <div className="flex items-center justify-between p-4 rounded-t-2xl bg-blue-800 text-white">
         <div className="font-semibold">
-          Duel Review — {reviewDuel.challenge?.title ?? `#${reviewDuel.id}`} • {reviewDuel.language?.toUpperCase?.() ?? ''}
+          Duel Review — {reviewDuel.challenge?.title ?? `#${reviewDuel.id}`} • {displayLanguage(reviewDuel.language as string) ?? ''}
 
         </div>
         <button
@@ -1879,6 +1880,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                             <option value="all">All Languages</option>
                                             <option value="python">Python</option>
                                             <option value="java">Java</option>
+                                             <option value="cpp">C++</option>
                                         </select>
                                         <select
                                             value={difficultyFilter}
@@ -1915,7 +1917,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                 <h3 className="text-lg font-bold text-white">{challenge.title}</h3>
                                                 <div className="flex space-x-2">
                                                     <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-900/30 text-blue-300 border border-blue-500/50">
-                                                        {challenge.language.toUpperCase()}
+                                                        {displayLanguage(challenge.language)}
                                                     </span>
                                                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getDifficultyColor(challenge.difficulty)}`}>
                                                         {challenge.difficulty.toUpperCase()}
@@ -2022,7 +2024,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                     >
                                                         <div>
                                                             <p className="text-white font-medium">{challenge.title}</p>
-                                                            <p className="text-sm text-gray-400">{challenge.language} • {challenge.difficulty}</p>
+                                                            <p className="text-sm text-gray-400">{displayLanguage(challenge.language)}• {challenge.difficulty}</p>
                                                         </div>
                                                         <ArrowRight className="h-4 w-4 text-gray-400" />
                                                     </div>
@@ -2288,7 +2290,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                         </div>
                                         <div className="bg-gray-900/50 rounded-lg p-4">
                                             <div className="text-sm text-gray-400">Language</div>
-                                            <div className="text-lg font-bold text-white">{activeDuel.challenge.language.toUpperCase()}</div>
+                                            <div className="text-lg font-bold text-white">{displayLanguage(activeDuel.challenge.language)}</div>
                                         </div>
                                         <div className="bg-gray-900/50 rounded-lg p-4">
                                             <div className="text-sm text-gray-400">Status</div>

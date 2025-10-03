@@ -144,6 +144,7 @@ const scopeChipClass = (scope: string) => {
     case 'Live Match':  return 'bg-amber-900/30 border-amber-800 text-amber-300';
     case 'Python':      return 'bg-emerald-900/30 border-emerald-800 text-emerald-300';
     case 'Java':        return 'bg-orange-900/30 border-orange-800 text-orange-300';
+     case 'C++':        return 'bg-blue-900/30 border-blue-800 text-blue-300';
     default:            return 'bg-slate-900/30 border-slate-700 text-slate-300';
   }
 };
@@ -174,6 +175,7 @@ const scopeFromCode = (code: string) => {
   if (code.startsWith('PVP_LIVE_'))  return 'Live Match';
   if (code.startsWith('LANG_PY_'))   return 'Python';
   if (code.startsWith('LANG_JAVA_')) return 'Java';
+  if (code.startsWith('LANG_CPP_')) return 'C++';
   return 'General';
 };
 

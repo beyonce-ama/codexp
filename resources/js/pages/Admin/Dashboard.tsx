@@ -284,57 +284,7 @@ export default function AdminDashboard() {
               </div>
             )}
           </Section>
-{/* CHALLENGES */}
-<Section
-  title={
-    <>
-      <Trophy className="h-5 w-5 text-yellow-300" />
-      <span className="text-white font-semibold">Challenge Management</span>
-    </>
-  }
-  right={
-    <button
-      onClick={() => setShowChallenges(s => !s)}
-      className="text-xs inline-flex items-center gap-2 px-2 py-1 rounded-lg border border-white/10 text-slate-200 hover:bg-white/5"
-    >
-      {showChallenges ? 'Hide' : 'Show'}
-    </button>
-  }
->
-  {showChallenges && (
-    <div className="space-y-6">
-      {/* Solo Challenges */}
-      <div>
-        <h3 className="text-sm font-semibold text-white/70 mb-2">Solo Challenges</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          <StatTile icon={BookOpen} label="Total Solo" value={stats?.total_solo_challenges ?? 0} tone="slate" />
-          <StatTile icon={Code} label="Python" value={stats?.solo_python_challenges ?? 0} tone="blue" />
-          <StatTile icon={Code} label="Java" value={stats?.solo_java_challenges ?? 0} tone="red" />
-          <StatTile icon={Code} label="C++"    value={stats?.solo_cpp_challenges    ?? 0} tone="purple" />
-          <StatTile icon={Target} label="Easy" value={stats?.solo_easy ?? 0} tone="green" />
-          <StatTile icon={Target} label="Medium" value={stats?.solo_medium ?? 0} tone="yellow" />
-          <StatTile icon={Target} label="Hard" value={stats?.solo_hard ?? 0} tone="purple" />
-        </div>
-      </div>
-
-      {/* 1v1 Challenges */}
-      <div>
-        <h3 className="text-sm font-semibold text-white/70 mb-2">1v1 Challenges</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          <StatTile icon={Swords} label="Total 1v1" value={stats?.total_1v1_challenges ?? 0} tone="slate" />
-          <StatTile icon={Code} label="Python" value={stats?.duel_python_challenges ?? 0} tone="blue" />
-          <StatTile icon={Code} label="Java" value={stats?.duel_java_challenges ?? 0} tone="red" />
-           <StatTile icon={Code} label="C++"    value={stats?.duel_cpp_challenges    ?? 0} tone="purple" /> {/* NEW */}
-          <StatTile icon={Target} label="Easy" value={stats?.duel_easy ?? 0} tone="green" />
-          <StatTile icon={Target} label="Medium" value={stats?.duel_medium ?? 0} tone="yellow" />
-          <StatTile icon={Target} label="Hard" value={stats?.duel_hard ?? 0} tone="purple" />
-        </div>
-      </div>
-    </div>
-  )}
-</Section>
-
-
+          
           {/* PLATFORM ACTIVITY */}
           <Section
             title={
@@ -403,6 +353,55 @@ export default function AdminDashboard() {
                 </div>
               )}
             </Section>
+{/* CHALLENGES */}
+<Section
+  title={
+    <>
+      <Trophy className="h-5 w-5 text-yellow-300" />
+      <span className="text-white font-semibold">Challenge Management</span>
+    </>
+  }
+  right={
+    <button
+      onClick={() => setShowChallenges(s => !s)}
+      className="text-xs inline-flex items-center gap-2 px-2 py-1 rounded-lg border border-white/10 text-slate-200 hover:bg-white/5"
+    >
+      {showChallenges ? 'Hide' : 'Show'}
+    </button>
+  }
+>
+  {showChallenges && (
+    <div className="space-y-6">
+      {/* Solo Challenges */}
+      <div>
+        <h3 className="text-sm font-semibold text-white/70 mb-2">Solo Challenges</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <StatTile icon={BookOpen} label="Total Solo" value={stats?.total_solo_challenges ?? 0} tone="slate" />
+          <StatTile icon={Code} label="Python" value={stats?.solo_python_challenges ?? 0} tone="blue" />
+          <StatTile icon={Code} label="Java" value={stats?.solo_java_challenges ?? 0} tone="red" />
+          <StatTile icon={Code} label="C++"    value={stats?.solo_cpp_challenges    ?? 0} tone="purple" />
+          <StatTile icon={Target} label="Easy" value={stats?.solo_easy ?? 0} tone="green" />
+          <StatTile icon={Target} label="Medium" value={stats?.solo_medium ?? 0} tone="yellow" />
+          <StatTile icon={Target} label="Hard" value={stats?.solo_hard ?? 0} tone="purple" />
+        </div>
+      </div>
+
+      {/* 1v1 Challenges */}
+      <div>
+        <h3 className="text-sm font-semibold text-white/70 mb-2">1v1 Challenges</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <StatTile icon={Swords} label="Total 1v1" value={stats?.total_1v1_challenges ?? 0} tone="slate" />
+          <StatTile icon={Code} label="Python" value={stats?.duel_python_challenges ?? 0} tone="blue" />
+          <StatTile icon={Code} label="Java" value={stats?.duel_java_challenges ?? 0} tone="red" />
+           <StatTile icon={Code} label="C++"    value={stats?.duel_cpp_challenges    ?? 0} tone="purple" /> {/* NEW */}
+          <StatTile icon={Target} label="Easy" value={stats?.duel_easy ?? 0} tone="green" />
+          <StatTile icon={Target} label="Medium" value={stats?.duel_medium ?? 0} tone="yellow" />
+          <StatTile icon={Target} label="Hard" value={stats?.duel_hard ?? 0} tone="purple" />
+        </div>
+      </div>
+    </div>
+  )}
+</Section>
 
             <Section
               title={

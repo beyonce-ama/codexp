@@ -22,7 +22,7 @@ class DuelController extends Controller
         $data = $request->validate([
             'opponent_id' => 'required|exists:users,id',
             'challenge_id'=> 'nullable|exists:challenges_1v1,id',
-            'language'    => ['required', Rule::in(['python','java'])],
+            'language'    => ['required', Rule::in(['python','java', 'cpp'])],
             'session_duration_minutes' => 'required|integer|min:5|max:30',
         ]);
 

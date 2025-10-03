@@ -23,7 +23,15 @@ class AzureOpenAIService
         $this->maxTokens      = config('azure.openai.max_tokens', 1000);
         $this->temperature    = config('azure.openai.temperature', 0.7);
     }
-
+    private function languageLabel(string $lang): string
+{
+    return match (strtolower($lang)) {
+        'cpp'   => 'C++',
+        'java'  => 'Java',
+        'python'=> 'Python',
+        default => ucfirst($lang),
+    };
+}
     /**
      * Generate one challenge. If $topic is null, we auto-pick a topic and avoid repeating
      * the most recently used topic for that language for ~30 minutes.
@@ -159,6 +167,15 @@ class AzureOpenAIService
 
         $guide = $difficultyGuide[$difficulty] ?? 'Mixed difficulty';
 
+         $cppHints = '';
+                if (strtolower($language) === 'cpp') {
+                    $cppHints = <<<CPP
+            - Prefer standard library (STL): use std::vector, std::string, std::map, algorithms, iterators where appropriate
+            - Make it compile & run (include necessary headers, avoid non-standard extensions)
+            - Demonstrate typical C++ pitfalls (off-by-one with iterators, wrong comparator, missing const, copy vs reference, etc.)
+            CPP;
+                }
+
         return "Generate a {$difficulty} level {$language} programming challenge {$topicText}.
 
 Guidelines:
@@ -236,6 +253,12 @@ Make sure:
                 'collections', 'inheritance', 'interfaces', 'exception handling',
                 'generics', 'streams', 'object-oriented programming'
             ],
+            'cpp' => [
+                'STL (vector, string, map)', 'iterators & algorithms', 'pointers & references',
+                'memory management (RAII, smart pointers)', 'classes & objects',
+                'const-correctness', 'operator overloading', 'exceptions',
+                'templates & type deduction', 'I/O streams'
+            ],
         ];
 
         $topics = array_merge($commonTopics, $languageSpecific[$language] ?? []);
@@ -257,4 +280,5 @@ Make sure:
         }
         return $topics[array_rand($topics)];
     }
+
 }

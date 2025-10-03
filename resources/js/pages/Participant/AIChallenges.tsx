@@ -26,8 +26,8 @@ interface AIChallenge {
     buggy_code: string;
     fixed_code: string;
     hint: string;
-    language?: string;
-    difficulty?: string;
+     language?: 'python' | 'java' | 'cpp';   // ← add cpp
+    difficulty?: 'easy' | 'medium' | 'hard';
 }
 
 interface UserStats {
@@ -91,6 +91,8 @@ export default function ParticipantAIChallenges() {
     const [progressAnimation, setProgressAnimation] = useState(false);
     
     const [hasForfeited, setHasForfeited] = useState(false);
+
+    const displayLanguage = (s: string) => (s === 'cpp' ? 'C++' : (s ?? '').toUpperCase());
 
     // NEW: Modal state
     const [showChallengeModal, setShowChallengeModal] = useState(false);
@@ -866,7 +868,7 @@ useEffect(() => {
                             <div className="grid grid-cols-3 gap-4">
                                 <div className="bg-white/20 rounded-lg p-3">
                                     <div className="text-sm text-white/80">Language</div>
-                                    <div className="text-lg font-bold text-white">{language.toUpperCase()}</div>
+                                    <div className="text-lg font-bold text-white">{displayLanguage(language)}</div>
                                 </div>
                                 <div className="bg-white/20 rounded-lg p-3">
                                     <div className="text-sm text-white/80">Difficulty</div>
@@ -1084,6 +1086,7 @@ useEffect(() => {
                                     >
                                         <option value="python">Python</option>
                                         <option value="java">Java</option>
+                                         <option value="cpp">C++</option> 
                                     </select>
                                 </div>
 

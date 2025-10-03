@@ -7,71 +7,71 @@ use App\Models\Challenge1v1;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
-
 class Challenge1v1Controller extends Controller
 {
- public function index(Request $request)
-{
-    $q = \App\Models\Challenge1v1::query();
+    public function index(Request $request)
+    {
+        $q = \App\Models\Challenge1v1::query();
 
-    // filters already used by the UI
-    if ($request->filled('language'))   $q->where('language', $request->language);
-    if ($request->filled('difficulty')) $q->where('difficulty', $request->difficulty);
+        // filters already used by the UI
+        if ($request->filled('language'))   $q->where('language', $request->language);
+        if ($request->filled('difficulty')) $q->where('difficulty', $request->difficulty);
 
-    // optional text search (UI sends `search`)
-    if ($request->filled('search')) {
-        $term = $request->string('search')->toString();
-        $q->where(function ($qq) use ($term) {
-            $qq->where('title', 'like', "%{$term}%")
-               ->orWhere('description', 'like', "%{$term}%");
-        });
-    }
-
-    // exclude challenges the CURRENT user has already taken (default = true)
-    $excludeTaken = $request->boolean('exclude_taken', true);
-    if ($excludeTaken && $request->user()) {
-        $uid = $request->user()->id;
-
-        // any duel where THIS user submitted + the duel had a challenge_id
-        // (covers finished, surrendered, or still-active where user already answered)
-       $takenChallengeIds = \App\Models\Duel::query()
-            ->join('duel_submissions as ds', 'ds.duel_id', '=', 'duels.id')
-            ->where('ds.user_id', $uid)
-            ->whereIn('duels.status', ['finished','surrendered'])
-            ->whereNotNull('duels.challenge_id')
-            ->distinct()
-            ->pluck('duels.challenge_id');
-
-        if ($takenChallengeIds->isNotEmpty()) {
-            $q->whereNotIn('id', $takenChallengeIds);
+        // optional text search (UI sends `search`)
+        if ($request->filled('search')) {
+            $term = $request->string('search')->toString();
+            $q->where(function ($qq) use ($term) {
+                $qq->where('title', 'like', "%{$term}%")
+                   ->orWhere('description', 'like', "%{$term}%");
+            });
         }
-    }
-    // Optional: also exclude challenges the intended opponent already took
-    if ($request->filled('opponent_id')) {
-        $oppId = (int) $request->opponent_id;
 
-        $opponentTakenIds = \App\Models\Duel::query()
-            ->join('duel_submissions as ds', 'ds.duel_id', '=', 'duels.id')
-            ->where('ds.user_id', $oppId)
-            ->whereNotNull('duels.challenge_id')
-            ->distinct()
-            ->pluck('duels.challenge_id');
+        // exclude challenges the CURRENT user has already taken (default = true)
+        $excludeTaken = $request->boolean('exclude_taken', true);
+        if ($excludeTaken && $request->user()) {
+            $uid = $request->user()->id;
 
-        if ($opponentTakenIds->isNotEmpty()) {
-            $q->whereNotIn('id', $opponentTakenIds);
+            $takenChallengeIds = \App\Models\Duel::query()
+                ->join('duel_submissions as ds', 'ds.duel_id', '=', 'duels.id')
+                ->where('ds.user_id', $uid)
+                ->whereIn('duels.status', ['finished','surrendered'])
+                ->whereNotNull('duels.challenge_id')
+                ->distinct()
+                ->pluck('duels.challenge_id');
+
+            if ($takenChallengeIds->isNotEmpty()) {
+                $q->whereNotIn('id', $takenChallengeIds);
+            }
         }
+
+        // Optional: also exclude challenges the intended opponent already took
+        if ($request->filled('opponent_id')) {
+            $oppId = (int) $request->opponent_id;
+
+            $opponentTakenIds = \App\Models\Duel::query()
+                ->join('duel_submissions as ds', 'ds.duel_id', '=', 'duels.id')
+                ->where('ds.user_id', $oppId)
+                ->whereNotNull('duels.challenge_id')
+                ->distinct()
+                ->pluck('duels.challenge_id');
+
+            if ($opponentTakenIds->isNotEmpty()) {
+                $q->whereNotIn('id', $opponentTakenIds);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data'    => $q->latest()->paginate(20),
+        ]);
     }
 
-    return response()->json([
-        'success' => true,
-        'data'    => $q->latest()->paginate(20),
-    ]);
-}
-
+    // Admin JSON import (array of items)
     public function import(Request $request)
     {
         $data = $request->validate([
-            'language'    => 'required|in:python,java',
+            // ⬇️ add cpp
+            'language'    => 'required|in:python,java,cpp',
             'difficulty'  => 'required|in:easy,medium,hard',
             'source_file' => 'nullable|string',
             'items'       => 'required|array'
@@ -98,13 +98,15 @@ class Challenge1v1Controller extends Controller
         Challenge1v1::findOrFail($id)->delete();
         return response()->json(['success'=>true]);
     }
+
     public function create()
     {
         return Inertia::render('Admin/Challenges', [
             'adminMode'  => 'create',
             'activeType' => '1v1',
             'meta' => [
-                'languages' => ['python','java'],
+                // ⬇️ add cpp
+                'languages'    => ['python','java','cpp'],
                 'difficulties' => ['easy','medium','hard'],
             ],
         ]);
@@ -126,12 +128,14 @@ class Challenge1v1Controller extends Controller
             'activeType' => '1v1',
             'challenge'  => $challenge,
             'meta' => [
-                'languages' => ['python','java'],
+                // ⬇️ add cpp
+                'languages'    => ['python','java','cpp'],
                 'difficulties' => ['easy','medium','hard'],
             ],
         ]);
     }
 
+    // optional for Download button
     public function export(\App\Models\Challenge1v1 $challenge)
     {
         return response()->json($challenge->only([
@@ -140,15 +144,17 @@ class Challenge1v1Controller extends Controller
             'created_at','updated_at'
         ]));
     }
+
     public function store(Request $request)
     {
         $data = $request->validate([
-            'title' => 'required|string|max:255',
+            'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
-            'language' => 'required|in:python,java',
-            'difficulty' => 'required|in:easy,medium,hard',
-            'buggy_code' => 'nullable|string',
-            'fixed_code' => 'nullable|string',
+            // ⬇️ add cpp
+            'language'    => 'required|in:python,java,cpp',
+            'difficulty'  => 'required|in:easy,medium,hard',
+            'buggy_code'  => 'nullable|string',
+            'fixed_code'  => 'nullable|string',
         ]);
 
         $challenge = \App\Models\Challenge1v1::create($data);
@@ -161,18 +167,17 @@ class Challenge1v1Controller extends Controller
         $challenge = \App\Models\Challenge1v1::findOrFail($id);
 
         $data = $request->validate([
-            'title' => 'sometimes|string|max:255',
+            'title'       => 'sometimes|string|max:255',
             'description' => 'nullable|string',
-            'language' => 'sometimes|in:python,java',
-            'difficulty' => 'sometimes|in:easy,medium,hard',
-            'buggy_code' => 'nullable|string',
-            'fixed_code' => 'nullable|string',
+            // ⬇️ add cpp
+            'language'    => 'sometimes|in:python,java,cpp',
+            'difficulty'  => 'sometimes|in:easy,medium,hard',
+            'buggy_code'  => 'nullable|string',
+            'fixed_code'  => 'nullable|string',
         ]);
 
         $challenge->update($data);
 
         return response()->json(['success' => true, 'data' => $challenge]);
     }
-
-
 }

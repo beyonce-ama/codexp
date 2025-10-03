@@ -139,7 +139,7 @@ public function update(Request $request, $id)
             'activeType' => 'solo',
             'challenge'  => $challenge,
             'meta' => [
-                'languages' => ['python','java'],
+                'languages' => ['python','java','cpp'],
                 'difficulties' => ['easy','medium','hard'],
                 'modes' => ['fixbugs'],
             ],
