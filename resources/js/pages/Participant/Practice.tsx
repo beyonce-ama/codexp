@@ -197,6 +197,24 @@ try {
   setQuestions(data);
   setCategories([...new Set(data.map(q => q.category))]);
 
+  // --- Sanity checks for IDs vs file vs DB ---
+const uniqueIds = new Set(data.map(q => q.id));
+if (uniqueIds.size !== data.length) {
+  // There are duplicates or missing IDs in the file
+  const seen = new Set<number>();
+  const dups: number[] = [];
+  data.forEach(q => {
+    if (seen.has(q.id)) dups.push(q.id);
+    else seen.add(q.id);
+  });
+  console.warn('[Practice] Duplicate or missing IDs detected', {
+    file: currentSetRef.current?.filename,
+    totalRows: data.length,
+    uniqueIds: uniqueIds.size,
+    duplicates: Array.from(new Set(dups)),
+  });
+}
+
   const takenFromServer = Array.isArray(progress?.taken_ids) ? (progress.taken_ids as number[]) : [];
   setTakenIds(new Set(takenFromServer));
 
@@ -273,8 +291,9 @@ const filterQuestions = () => {
     setShowAnswer(false);
   };
 
-  const currentQuestion = filteredQuestions[currentQuestionIndex];
-  const isCorrect = isAnswered && selectedChoice === currentQuestion?.answer;
+const currentQuestion = filteredQuestions[currentQuestionIndex];
+const isCorrect = isAnswered && selectedChoice === currentQuestion?.answer;
+const isLastQuestion = filteredQuestions.length === 1 || currentQuestionIndex === filteredQuestions.length - 1; // NEW
 
 const nextQuestion = async () => {
   if (currentQuestion && currentSetRef.current) {
@@ -362,7 +381,7 @@ const nextQuestion = async () => {
               <Code className="h-6 w-6 text-purple-400" />
               <Lightbulb className="h-8 w-8 text-yellow-400" />
               <div>
-                <h1 className="text-2xl font-bold">PRACTICE REVIEWywfbg</h1>
+                <h1 className="text-2xl font-bold">PRACTICE REVIEWyw</h1>
                 <p className="text-gray-400 text-sm">Review programming questions and learn from explanations</p>
               </div>
             </div>
@@ -615,13 +634,14 @@ const nextQuestion = async () => {
                     <div className="text-gray-400 text-sm">
                     Answered {takenIds.size} / {totalInSet}
                     </div>
-                    <button
-                      onClick={() => { nextQuestion(); playSfx('click'); }}
-                      disabled={currentQuestionIndex === filteredQuestions.length - 1}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
-                    >
-                      Next <ArrowRight className="h-4 w-4 inline" />
-                    </button>
+                 <button
+                    onClick={() => { nextQuestion(); playSfx('click'); }}
+                    disabled={!currentQuestion} // allow pressing on the last question too
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
+                  >
+                    {isLastQuestion ? 'Finish Question' : 'Next'} <ArrowRight className="h-4 w-4 inline" />
+                  </button>
+
                   </div>
                 </div>
               )}
