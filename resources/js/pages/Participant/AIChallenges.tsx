@@ -697,12 +697,41 @@ useEffect(() => {
             setSubmitting(false);
         }
     };
+const showCodeModal = (title: string, code: string) => {
+  Swal.fire({
+    title,
+    html: `
+      <div>
+        <p class="mb-3 text-gray-300">100% match required:</p>
+        <div class="bg-gray-900 rounded-lg p-4 text-left">
+          <pre id="swal-code"
+               class="text-green-400 text-sm overflow-auto"
+               style="
+                 font-family:'Courier New',monospace;
+                 white-space: pre;      /* keep indentation and angle brackets */
+                 max-height: 70vh;      /* taller */
+                 max-width: 90vw;       /* responsive */
+               "></pre>
+        </div>
+      </div>
+    `,
+    width: 900,
+    background: '#1f2937',
+    color: '#fff',
+    confirmButtonText: 'Got it!',
+    confirmButtonColor: '#10B981',
+    didOpen: () => {
+      const el = Swal.getHtmlContainer()?.querySelector<HTMLElement>('#swal-code');
+      if (el) el.textContent = code; // <-- TEXT, not HTML
+    }
+  });
+};
 
     const showCorrectAnswerHandler = () => {
         if (currentChallenge?.fixed_code) {
             audio.play('click');
             setShowCorrectAnswer(true);
-            
+            showCodeModal('AI Generated Solution', currentChallenge.fixed_code);
             Swal.fire({
                 title: 'AI Generated Solution',
                 html: `

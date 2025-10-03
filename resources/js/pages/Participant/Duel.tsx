@@ -456,6 +456,37 @@ useEffect(() => {
 
       return { winner_id: null, loser_id: null, reason: 'undecided' };
     };
+// util you can keep locally if you want to keep the html string approach:
+const putCodeIntoSwal = (preId: string, code: string) => {
+  const el = Swal.getHtmlContainer()?.querySelector<HTMLElement>(`#${preId}`);
+  if (el) el.textContent = code; // ← TEXT, not HTML
+};
+
+// DUEL: inside showCorrectAnswerHandler (similar for Solo & AI pages)
+Swal.fire({
+  title: 'Database Solution',
+  html: `
+    <div class="correct-answer-modal">
+      <p class="mb-4 text-gray-300">Here's the exact solution (100% match required):</p>
+      <div class="bg-gray-900 rounded-lg p-4 text-left">
+        <pre id="swal-correct-code"
+             class="text-green-400 text-sm overflow-auto"
+             style="
+               font-family:'Courier New',monospace;
+               white-space: pre;             /* no wrapping, keep lines intact */
+               max-height: 70vh;             /* taller viewport */
+               max-width: 90vw;              /* responsive width */
+             "></pre>
+      </div>
+    </div>
+  `,
+  width: 900,                      // or omit and rely on max-width:90vw above
+  background: '#1f2937',
+  color: '#fff',
+  confirmButtonText: 'Got it!',
+  confirmButtonColor: '#10B981',
+  didOpen: () => putCodeIntoSwal('swal-correct-code', activeDuel!.challenge!.fixed_code || ''),
+});
 
   // At component level
 useEffect(() => {
@@ -1239,29 +1270,42 @@ if (duel.status === 'finished') {
             setSubmitting(false);
         }
     };
+const showCodeModal = (title: string, code: string) => {
+  Swal.fire({
+    title,
+    html: `
+      <div>
+        <p class="mb-3 text-gray-300">100% match required:</p>
+        <div class="bg-gray-900 rounded-lg p-4 text-left">
+          <pre id="swal-code"
+               class="text-green-400 text-sm overflow-auto"
+               style="
+                 font-family:'Courier New',monospace;
+                 white-space: pre;      /* keep indentation and angle brackets */
+                 max-height: 70vh;      /* taller */
+                 max-width: 90vw;       /* responsive */
+               "></pre>
+        </div>
+      </div>
+    `,
+    width: 900,
+    background: '#1f2937',
+    color: '#fff',
+    confirmButtonText: 'Got it!',
+    confirmButtonColor: '#10B981',
+    didOpen: () => {
+      const el = Swal.getHtmlContainer()?.querySelector<HTMLElement>('#swal-code');
+      if (el) el.textContent = code; // <-- TEXT, not HTML
+    }
+  });
+};
 
     const showCorrectAnswerHandler = () => {
         if (activeDuel?.challenge?.fixed_code) {
             audio.play('click');
             setShowCorrectAnswer(true);
             
-            Swal.fire({
-                title: 'Database Solution',
-                html: `
-                    <div class="correct-answer-modal">
-                        <p class="mb-4 text-gray-300">Here's the exact solution from the database (100% match required):</p>
-                        <div class="bg-gray-900 rounded-lg p-4 text-left">
-                            <pre class="text-green-400 text-sm overflow-auto max-h-64" style="font-family: 'Courier New', monospace; white-space: pre-wrap;">${activeDuel.challenge.fixed_code}</pre>
-                        </div>
-                        <p class="mt-4 text-sm text-gray-400">Your code must match this exactly to win the duel.</p>
-                    </div>
-                `,
-                confirmButtonText: 'Got it!',
-                background: '#1f2937',
-                color: '#fff',
-                confirmButtonColor: '#10B981',
-                width: '600px'
-            });
+            showCodeModal('Database Solution', activeDuel!.challenge!.fixed_code || '');
         }
     };
 

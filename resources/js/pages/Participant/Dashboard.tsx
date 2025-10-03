@@ -872,7 +872,7 @@ const handleClaim = async (achievementId: number) => {
             {/* Language Stats */}
             {stats?.language_stats && stats.language_stats.length > 0 && (
               <Section title="Language Proficiency">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols- gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols- gap-4">
                   {stats.language_stats.map((lang) => (
                     <StatCard
                       key={lang.id}

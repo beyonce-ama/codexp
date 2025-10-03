@@ -398,10 +398,26 @@ useEffect(() => {
         }
         setParticles(prev => [...prev, ...newParticles]);
     };
+const requestFullscreen = () => {
+  const el = document.documentElement;
+  if (el.requestFullscreen) {
+    el.requestFullscreen();
+  } else if ((el as any).webkitRequestFullscreen) {
+    (el as any).webkitRequestFullscreen(); // Safari
+  } else if ((el as any).msRequestFullscreen) {
+    (el as any).msRequestFullscreen(); // IE11
+  }
+};
+
+const exitFullscreen = () => {
+  if (document.fullscreenElement) {
+    document.exitFullscreen?.();
+  }
+};
 
     const startChallenge = (challenge: SoloChallenge) => {
         audio.play('click');
-        
+        requestFullscreen();
         if (userStats?.completed_challenge_ids.includes(challenge.id)) {
             audio.play('failure');
             Swal.fire({
@@ -760,6 +776,7 @@ if (isConfirmed) {
             setHasSubmitted(false);
             setLastSubmissionResult(null);
             setShowCorrectAnswer(false);
+            exitFullscreen();
             return;
         }
 
@@ -788,12 +805,14 @@ if (isConfirmed) {
 
             if (result.isConfirmed) {
                 await markChallengeAsTaken('abandoned');
+                exitFullscreen();
             } else {
                 return; // keep modal open
             }
         } else {
             // merely opened and closed with no edits
             await markChallengeAsTaken('viewed');
+            exitFullscreen();
         }
     };
 
@@ -838,7 +857,7 @@ if (isConfirmed) {
             setHasSubmitted(false);
             setLastSubmissionResult(null);
             setShowCorrectAnswer(false);
-            
+            exitFullscreen();
             // Refresh data
             await fetchChallenges();
             await fetchUserStats();
@@ -851,7 +870,7 @@ if (isConfirmed) {
         if (selectedChallenge?.fixed_code) {
             audio.play('click');
             setShowCorrectAnswer(true);
-            
+            showCodeModal('Correct Answer', selectedChallenge.fixed_code);
             Swal.fire({
                 title: 'Correct Answer',
                 html: `
@@ -942,6 +961,35 @@ if (isConfirmed) {
             </div>
         </div>
     );
+const showCodeModal = (title: string, code: string) => {
+  Swal.fire({
+    title,
+    html: `
+      <div>
+        <p class="mb-3 text-gray-300">100% match required:</p>
+        <div class="bg-gray-900 rounded-lg p-4 text-left">
+          <pre id="swal-code"
+               class="text-green-400 text-sm overflow-auto"
+               style="
+                 font-family:'Courier New',monospace;
+                 white-space: pre;      /* keep indentation and angle brackets */
+                 max-height: 70vh;      /* taller */
+                 max-width: 90vw;       /* responsive */
+               "></pre>
+        </div>
+      </div>
+    `,
+    width: 900,
+    background: '#1f2937',
+    color: '#fff',
+    confirmButtonText: 'Got it!',
+    confirmButtonColor: '#10B981',
+    didOpen: () => {
+      const el = Swal.getHtmlContainer()?.querySelector<HTMLElement>('#swal-code');
+      if (el) el.textContent = code; // <-- TEXT, not HTML
+    }
+  });
+};
 
     return (
         <div className="min-h-screen relative overflow-hidden">
