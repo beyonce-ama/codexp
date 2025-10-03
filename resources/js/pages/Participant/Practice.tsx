@@ -27,6 +27,8 @@ interface Question {
   explanation_correct: string;
   explanation_wrong: string;
 }
+type Lang = 'python' | 'java' | 'cpp';
+const LANGS: Lang[] = ['python', 'java', 'cpp'];
 
 export default function ParticipantPractice() {
   const { auth } = usePage().props as any;
@@ -40,7 +42,7 @@ export default function ParticipantPractice() {
   const [isAnswered, setIsAnswered] = useState(false);
   const [showAnswer, setShowAnswer] = useState(false);
 
-  const [language, setLanguage] = useState<'python' | 'java'>('python');
+ const [language, setLanguage] = useState<Lang>('python');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -124,7 +126,7 @@ useEffect(() => {
 
         if (next) {
           try { audio.play('success'); } catch {}
-          await Swal.fire({
+         const res =  await Swal.fire({
             icon: 'success',
             title: '🎉 Congratulations!',
             html: `<div class="text-left">
@@ -136,8 +138,9 @@ useEffect(() => {
             cancelButtonText: 'Later',
             customClass: { popup: 'bg-gray-900 text-gray-100' },
           });
-          // Move to the next not-finished set (server /practice/current will now serve it)
-          loadQuestions();
+          if (res.isConfirmed) {  
+            loadQuestions();
+          }
         } else {
           try { audio.play('success'); } catch {}
           await Swal.fire({
@@ -150,7 +153,6 @@ useEffect(() => {
             confirmButtonText: 'Okay',
             customClass: { popup: 'bg-gray-900 text-gray-100' },
           });
-          // No reload; user stays on the finished view
         }
       } catch {
         // If the check fails, just refresh to whatever current() resolves to
@@ -170,8 +172,12 @@ try {
     signal: ac.signal,
     credentials: 'same-origin',
   });
-  if (!metaResp.ok) throw new Error('Failed to fetch current set');
-  const meta = await metaResp.json();
+  if (!metaResp.ok) {
+  if (metaResp.status === 404) throw { code: 'NO_SET' };              // no sets registered yet
+  if (metaResp.status === 401 || metaResp.status === 419) throw { code: 'SESSION' }; // auth/csrf
+  throw { code: 'GENERIC' };
+}
+ const meta = await metaResp.json();  
   const { set, progress } = meta;
 
  currentSetRef.current = {
@@ -191,8 +197,12 @@ try {
     signal: ac.signal,
     credentials: 'same-origin',
   });
-  if (!response.ok) throw new Error(`Failed to load ${set.filename}`);
-
+  if (!response.ok) {
+  if (response.status === 404) {
+    throw { code: 'FILE_MISSING', filename: set.filename, setIndex: set.set_index, lang: set.language };
+  }
+  throw { code: 'GENERIC' };
+}
   const data: Question[] = await response.json();
   setQuestions(data);
   setCategories([...new Set(data.map(q => q.category))]);
@@ -224,11 +234,62 @@ if (uniqueIds.size !== data.length) {
   if (error?.name !== 'AbortError') {
     console.error('Error loading questions:', error);
     setQuestions([]);
-    Swal.fire({
-      icon: 'error',
-      title: 'Loading Error',
-      text: 'Failed to load questions or set metadata. Make sure the routes and JSON files exist.',
+
+    const otherLang = (LANGS.find(l => l !== language) ?? 'python') as Lang;
+
+
+    let title = 'Can’t load questions';
+    let html  = 'We ran into a hiccup loading this practice set. Please try again.';
+    let confirmText = 'Retry';
+    let showDeny = false;
+    let denyText = '';
+    let action: (() => void) | null = () => loadQuestions();
+
+    switch (error?.code) {
+      case 'NO_SET':
+        title = 'Practice set coming soon';
+        html  = `We’re preparing the next <b>${language}</b> question set. Check back soon!`;
+        confirmText = 'Got it';
+        action = null; // nothing to do
+        showDeny = true;
+        denyText = `Try ${otherLang}`;
+        break;
+
+      case 'FILE_MISSING':
+        title = 'Updating questions';
+        html  = `We’re updating <b>Set #${error.setIndex}</b> (${error.lang}). Please try again a little later.`;
+        confirmText = 'Retry';
+        action = () => loadQuestions();
+        break;
+
+      case 'SESSION':
+        title = 'Session expired';
+        html  = 'Please refresh the page and sign in again.';
+        confirmText = 'Refresh';
+        action = () => window.location.reload();
+        break;
+
+      default:
+        // GENERIC / network
+        title = 'Can’t load questions';
+        html  = 'Looks like a network hiccup. Please try again.';
+        confirmText = 'Retry';
+        action = () => loadQuestions();
+        break;
+    }
+
+    const res = await Swal.fire({
+      icon: 'info',
+      title,
+      html,
+      confirmButtonText: confirmText,
+      showDenyButton: showDeny,
+      denyButtonText: denyText,
+      customClass: { popup: 'bg-gray-900 text-gray-100' },
     });
+
+    if (res.isConfirmed && action) action();
+    if (res.isDenied) setLanguage(otherLang as 'python' | 'java');
   }
 } finally {
   setLoading(false);
@@ -385,16 +446,6 @@ const nextQuestion = async () => {
                 <p className="text-gray-400 text-sm">Review programming questions and learn from explanations</p>
               </div>
             </div>
-            {/* <button
-              onClick={toggleSound}
-              className={`p-2 rounded-lg transition ${
-                soundEnabled ? 'bg-green-600 text-white' : 'bg-gray-600 text-gray-200'
-              }`}
-              onMouseEnter={() => playSfx('hover')}
-              aria-label="Toggle sound"
-            >
-              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-            </button> */}
           </div>
 
           {/* Split Layout */}
@@ -411,14 +462,16 @@ const nextQuestion = async () => {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">Language</label>
-                    <select
+                   <select
                       value={language}
-                      onChange={(e) => setLanguage(e.target.value as 'python' | 'java')}
+                      onChange={(e) => setLanguage(e.target.value as Lang)}
                       className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-lg text-gray-200"
                     >
                       <option value="python">Python</option>
                       <option value="java">Java</option>
+                      <option value="cpp">C++</option>
                     </select>
+
                   </div>
 
                   <div>

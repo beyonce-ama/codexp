@@ -646,6 +646,7 @@ const openCreateModal = (type: 'solo' | '1v1') => {
               <select id="c_lang" class="w-full bg-slate-950/70 border border-white/15 rounded-lg text-slate-100 px-3 py-2">
                 <option value="python">Python</option>
                 <option value="java">Java</option>
+                <option value="cpp">C++</option>
               </select>
             </div>
             <div>
@@ -920,6 +921,7 @@ const openCreateModal = (type: 'solo' | '1v1') => {
                       <option value="all">All Languages</option>
                       <option value="python">Python</option>
                       <option value="java">Java</option>
+                      <option value="Cpp">C++</option>
                     </select>
                     <select
                       value={difficultyFilter}
@@ -1090,6 +1092,7 @@ const openCreateModal = (type: 'solo' | '1v1') => {
                       >
                         <option value="python">Python</option>
                         <option value="java">Java</option>
+                        <option value="Cpp">C++</option>
                       </select>
                     </div>
                     <div>
