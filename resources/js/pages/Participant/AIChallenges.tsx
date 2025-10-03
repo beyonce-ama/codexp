@@ -96,6 +96,25 @@ export default function ParticipantAIChallenges() {
 
     // NEW: Modal state
     const [showChallengeModal, setShowChallengeModal] = useState(false);
+
+    // Fullscreen helpers
+const requestFullscreen = () => {
+  const el = document.documentElement;
+  if (el.requestFullscreen) {
+    el.requestFullscreen();
+  } else if ((el as any).webkitRequestFullscreen) {
+    (el as any).webkitRequestFullscreen(); // Safari
+  } else if ((el as any).msRequestFullscreen) {
+    (el as any).msRequestFullscreen(); // IE11
+  }
+};
+
+const exitFullscreen = () => {
+  if (document.fullscreenElement) {
+    document.exitFullscreen?.();
+  }
+};
+
 useEffect(() => {
   if (showChallengeModal) {
     document.body.classList.add('solo-open');
@@ -339,7 +358,7 @@ useEffect(() => {
                 
                 // NEW: Show modal instead of setting challenge directly
                 setShowChallengeModal(true);
-                
+                requestFullscreen();
                 Swal.fire({
                     icon: 'success',
                     title: 'Challenge Generated!',
@@ -371,6 +390,7 @@ useEffect(() => {
     const closeChallengeModal = () => {
         setShowChallengeModal(false);
         resetChallenge();
+        exitFullscreen();
     };
 
     // NEW: forfeit flow that shows solution and clears the board
@@ -417,6 +437,7 @@ useEffect(() => {
 
         // clear board after surrender
         closeChallengeModal();
+        exitFullscreen();
     };
 
     // Helper function to calculate string similarity

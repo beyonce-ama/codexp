@@ -9,9 +9,15 @@ import {
 } from 'lucide-react';
 import AnimatedBackground from '@/components/AnimatedBackground';
 
-type Lang = 'python' | 'java';
+type Lang = 'python' | 'java' | 'cpp'; // ← add cpp
 type Diff = 'easy' | 'medium' | 'hard';
-
+const LANGUAGE_LABELS: Record<Lang, string> = {
+  python: 'Python',
+  java: 'Java',
+  cpp: 'C++',
+};
+const displayLanguage = (lang: string) =>
+  LANGUAGE_LABELS[(lang as Lang)] ?? lang.toUpperCase();
 interface PageProps { auth: { user: { id: number; name: string } } }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -22,7 +28,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const languages = [
   { value: 'python' as const, label: 'Python' },
-  { value: 'java' as const,   label: 'Java'   },
+  { value: 'java'   as const, label: 'Java'   },
+  { value: 'cpp'    as const, label: 'C++'    }, // ← NEW
 ];
 
 const difficulties = [
@@ -51,7 +58,8 @@ const Matchmaking: React.FC = () => {
   const [queueCount, setQueueCount] = useState<number>(1);
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
+const [waitTime, setWaitTime] = useState<number>(0);
+const [matchFound, setMatchFound] = useState<boolean>(false);
   const queueChannelName = useMemo(
     () => `presence-queue.${language}.${difficulty}`,
     [language, difficulty]
@@ -61,7 +69,71 @@ const Matchmaking: React.FC = () => {
     const url = token ? `/play/m/${slug}?t=${encodeURIComponent(token)}` : `/play/m/${slug}`;
     window.location.href = url;
   };
+ // Timer effect
+  useEffect(() => {
+    if (!searching) return;
+    setWaitTime(0);
+    const id = setInterval(() => {
+      setWaitTime((prev) => {
+        if (prev >= 120) {
+          // auto cancel after 2 minutes
+          clearInterval(id);
+          setError("⏳ Seems like no one is online right now. Try again later!");
+          cancelQueue();
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 1000);
 
+    return () => clearInterval(id);
+  }, [searching]);
+
+  // Presence listeners (simplified for brevity)
+  useEffect(() => {
+    if (!searching) return;
+    const Echo = (window as any).Echo;
+    if (!Echo) return;
+
+    const presence = Echo.join(queueChannelName)
+      .here((members: any[]) => setQueueCount(members.length))
+      .joining(() => setQueueCount((c) => c + 1))
+      .leaving(() => setQueueCount((c) => Math.max(1, c - 1)))
+      .listen('MatchFound', async () => {
+        setMatchFound(true); // show "preparing challenge..."
+        try {
+          const data = await postJSON<PollResponse>('/api/matchmaking/poll', { language, difficulty });
+          if ('slug' in data && data.slug) goToMatch(data.slug, data.token);
+        } catch {}
+      });
+
+    const priv = Echo.private(`user.${user.id}`).listen('MatchFound', async () => {
+      setMatchFound(true);
+      try {
+        const data = await postJSON<PollResponse>('/api/matchmaking/poll', { language, difficulty });
+        if ('slug' in data && data.slug) goToMatch(data.slug, data.token);
+      } catch {}
+    });
+
+    return () => {
+      try { Echo.leave(queueChannelName); } catch {}
+      try { Echo.leave(`user.${user.id}`); } catch {}
+    };
+  }, [searching, queueChannelName, user?.id, language, difficulty]);
+
+  // Cancel queue
+  const cancelQueue = async () => {
+    setError(null);
+    try { await apiClient.post('/api/matchmaking/cancel'); } catch {}
+    finally {
+      setSearching(false);
+      setMatchFound(false);
+      setTicketId(null);
+      setQueueCount(1);
+      setWaitTime(0);
+      try { (window as any).Echo?.leave(queueChannelName); } catch {}
+    }
+  };
   async function postJSON<T = any>(url: string, body?: any): Promise<T> {
     const res: any = body ? await apiClient.post(url, body) : await apiClient.post(url);
     return (res && typeof res === 'object' && 'data' in res) ? res.data : res;
@@ -147,16 +219,7 @@ const Matchmaking: React.FC = () => {
     return () => { cancelled = true; clearTimeout(id as any); };
   }, [searching, language, difficulty]);
 
-  const cancelQueue = async () => {
-    setError(null);
-    try { await apiClient.post('/api/matchmaking/cancel'); } catch {}
-    finally {
-      setSearching(false);
-      setTicketId(null);
-      setQueueCount(1);
-      try { (window as any).Echo?.leave(queueChannelName); } catch {}
-    }
-  };
+
 
   return (
     <div className="min-h-screen relative overflow-hidden">
@@ -258,7 +321,7 @@ const Matchmaking: React.FC = () => {
               <div className="flex items-center gap-3 text-sm">
                 <Users className="w-4 h-4 text-zinc-400" />
                 <span className="text-zinc-400">
-                  Players waiting in <span className="font-medium text-zinc-200">{language}</span> /
+                 Players waiting in <span className="font-medium text-zinc-200">{displayLanguage(language)}</span> /
                   <span className="font-medium text-zinc-200"> {difficulty}</span>:
                 </span>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-slate-800 text-zinc-100">
@@ -267,29 +330,37 @@ const Matchmaking: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-3">
-                {!searching ? (
-                  <button
-                    onClick={joinQueue}
-                    className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:opacity-95 active:opacity-100 transition text-white font-medium"
-                  >
-                    <Swords className="w-4 h-4" />
-                    Find Match
-                  </button>
-                ) : (
-                  <>
-                    <div className="inline-flex items-center gap-2 px-4 py-3 rounded-xl border border-slate-700/60 bg-slate-900/40 text-zinc-200">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Searching…
-                    </div>
-                    <button
-                      onClick={cancelQueue}
-                      className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 transition text-zinc-200"
-                    >
-                      <X className="w-4 h-4" />
-                      Cancel
-                    </button>
-                  </>
-                )}
+               {searching ? (
+  <>
+    <div className="inline-flex items-center gap-2 px-4 py-3 rounded-xl border border-slate-700/60 bg-slate-900/40 text-zinc-200">
+      {!matchFound ? (
+        <>
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Searching… <span className="ml-2 text-xs text-zinc-400">{waitTime}s</span>
+        </>
+      ) : (
+        <>
+          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          Match found! Preparing challenge…
+        </>
+      )}
+    </div>
+    <button
+      onClick={cancelQueue}
+      className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 transition text-zinc-200"
+    >
+      <X className="w-4 h-4" /> Cancel
+    </button>
+  </>
+) : (
+  <button
+    onClick={joinQueue}
+    className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:opacity-95 active:opacity-100 transition text-white font-medium"
+  >
+    <Swords className="w-4 h-4" /> Find Match
+  </button>
+)}
+
               </div>
             </div>
           </div>

@@ -115,6 +115,9 @@ type ServerSubmission = {
   message?: string;
 };
 
+const displayLanguage = (s?: string) =>
+  (s?.toLowerCase() === 'cpp' ? 'C++' : (s ?? '').toUpperCase());
+
 // Enhanced Custom Confetti component
 const CustomConfetti = ({ active, type = 'win' }: { active: boolean, type?: 'win' | 'celebration' }) => {
   const [particles, setParticles] = useState<Array<{id: number, style: React.CSSProperties}>>([]);
@@ -214,6 +217,15 @@ const Particles = ({ type, active }: { type: 'success' | 'fail', active: boolean
     </div>
   );
 };
+type Lang = 'python' | 'java' | 'cpp';
+type Diff = 'easy' | 'medium' | 'hard';
+
+const LANGUAGE_LABELS: Record<Lang, string> = {
+  python: 'Python',
+  java: 'Java',
+  cpp: 'C++',
+};
+
 
 export default function MatchStart() {
   const { props } = usePage<PageProps>();
@@ -247,6 +259,9 @@ export default function MatchStart() {
     return 'ok';
   }, [remainingMs]);
 
+const displayLanguage = (lang: string) =>
+  LANGUAGE_LABELS[(lang as Lang)] ?? lang.toUpperCase();
+
   const fmtMmSs = (ms: number) => {
     const total = Math.max(0, Math.floor(ms / 1000));
     const m = Math.floor(total / 60);
@@ -263,7 +278,11 @@ export default function MatchStart() {
   const [opponent, setOpponent] = useState<OpponentInfo | null>(null);
   const [oppMood, setOppMood] = useState<'idle' | 'think' | 'smirk' | 'sad' | 'base'>('think');
 
-
+const languages = [
+  { value: 'python' as const, label: 'Python' },
+  { value: 'java'   as const, label: 'Java'   },
+  { value: 'cpp'    as const, label: 'C++'    }, 
+];
   // ---- Opponent avatar source that only updates after the new image is loaded
 const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
 
@@ -306,7 +325,7 @@ useEffect(() => {
 
   const title = challenge?.title ?? 'Fix the Bug';
   const description = challenge?.description ?? 'Repair the function to satisfy all tests.';
-  const lang = (challenge?.language ?? match.language ?? '').toUpperCase();
+ const lang = displayLanguage(challenge?.language ?? match.language ?? '');
   const diff = (challenge?.difficulty ?? match.difficulty ?? '').toUpperCase();
   const testsCount = Array.isArray(challenge?.tests) ? challenge!.tests!.length : 0;
   const correctedCode = challenge?.corrected_code ?? challenge?.fixed_code ?? null;
@@ -762,7 +781,7 @@ useEffect(() => {
           <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div className="flex items-center gap-3">
               <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-400 via-fuchsia-400 to-cyan-400 bg-clip-text text-transparent">
-                1v1 Duel — {match.language.toUpperCase()} / {match.difficulty.toUpperCase()}
+                1v1 Duel — {displayLanguage(match.language)} / {match.difficulty.toUpperCase()}
               </h1>
               <span className="text-zinc-400 text-sm hidden md:inline">Both players received the same AI-generated challenge.</span>
             </div>
@@ -900,7 +919,11 @@ useEffect(() => {
                 </div>
 
                 {showCorrected && correctedCode && (
-                  <pre className="mt-3 p-3 rounded-lg bg-black/40 text-green-300 text-xs overflow-x-auto border border-emerald-500/20">
+                 <pre
+                    className="mt-3 p-3 rounded-lg bg-black/40 text-green-300 text-xs
+                              overflow-auto max-h-[70vh] whitespace-pre border border-emerald-500/20"
+                    style={{ fontFamily: '"Courier New", ui-monospace, SFMono-Regular, Menlo, monospace' }}
+                  >
                     {correctedCode}
                   </pre>
                 )}
