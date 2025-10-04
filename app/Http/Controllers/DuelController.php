@@ -230,7 +230,9 @@ class DuelController extends Controller
         $duel->refresh();
         $challengerFinished = $duel->challenger_finished_at !== null;
         $opponentFinished   = $duel->opponent_finished_at !== null;
-
+        if ($duel->status !== 'finished' && $challengerFinished && $opponentFinished) {
+            $this->determineWinner($duel);
+        }
         if ($challengerFinished && $opponentFinished) {
             $this->determineWinner($duel);
         }
@@ -317,37 +319,28 @@ class DuelController extends Controller
     }
 
     public function finalize(Request $request, Duel $duel)
-    {
-        $this->authorizeUser($request->user()->id, $duel);
+{
+    $this->authorizeUser($request->user()->id, $duel);
 
-        // If already finished and has winner, return fresh
-        if ($duel->status === 'finished' && $duel->winner_id) {
-            return response()->json(['success' => true, 'data' => $duel->fresh()]);
-        }
-
-        // If finished but winner not loaded, load relations and return
-        if ($duel->status === 'finished') {
-            $duel->load(['challenger','opponent','winner','challenge','submissions']);
-            return response()->json(['success' => true, 'data' => $duel]);
-        }
-
-       // ✅ Only finalize when BOTH players are finished
-        $duel->refresh();
-
-        // Auto-mark time-up if their individual timer elapsed but they never finished
-        $sessionSec = max(300, min(1800, ($duel->session_duration_minutes ?? 15) * 60)); // 5–30 min guard
-
-        $duel->refresh();
-
-        if (!$duel->challenger_finished_at || !$duel->opponent_finished_at) {
-            return response()->json(['success' => false, 'message' => 'Not ready to finalize'], 422);
-        }
-        $this->determineWinner($duel);
-
-        $duel->refresh()->load(['challenger','opponent','winner','challenge','submissions']);
-        return response()->json(['success' => true, 'data' => $duel]);
-
+    if ($duel->status === 'finished' && $duel->winner_id) {
+        return response()->json(['success' => true, 'data' => $duel->fresh()->load(['challenger','opponent','winner','challenge','submissions'])]);
     }
+
+    $duel->refresh();
+
+    // only when both sides have finished (== submitted correct)
+    if (!$duel->challenger_finished_at || !$duel->opponent_finished_at) {
+        return response()->json(['success' => false, 'message' => 'waiting_for_opponent'], 422);
+    }
+
+    $this->determineWinner($duel);
+
+    return response()->json([
+        'success' => true,
+        'data'    => $duel->fresh()->load(['challenger','opponent','winner','challenge','submissions'])
+    ]);
+}
+
 
     /* ---------------------- Internals ---------------------- */
 
@@ -366,20 +359,23 @@ class DuelController extends Controller
             ->first();
     }
 
-   private function determineWinner(Duel $duel): void
+  private function determineWinner(Duel $duel): void
 {
+    // do not re-finish an already finished duel
+    if ($duel->status === 'finished' && $duel->winner_id) {
+        return;
+    }
+
     $ch = $this->latestSubmission($duel->id, $duel->challenger_id);
     $op = $this->latestSubmission($duel->id, $duel->opponent_id);
 
-    if (!$ch || !$op) {
-        return; // need both sides to have at least one submission
-    }
+    // both sides must have at least one submission
+    if (!$ch || !$op) return;
 
-    if (!($ch->is_correct && $op->is_correct)) {
-        return; // not ready to decide
-    }
+    // ✅ hard rule: both must be correct, otherwise keep waiting
+    if (!($ch->is_correct && $op->is_correct)) return;
 
-    // Both correct → faster time wins
+    // faster time wins; tie goes to challenger (<=)
     $winnerId = $ch->time_spent_sec <= $op->time_spent_sec
         ? $duel->challenger_id
         : $duel->opponent_id;
@@ -395,11 +391,15 @@ class DuelController extends Controller
 
     $this->markDuelFinishedRows($duel);
 
-    // Stats & rewards
+    // Language stats
     $this->bumpWinLoss($duel->challenger_id, $duel->language, $winnerId === $duel->challenger_id);
     $this->bumpWinLoss($duel->opponent_id,   $duel->language, $winnerId === $duel->opponent_id);
+
+    // Rewards & penalties
     $this->awardWinnerRewardsToUser($duel);
     $this->applyLoserPenalty($duel);
+
+    // PVP achievements
     $this->checkPvpAchievementsFor($duel->challenger_id);
     $this->checkPvpAchievementsFor($duel->opponent_id);
 }
