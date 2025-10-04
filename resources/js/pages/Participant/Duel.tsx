@@ -470,12 +470,11 @@ useEffect(() => {
         return { winner_id: opponent.userId, loser_id: challenger.userId, reason: 'only_opponent_correct', challenger, opponent };
       }
 
-      // 3) None correct -> faster time wins
-      if (!challenger.is_correct && !opponent.is_correct) {
-        const winner = challenger.time_spent_sec <= opponent.time_spent_sec ? challenger : opponent;
-        const loser  = winner.userId === challenger.userId ? opponent : challenger;
-        return { winner_id: winner.userId, loser_id: loser.userId, reason: 'none_correct_fastest_time', challenger, opponent };
-      }
+     // 3) None correct -> wait for time limit before deciding
+        if (!challenger.is_correct && !opponent.is_correct) {
+        return { winner_id: null, loser_id: null, reason: 'both_incorrect_wait_for_timeout', challenger, opponent };
+        }
+
 
       return { winner_id: null, loser_id: null, reason: 'undecided' };
     };
@@ -752,10 +751,20 @@ const fetchParticipants = async () => {
                     const hasChallenger = duelData.submissions.some((s: DuelSubmission) => s.user_id === duelData.challenger.id);
                     const hasOpponent   = duelData.submissions.some((s: DuelSubmission) => s.user_id === duelData.opponent.id);
 
-                    if (hasChallenger && hasOpponent && duelData.status !== 'finished' && !finalizing) {
+                   if (hasChallenger && hasOpponent && duelData.status !== 'finished' && !finalizing) {
+                    const bothCorrect = duelData.submissions.every((s: DuelSubmission) => s.is_correct);
+                    const allSubmitted = duelData.submissions.length >= 2;
+
+                    // finalize only if both correct or duel expired
+                    const duelExpired = duelData.ended_at && new Date(duelData.ended_at).getTime() <= Date.now();
+
+                    if (bothCorrect || duelExpired) {
                         await finalizeDuelIfReady(duelData);
-                        return;
+                    } else {
+                        console.log('⏳ Waiting — both submitted but not both correct yet or time not up.');
                     }
+                    }
+
                 }
             }
         } catch (error) {

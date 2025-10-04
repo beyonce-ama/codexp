@@ -224,9 +224,23 @@ class DuelController extends Controller
         $challengerFinished = $duel->challenger_finished_at !== null;
         $opponentFinished   = $duel->opponent_finished_at !== null;
 
-        if ($challengerFinished && $opponentFinished) {
-            $this->determineWinner($duel);
-        }
+       if ($challengerFinished && $opponentFinished) {
+            // Load latest submissions
+            $ch = $this->latestSubmission($duel->id, $duel->challenger_id);
+            $op = $this->latestSubmission($duel->id, $duel->opponent_id);
+
+            // Case 1: both correct → decide immediately
+            if ($ch && $op && $ch->is_correct && $op->is_correct) {
+                $this->determineWinner($duel);
+            } 
+            // Case 2: both wrong → wait for time limit
+            elseif ($duel->started_at && now()->greaterThanOrEqualTo(
+                \Carbon\Carbon::parse($duel->started_at)->addMinutes($duel->session_duration_minutes)
+            )) {
+                $this->determineWinner($duel);
+            }
+            // Else do nothing yet; still within time window and not both correct
+}
 
         return response()->json(['success'=>true, 'data'=>$sub], 201);
     }
@@ -321,6 +335,20 @@ class DuelController extends Controller
         if (!$hasCh || !$hasOp) {
             return response()->json(['success' => false, 'message' => 'Not ready to finalize'], 422);
         }
+        // Prevent premature finalize if both wrong and not expired
+        $ch = $this->latestSubmission($duel->id, $duel->challenger_id);
+        $op = $this->latestSubmission($duel->id, $duel->opponent_id);
+
+        $expired = $duel->started_at && now()->greaterThanOrEqualTo(
+            \Carbon\Carbon::parse($duel->started_at)->addMinutes($duel->session_duration_minutes)
+        );
+
+        if ($ch && $op && !$ch->is_correct && !$op->is_correct && !$expired) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Both players incorrect — waiting for time limit before finalizing.'
+            ], 422);
+        }
 
         // Decide winner now
         $this->determineWinner($duel);
@@ -364,7 +392,19 @@ class DuelController extends Controller
         } elseif ($op->is_correct) {
             $winnerId = $duel->opponent_id;
         } else {
-            $winnerId = $ch->time_spent_sec < $op->time_spent_sec ? $duel->challenger_id : $duel->opponent_id;
+            // both incorrect
+            // only resolve if time limit has expired
+            $expired = $duel->started_at && now()->greaterThanOrEqualTo(
+                \Carbon\Carbon::parse($duel->started_at)->addMinutes($duel->session_duration_minutes)
+            );
+
+            if (!$expired) {
+                // Too early to decide
+                return;
+            }
+
+            // if expired, pick faster one as fallback
+            $winnerId = $ch->time_spent_sec <= $op->time_spent_sec ? $duel->challenger_id : $duel->opponent_id;
         }
 
         $duel->update([
