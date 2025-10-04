@@ -110,6 +110,8 @@ interface DuelStats {
     duels_today: number;
 }
 
+
+
 export default function ParticipantDuel() {
     const { auth } = usePage().props as any;
     const user = auth?.user;
@@ -583,29 +585,6 @@ const finalizeDuelIfReady = async (duelData: Duel) => {
     setWaitingForOpponent(false);
   }
 };
-// add this helper near your other helpers
-const startFinishWatcher = (duelId: number) => {
-  let attempts = 0;
-  const maxAttempts = 1800; // ~1 hour @ 2s
-  const iv = setInterval(async () => {
-    attempts++;
-    try {
-      const r = await apiClient.get(`/api/duels/${duelId}`);
-      if (r?.success && r?.data) {
-        const d = hydrateWinner(r.data as Duel);
-        // server will only finish when BOTH are correct (per your controller)
-        if (d.status === 'finished' && d.winner_id) {
-          clearInterval(iv);
-          await handleDuelFinished(d);
-          fetchMyDuels(true);
-          fetchDuelStats();
-        }
-      }
-    } catch {}
-    if (attempts >= maxAttempts) clearInterval(iv);
-  }, 2000);
-};
-
 
     const fetchChallenges = async () => {
         try {
@@ -1176,7 +1155,34 @@ if (duel.status === 'finished') {
 
     };
 
+
+// add this helper near your other helpers
+const startFinishWatcher = (duelId: number, p0: (finishedDuel: any) => Promise<void>) => {
+  let attempts = 0;
+  const maxAttempts = 1800; // ~1 hour @ 2s
+  const iv = setInterval(async () => {
+    attempts++;
+    try {
+      const r = await apiClient.get(`/api/duels/${duelId}`);
+      if (r?.success && r?.data) {
+        const d = hydrateWinner(r.data as Duel);
+        // server will only finish when BOTH are correct (per your controller)
+        if (d.status === 'finished' && d.winner_id) {
+          clearInterval(iv);
+          await handleDuelFinished(d);
+          fetchMyDuels(true);
+          fetchDuelStats();
+        }
+      }
+    } catch {}
+    if (attempts >= maxAttempts) clearInterval(iv);
+  }, 2000);
+};
+
+
+
     const submitDuelCode = async (autoSubmit: boolean = false) => {
+        const duelId = activeDuel.id;
         if (!activeDuel || !activeDuel.challenge || (!userCode.trim() && !autoSubmit)) {
             if (!autoSubmit) {
                 audio.play('failure');
@@ -1242,23 +1248,15 @@ if (duel.status === 'finished') {
                           color: '#fff',
                           confirmButtonColor: '#10B981'
                     });
-                    
-                     setShowDuelModal(false);
-    setActiveDuel(null);
-     Swal.fire({
-      icon: 'info',
-      title: 'Waiting for opponent…',
-      text: 'We’ll pop results automatically once your opponent submits.',
-      timer: 2500,
-      showConfirmButton: false,
-      background: '#1f2937',
-      color: '#fff'
-    });
+                // CLOSE THE MODAL RIGHT AWAY
+          setShowDuelModal(false);
+setActiveDuel(null);
 
-    startFinishWatcher(activeDuel.id);   // <-- start background watcher
-    fetchMyDuels(true);
-    fetchDuelStats();
-    return; // stop here
+startFinishWatcher(activeDuel.id, async (finishedDuel) => {
+  await handleDuelFinished(finishedDuel);
+  await fetchMyDuels(true);
+  await fetchDuelStats();
+});
                 } else {
                     if (!autoSubmit) {
                         audio.play('failure');
@@ -1294,8 +1292,6 @@ if (duel.status === 'finished') {
 
                     }
                 }
-                // If both haven't finished yet, show waiting state
-                setWaitingForOpponent(isCorrect); 
                 // Proactively re-fetch to see if opponent already submitted and to trigger finalize
                 fetchDuelStatus(activeDuel.id);
 

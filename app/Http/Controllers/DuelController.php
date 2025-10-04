@@ -226,18 +226,17 @@ class DuelController extends Controller
                 }
             }
 
-        // If both finished, resolve
+     // If both finished, resolve
         $duel->refresh();
         $challengerFinished = $duel->challenger_finished_at !== null;
         $opponentFinished   = $duel->opponent_finished_at !== null;
-        if ($duel->status !== 'finished' && $challengerFinished && $opponentFinished) {
-            $this->determineWinner($duel);
-        }
-        if ($challengerFinished && $opponentFinished) {
+
+        if ($challengerFinished && $opponentFinished && $duel->status !== 'finished') {
             $this->determineWinner($duel);
         }
 
         return response()->json(['success'=>true, 'data'=>$sub], 201);
+
     }
 
     public function surrender(Request $request, Duel $duel)
