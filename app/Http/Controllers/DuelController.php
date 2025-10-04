@@ -278,34 +278,17 @@ class DuelController extends Controller
         ]);
     }
 
-    public function timeUp(Request $request, Duel $duel)
-    {
-        $this->authorizeUser($request->user()->id, $duel);
+   public function timeUp(Request $request, Duel $duel)
+{
+    $this->authorizeUser($request->user()->id, $duel);
 
-        if ($duel->status !== 'active') {
-            return response()->json(['success'=>false, 'message'=>'Duel is not active'], 422);
-        }
-
-        $userId = $request->user()->id;
-        $fieldFinished = $userId === $duel->challenger_id ? 'challenger_finished_at' : 'opponent_finished_at';
-        $fieldStarted  = $userId === $duel->challenger_id ? 'challenger_started_at'  : 'opponent_started_at';
-
-        // If already marked finished, just return
-        if ($duel->$fieldFinished) {
-            return response()->json(['success'=>true, 'message'=>'Already finished', 'data'=>$duel->fresh()]);
-        }
-
-        // Mark finished due to time-up
-        $duel->update([$fieldFinished => now()]);
-
-        // If both sides are finished now, resolve winner
-        $duel->refresh();
-        if ($duel->challenger_finished_at && $duel->opponent_finished_at) {
-            $this->determineWinner($duel);
-        }
-
-        return response()->json(['success'=>true, 'message'=>'Marked finished (time up)', 'data'=>$duel->fresh()]);
+    if ($duel->status !== 'active') {
+        return response()->json(['success'=>false, 'message'=>'Duel is not active'], 422);
     }
+
+    return response()->json(['success'=>true, 'message'=>'Time up acknowledged', 'data'=>$duel->fresh()]);
+}
+
 
     public function stats(Request $request)
     {
@@ -354,28 +337,16 @@ class DuelController extends Controller
         // Auto-mark time-up if their individual timer elapsed but they never finished
         $sessionSec = max(300, min(1800, ($duel->session_duration_minutes ?? 15) * 60)); // 5–30 min guard
 
-        $now = now();
-        $chStart = $duel->challenger_started_at ?: $duel->started_at;
-        $opStart = $duel->opponent_started_at  ?: $duel->started_at;
-
-        if ($chStart && !$duel->challenger_finished_at && $now->diffInSeconds($chStart) >= $sessionSec) {
-            $duel->update(['challenger_finished_at' => $now]);
-        }
-        if ($opStart && !$duel->opponent_finished_at && $now->diffInSeconds($opStart) >= $sessionSec) {
-            $duel->update(['opponent_finished_at' => $now]);
-        }
-
         $duel->refresh();
+
         if (!$duel->challenger_finished_at || !$duel->opponent_finished_at) {
             return response()->json(['success' => false, 'message' => 'Not ready to finalize'], 422);
         }
-
-        // ✅ Now both finished: decide winner
         $this->determineWinner($duel);
-
 
         $duel->refresh()->load(['challenger','opponent','winner','challenge','submissions']);
         return response()->json(['success' => true, 'data' => $duel]);
+
     }
 
     /* ---------------------- Internals ---------------------- */
@@ -395,50 +366,43 @@ class DuelController extends Controller
             ->first();
     }
 
-    private function determineWinner(Duel $duel): void
-    {
-        $ch = $this->latestSubmission($duel->id, $duel->challenger_id);
-        $op = $this->latestSubmission($duel->id, $duel->opponent_id);
+   private function determineWinner(Duel $duel): void
+{
+    $ch = $this->latestSubmission($duel->id, $duel->challenger_id);
+    $op = $this->latestSubmission($duel->id, $duel->opponent_id);
 
-        // Should not happen because finalize() guards, but be safe:
-        if (!$ch || !$op) {
-            return;
-        }
-
-        // Winner selection
-        if ($ch->is_correct && $op->is_correct) {
-            $winnerId = $ch->time_spent_sec < $op->time_spent_sec ? $duel->challenger_id : $duel->opponent_id;
-        } elseif ($ch->is_correct) {
-            $winnerId = $duel->challenger_id;
-        } elseif ($op->is_correct) {
-            $winnerId = $duel->opponent_id;
-        } else {
-            $winnerId = $ch->time_spent_sec < $op->time_spent_sec ? $duel->challenger_id : $duel->opponent_id;
-        }
-
-        $duel->update([
-            'status'       => 'finished',
-            'winner_id'    => $winnerId,
-            'ended_at'     => now(),
-            'winner_xp'    => self::WIN_XP,
-            'winner_stars' => self::WIN_STARS,
-            'duration_sec' => $duel->started_at ? max(0, now()->diffInSeconds($duel->started_at)) : null,
-        ]);
-
-        $this->markDuelFinishedRows($duel);
-
-        // Language stats
-        $this->bumpWinLoss($duel->challenger_id, $duel->language, $winnerId === $duel->challenger_id);
-        $this->bumpWinLoss($duel->opponent_id,   $duel->language, $winnerId === $duel->opponent_id);
-
-        // Rewards & penalties
-        $this->awardWinnerRewardsToUser($duel);
-        $this->applyLoserPenalty($duel);
-
-        // PVP achievements
-        $this->checkPvpAchievementsFor($duel->challenger_id);
-        $this->checkPvpAchievementsFor($duel->opponent_id);
+    if (!$ch || !$op) {
+        return; // need both sides to have at least one submission
     }
+
+    if (!($ch->is_correct && $op->is_correct)) {
+        return; // not ready to decide
+    }
+
+    // Both correct → faster time wins
+    $winnerId = $ch->time_spent_sec <= $op->time_spent_sec
+        ? $duel->challenger_id
+        : $duel->opponent_id;
+
+    $duel->update([
+        'status'       => 'finished',
+        'winner_id'    => $winnerId,
+        'ended_at'     => now(),
+        'winner_xp'    => self::WIN_XP,
+        'winner_stars' => self::WIN_STARS,
+        'duration_sec' => $duel->started_at ? max(0, now()->diffInSeconds($duel->started_at)) : null,
+    ]);
+
+    $this->markDuelFinishedRows($duel);
+
+    // Stats & rewards
+    $this->bumpWinLoss($duel->challenger_id, $duel->language, $winnerId === $duel->challenger_id);
+    $this->bumpWinLoss($duel->opponent_id,   $duel->language, $winnerId === $duel->opponent_id);
+    $this->awardWinnerRewardsToUser($duel);
+    $this->applyLoserPenalty($duel);
+    $this->checkPvpAchievementsFor($duel->challenger_id);
+    $this->checkPvpAchievementsFor($duel->opponent_id);
+}
 
     private function awardWinnerRewardsToUser(Duel $duel): void
     {

@@ -2365,7 +2365,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                     </div>
 
                                     {/* Opponent Status */}
-                                    {opponentSubmission && (
+                                    {/* {opponentSubmission && (
                                         <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-4">
                                             <div className="flex items-center space-x-2">
                                                 <CheckCircle className="h-4 w-4 text-green-400" />
@@ -2375,7 +2375,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                 </span>
                                             </div>
                                         </div>
-                                    )}
+                                    )} */}
 {waitingForOpponent && !duelEnded && (
   <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
     <div className="flex items-center space-x-2">

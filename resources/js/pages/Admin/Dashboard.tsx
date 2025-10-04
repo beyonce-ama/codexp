@@ -352,6 +352,32 @@ export default function AdminDashboard() {
     </div>
   )}
 </Section>
+{/* LANGUAGE POPULARITY */}
+<Section
+  title={
+    <>
+      <Code className="h-5 w-5 text-emerald-300" />
+      <span className="text-white font-semibold">Language Popularity</span>
+    </>
+  }
+  right={
+    <button
+      onClick={() => setShowLang(s => !s)}
+      className="text-xs inline-flex items-center gap-2 px-2 py-1 rounded-lg border border-white/10 text-slate-200 hover:bg-white/5"
+    >
+      {showLang ? 'Hide' : 'Show'}
+    </button>
+  }
+>
+  {showLang && (
+    <div className="grid md:grid-cols-3 gap-4">
+      <StatTile icon={Code} label="Python Attempts" value={stats?.python_attempts ?? 0} tone="blue" />
+      <StatTile icon={Code} label="Java Attempts" value={stats?.java_attempts ?? 0} tone="red" />
+      <StatTile icon={Code} label="C++ Attempts" value={stats?.cpp_attempts ?? 0} tone="purple" />
+    </div>
+  )}
+</Section>
+
 
 {/* CHALLENGE MANAGEMENT */}
 <Section
@@ -399,32 +425,6 @@ export default function AdminDashboard() {
           <StatTile icon={Target} label="Hard" value={stats?.duel_hard ?? 0} tone="purple" />
         </div>
       </div>
-    </div>
-  )}
-</Section>
-
-{/* LANGUAGE POPULARITY */}
-<Section
-  title={
-    <>
-      <Code className="h-5 w-5 text-emerald-300" />
-      <span className="text-white font-semibold">Language Popularity</span>
-    </>
-  }
-  right={
-    <button
-      onClick={() => setShowLang(s => !s)}
-      className="text-xs inline-flex items-center gap-2 px-2 py-1 rounded-lg border border-white/10 text-slate-200 hover:bg-white/5"
-    >
-      {showLang ? 'Hide' : 'Show'}
-    </button>
-  }
->
-  {showLang && (
-    <div className="grid md:grid-cols-3 gap-4">
-      <StatTile icon={Code} label="Python Attempts" value={stats?.python_attempts ?? 0} tone="blue" />
-      <StatTile icon={Code} label="Java Attempts" value={stats?.java_attempts ?? 0} tone="red" />
-      <StatTile icon={Code} label="C++ Attempts" value={stats?.cpp_attempts ?? 0} tone="purple" />
     </div>
   )}
 </Section>
