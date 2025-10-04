@@ -360,48 +360,37 @@ class DuelController extends Controller
 
   private function determineWinner(Duel $duel): void
 {
-    // do not re-finish an already finished duel
-    if ($duel->status === 'finished' && $duel->winner_id) {
-        return;
-    }
+    DB::transaction(function () use ($duel) {
+        /** @var \App\Models\Duel $locked */
+        $locked = Duel::lockForUpdate()->find($duel->id);
+        if ($locked->status === 'finished' && $locked->winner_id) return;
 
-    $ch = $this->latestSubmission($duel->id, $duel->challenger_id);
-    $op = $this->latestSubmission($duel->id, $duel->opponent_id);
+        $ch = $this->latestSubmission($locked->id, $locked->challenger_id);
+        $op = $this->latestSubmission($locked->id, $locked->opponent_id);
+        if (!$ch || !$op) return;
+        if (!($ch->is_correct && $op->is_correct)) return;
 
-    // both sides must have at least one submission
-    if (!$ch || !$op) return;
+        $winnerId = $ch->time_spent_sec <= $op->time_spent_sec ? $locked->challenger_id : $locked->opponent_id;
 
-    // ✅ hard rule: both must be correct, otherwise keep waiting
-    if (!($ch->is_correct && $op->is_correct)) return;
+        $locked->update([
+            'status'       => 'finished',
+            'winner_id'    => $winnerId,
+            'ended_at'     => now(),
+            'winner_xp'    => self::WIN_XP,
+            'winner_stars' => self::WIN_STARS,
+            'duration_sec' => $locked->started_at ? max(0, now()->diffInSeconds($locked->started_at)) : null,
+        ]);
 
-    // faster time wins; tie goes to challenger (<=)
-    $winnerId = $ch->time_spent_sec <= $op->time_spent_sec
-        ? $duel->challenger_id
-        : $duel->opponent_id;
-
-    $duel->update([
-        'status'       => 'finished',
-        'winner_id'    => $winnerId,
-        'ended_at'     => now(),
-        'winner_xp'    => self::WIN_XP,
-        'winner_stars' => self::WIN_STARS,
-        'duration_sec' => $duel->started_at ? max(0, now()->diffInSeconds($duel->started_at)) : null,
-    ]);
-
-    $this->markDuelFinishedRows($duel);
-
-    // Language stats
-    $this->bumpWinLoss($duel->challenger_id, $duel->language, $winnerId === $duel->challenger_id);
-    $this->bumpWinLoss($duel->opponent_id,   $duel->language, $winnerId === $duel->opponent_id);
-
-    // Rewards & penalties
-    $this->awardWinnerRewardsToUser($duel);
-    $this->applyLoserPenalty($duel);
-
-    // PVP achievements
-    $this->checkPvpAchievementsFor($duel->challenger_id);
-    $this->checkPvpAchievementsFor($duel->opponent_id);
+        $this->markDuelFinishedRows($locked);
+        $this->bumpWinLoss($locked->challenger_id, $locked->language, $winnerId === $locked->challenger_id);
+        $this->bumpWinLoss($locked->opponent_id,   $locked->language, $winnerId === $locked->opponent_id);
+        $this->awardWinnerRewardsToUser($locked);
+        $this->applyLoserPenalty($locked);
+        $this->checkPvpAchievementsFor($locked->challenger_id);
+        $this->checkPvpAchievementsFor($locked->opponent_id);
+    });
 }
+
 
     private function awardWinnerRewardsToUser(Duel $duel): void
     {

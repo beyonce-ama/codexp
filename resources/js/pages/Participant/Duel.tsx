@@ -152,12 +152,21 @@ export default function ParticipantDuel() {
     // Add near other useStates
     const [waitingForOpponent, setWaitingForOpponent] = useState(false);
     const [finalizing, setFinalizing] = useState(false);
+// duel ids where THIS user has already submitted a correct solution
+const [waitingOpponents, setWaitingOpponents] = useState<Set<number>>(new Set());
 
 const sessionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 const displayLanguage = (s: string) => (s === 'cpp' ? 'C++' : (s ?? '').toUpperCase());
 
-// New, independent review modal state
+// prevents duplicate "winner/result" modals
+const finishedOnceRef = useRef(false);
+const announceFinishOnce = async (duel: Duel) => {
+  if (finishedOnceRef.current) return;
+  finishedOnceRef.current = true;
+  await handleDuelFinished(duel);
+};
+
 
 const stopAllTimers = () => {
   if (sessionTimerRef.current) clearInterval(sessionTimerRef.current);
@@ -707,24 +716,20 @@ const fetchParticipants = async () => {
                 setActiveDuel(prevDuel => {
                     if (!prevDuel || prevDuel.id !== duelData.id) return prevDuel;
                     
-                    // Only update if server data is newer
+                   // If server is finished, override immediately
+                    if (duelData.status === 'finished') return { ...duelData };
+                    // else keep your conservative merge
                     const serverUpdated = new Date(duelData.last_updated || duelData.created_at).getTime();
-                    const localUpdated = new Date(prevDuel.last_updated || prevDuel.created_at).getTime();
-                    
-                    if (serverUpdated >= localUpdated) {
-                        return { ...duelData };
-                    }
-                    
-                    return prevDuel;
+                    const localUpdated  = new Date(prevDuel.last_updated  || prevDuel.created_at).getTime();
+                    return serverUpdated >= localUpdated ? { ...duelData } : prevDuel;
+
                 });
-                if (duelData.status === 'finished') {
-                      setActiveDuel(duelData);
-                      if (!resultShownRef.current) {
-                        resultShownRef.current = true;
-                        await handleDuelFinished(duelData);
-                      }
-                      return;
-                    }
+              if (duelData.status === 'finished') {
+                setActiveDuel(duelData);
+                await announceFinishOnce(duelData);
+                return;
+                }
+
    
                 if (duelData.submissions && duelData.submissions.length > 0) {
                     const opponentSub = duelData.submissions.find((sub: DuelSubmission) => 
@@ -1169,7 +1174,7 @@ const startFinishWatcher = (duelId: number, p0: (finishedDuel: any) => Promise<v
         // server will only finish when BOTH are correct (per your controller)
         if (d.status === 'finished' && d.winner_id) {
           clearInterval(iv);
-          await handleDuelFinished(d);
+         await announceFinishOnce(d);
           fetchMyDuels(true);
           fetchDuelStats();
         }
@@ -1222,6 +1227,7 @@ const startFinishWatcher = (duelId: number, p0: (finishedDuel: any) => Promise<v
                 console.log('Duel submission successful:', response.data);
                 
                 if (isCorrect) {
+                    
                     audio.play('success');
                     
                     await Swal.fire({
@@ -1248,6 +1254,8 @@ const startFinishWatcher = (duelId: number, p0: (finishedDuel: any) => Promise<v
                           color: '#fff',
                           confirmButtonColor: '#10B981'
                     });
+                     setWaitingOpponents(prev => new Set([...prev, activeDuel.id]));
+
                 // CLOSE THE MODAL RIGHT AWAY
           setShowDuelModal(false);
 setActiveDuel(null);
@@ -1774,16 +1782,21 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                           </div>
                                                       )}
 
-                                                      {(duel.status === 'active') && (
-                                                          <button
-                                                              onClick={() => startDuel(duel)}
-                                                              className="flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg hover:from-cyan-600 hover:to-blue-700 text-sm hover:scale-105 transition-all duration-300"
-                                                              onMouseEnter={() => audio.play('hover')}
-                                                          >
-                                                              <Play className="h-4 w-4" />
-                                                              <span>Start Duel</span>
-                                                          </button>
-                                                      )}
+                                                      {duel.status === 'active' && (
+                                                        <button
+                                                            onClick={() => !waitingOpponents.has(duel.id) && startDuel(duel)}
+                                                            disabled={waitingOpponents.has(duel.id)}
+                                                            className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm transition-all duration-300 ${
+                                                            waitingOpponents.has(duel.id)
+                                                                ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                                                                : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700 hover:scale-105'
+                                                            }`}
+                                                        >
+                                                            <Play className="h-4 w-4" />
+                                                            <span>{waitingOpponents.has(duel.id) ? 'Waiting for Opponent…' : 'Start Duel'}</span>
+                                                        </button>
+                                                        )}
+
                                                      {duel.status === 'finished' && (
                                                         <button
                                                          onClick={async () => {
