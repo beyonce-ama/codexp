@@ -235,4 +235,66 @@ class MatchmakingController extends Controller
         DB::table('match_searches')->where('user_id', $r->user()->id)->delete();
         return response()->json(['ok' => true]);
     }
+
+    public function history(\Illuminate\Http\Request $request)
+{
+    $user = $request->user();
+    $limit = max(1, min((int)$request->query('limit', 20), 50));
+    $lang  = $request->query('language'); // optional filter: python/java/cpp
+
+    // duels_taken aliasing for opponent
+    $dt = \App\Models\DuelTaken::query()->from('duels_taken as dt')
+        ->selectRaw('
+            dt.id,
+            dt.duel_id,
+            dt.match_id,
+            dt.source,
+            dt.language as lang,
+            dt.status,
+            dt.is_winner,
+            dt.time_spent_sec,
+            dt.started_at,
+            dt.ended_at,
+            m.public_id as match_public_id,
+            m.language as match_language,
+            m.difficulty as match_difficulty,
+            m.finished_at,
+            u2.id   as opponent_id,
+            u2.name as opponent_name
+        ')
+        ->join('duels_taken as dt2', function ($j) {
+            $j->on('dt2.duel_id', '=', 'dt.duel_id')
+              ->whereColumn('dt2.user_id', '!=', 'dt.user_id');
+        })
+        ->leftJoin('users as u2', 'u2.id', '=', 'dt2.user_id')
+        ->leftJoin('matches as m', 'm.id', '=', 'dt.match_id')
+        ->where('dt.user_id', $user->id)
+        ->where('dt.source', 'live')
+        ->when($lang, fn($q) => $q->where('dt.language', $lang))
+        ->orderByDesc('dt.created_at')
+        ->limit($limit)
+        ->get();
+
+    return response()->json([
+        'items' => $dt->map(function ($r) {
+            return [
+                'id'              => (int)$r->id,
+                'duel_id'         => (int)$r->duel_id,
+                'match_id'        => (int)$r->match_id,
+                'match_public_id' => $r->match_public_id,
+                'language'        => $r->match_language ?: $r->lang,
+                'difficulty'      => $r->match_difficulty,
+                'status'          => $r->status,
+                'is_winner'       => (bool)$r->is_winner,
+                'time_spent_sec'  => $r->time_spent_sec ? (int)$r->time_spent_sec : null,
+                'finished_at'     => optional($r->finished_at ?? $r->ended_at)->toIso8601String(),
+                'opponent'        => [
+                    'id'   => $r->opponent_id ? (int)$r->opponent_id : null,
+                    'name' => $r->opponent_name ?: 'Unknown',
+                ],
+            ];
+        }),
+    ]);
+}
+
 }
