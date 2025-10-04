@@ -151,6 +151,36 @@ export default function ParticipantDuel() {
     const [waitingForOpponent, setWaitingForOpponent] = useState(false);
     const [finalizing, setFinalizing] = useState(false);
 
+    // watches a specific duel until it's finished (even if the modal is closed)
+const resultWatchRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+const stopResultWatch = () => {
+  if (resultWatchRef.current) clearInterval(resultWatchRef.current);
+  resultWatchRef.current = null;
+};
+
+const startResultWatch = (duelId: number) => {
+  stopResultWatch();
+  resultWatchRef.current = setInterval(async () => {
+    try {
+      const res = await apiClient.get(`/api/duels/${duelId}`);
+      if (res?.success && res?.data?.status === 'finished') {
+        stopResultWatch();
+        // Reuse your existing finisher (it shows the SweetAlert + updates lists)
+        await handleDuelFinished(res.data);
+      }
+    } catch (e) {
+      // swallow and retry on next tick
+      console.warn('result watch poll failed', e);
+    }
+  }, 2000);
+};
+
+// also stop the watcher when component unmounts
+useEffect(() => {
+  return () => stopResultWatch();
+}, []);
+
 const sessionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 const displayLanguage = (s: string) => (s === 'cpp' ? 'C++' : (s ?? '').toUpperCase());
@@ -774,9 +804,8 @@ const fetchParticipants = async () => {
     };
 
     const handleDuelFinished = async (duelData: Duel) => {
-
-    
-
+  stopResultWatch();   
+     resultShownRef.current = true;
         // >>> UPDATED: hydrate and use safe defaults for rewards
         const hydrated = hydrateWinner(duelData);
         const isWinner = hydrated.winner_id === user.id;
@@ -1226,7 +1255,11 @@ if (duel.status === 'finished') {
                           confirmButtonColor: '#10B981'
                     });
                     
-                    // Don't close the modal yet - wait for both players to finish
+                     stopAllTimers();
+                    setShowDuelModal(false);
+                    exitFullscreen?.();
+                    setWaitingForOpponent(true);       
+                    startResultWatch(activeDuel.id); 
                 } else {
                     if (!autoSubmit) {
                         audio.play('failure');
