@@ -21,11 +21,12 @@ class MatchmakingController extends Controller
         $u = $r->user();
 
         // Validate only these fields; mode is fixed server-side.
-        $data = $r->validate([
-            'language'   => 'required|in:python,java',
+       $data = $r->validate([
+            'language'   => 'required|in:python,java,cpp',
             'difficulty' => 'required|in:easy,medium,hard',
             'resume'     => 'sometimes|boolean',
         ]);
+
         $mode = 'aigenerated';
 
         // === Optional resume: only if I already have a token for an ACTIVE match ===
