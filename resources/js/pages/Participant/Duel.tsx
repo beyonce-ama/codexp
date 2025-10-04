@@ -151,36 +151,6 @@ export default function ParticipantDuel() {
     const [waitingForOpponent, setWaitingForOpponent] = useState(false);
     const [finalizing, setFinalizing] = useState(false);
 
-    // watches a specific duel until it's finished (even if the modal is closed)
-const resultWatchRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-const stopResultWatch = () => {
-  if (resultWatchRef.current) clearInterval(resultWatchRef.current);
-  resultWatchRef.current = null;
-};
-
-const startResultWatch = (duelId: number) => {
-  stopResultWatch();
-  resultWatchRef.current = setInterval(async () => {
-    try {
-      const res = await apiClient.get(`/api/duels/${duelId}`);
-      if (res?.success && res?.data?.status === 'finished') {
-        stopResultWatch();
-        // Reuse your existing finisher (it shows the SweetAlert + updates lists)
-        await handleDuelFinished(res.data);
-      }
-    } catch (e) {
-      // swallow and retry on next tick
-      console.warn('result watch poll failed', e);
-    }
-  }, 2000);
-};
-
-// also stop the watcher when component unmounts
-useEffect(() => {
-  return () => stopResultWatch();
-}, []);
-
 const sessionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 const displayLanguage = (s: string) => (s === 'cpp' ? 'C++' : (s ?? '').toUpperCase());
@@ -329,30 +299,27 @@ useEffect(() => {
         setDuelEnded(true);
         audio.play('warning');
 
-       try {
-            // tell backend your personal session ended
-            await apiClient.post(`/api/duels/${activeDuel.id}/time-up`);
-            } catch (e) {
-            console.warn('time-up POST failed (will rely on finalize fallback)', e);
-            }
-
-            if (userCode.trim() && !hasSubmitted) {
+        if (userCode.trim() && !hasSubmitted) {
             await submitDuelCode(true);
-            } else {
+        } else {
             Swal.fire({
-                icon: 'warning',
-                title: "Time's Up!",
-                text: 'Waiting for the other player to finish…',
-                timer: 2500,
-                showConfirmButton: false,
-                background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
-                color: '#fff'
-            });
+                  icon: 'warning',
+                  title: "Time's Up!",
+                  text: 'The duel has ended. Results will be determined based on submissions.',
+                  timer: 3000,
+                  showConfirmButton: false,
+                  background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
+                  color: '#fff'
+                });
+
+            // Try to finalize if both have already submitted (server will be authoritative)
+            if (activeDuel?.id) {
+              fetchDuelStatus(activeDuel.id);
             }
 
-            // Don’t close immediately if opponent hasn’t finished—let polling continue
-            fetchDuelStatus(activeDuel.id);
-
+            setShowDuelModal(false);
+            fetchMyDuels();
+        }
     };
 
     // Helper function to calculate string similarity (Levenshtein distance)
@@ -554,73 +521,91 @@ const buildComparisonForModal = (duel: Duel) => {
   };
 };
 
-    const finalizeDuelIfReady = async (duelData: Duel) => {
-      setWaitingForOpponent(false); 
-      if (!duelData || !duelData.submissions) return;
+    // replace finalizeDuelIfReady with this:
+const finalizeDuelIfReady = async (duelData: Duel) => {
+  setWaitingForOpponent(false);
+  if (!duelData?.submissions || !duelData?.challenger || !duelData?.opponent) return;
 
-     // ✅ extra guard: finalize only when both finished
-        if (!duelData.challenger_finished_at || !duelData.opponent_finished_at) {
-        setWaitingForOpponent(true);
-        return;
+  const lastByUser = (uid: number) =>
+    duelData.submissions!
+      .filter(s => s.user_id === uid)
+      .sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+
+  const ch = lastByUser(duelData.challenger.id);
+  const op = lastByUser(duelData.opponent.id);
+
+  // 🔒 client only tries to finalize when BOTH are correct
+  if (!(ch && op && ch.is_correct && op.is_correct)) {
+    setWaitingForOpponent(true);
+    return;
+  }
+
+  // faster time wins (both correct)
+  const winner_id = ch.time_spent_sec <= op.time_spent_sec ? duelData.challenger.id : duelData.opponent.id;
+
+  try {
+    setFinalizing(true);
+    const res = await apiClient.post(`/api/duels/${duelData.id}/finalize`, {
+      winner_id,
+      reason: 'both_correct_fastest_time',
+      challenger_time: ch.time_spent_sec,
+      opponent_time: op.time_spent_sec,
+    });
+
+    if (res?.success && res?.data) {
+      await handleDuelFinished(hydrateWinner(res.data as Duel));
+    } else {
+      await handleDuelFinished(hydrateWinner({
+        ...duelData,
+        status: 'finished',
+        winner_id,
+        winner: winner_id === duelData.challenger.id ? duelData.challenger : duelData.opponent,
+        winner_xp: duelData.winner_xp ?? 3,
+        winner_stars: duelData.winner_stars ?? 1,
+        ended_at: new Date().toISOString(),
+        last_updated: new Date().toISOString(),
+      } as Duel));
+    }
+  } catch (e) {
+    // local fallback — same as above
+    await handleDuelFinished(hydrateWinner({
+      ...duelData,
+      status: 'finished',
+      winner_id,
+      winner: winner_id === duelData.challenger.id ? duelData.challenger : duelData.opponent,
+      winner_xp: duelData.winner_xp ?? 3,
+      winner_stars: duelData.winner_stars ?? 1,
+      ended_at: new Date().toISOString(),
+      last_updated: new Date().toISOString(),
+    } as Duel));
+  } finally {
+    setFinalizing(false);
+    setWaitingForOpponent(false);
+  }
+};
+// add this helper near your other helpers
+const startFinishWatcher = (duelId: number) => {
+  let attempts = 0;
+  const maxAttempts = 1800; // ~1 hour @ 2s
+  const iv = setInterval(async () => {
+    attempts++;
+    try {
+      const r = await apiClient.get(`/api/duels/${duelId}`);
+      if (r?.success && r?.data) {
+        const d = hydrateWinner(r.data as Duel);
+        // server will only finish when BOTH are correct (per your controller)
+        if (d.status === 'finished' && d.winner_id) {
+          clearInterval(iv);
+          await handleDuelFinished(d);
+          fetchMyDuels(true);
+          fetchDuelStats();
         }
-
-        const decision = decideWinnerFromSubmissions(duelData);
-        if (!decision.winner_id) {
-        setWaitingForOpponent(true);
-        return;
-        }
-
-      // We have a winner — try to persist to backend
-      try {
-        setFinalizing(true);
-        const payload = {
-          winner_id: decision.winner_id,
-          reason: decision.reason,
-          challenger_time: decision.challenger?.time_spent_sec,
-          opponent_time: decision.opponent?.time_spent_sec,
-        };
-
-        const res = await apiClient.post(`/api/duels/${duelData.id}/finalize`, payload);
-
-        // If backend succeeds, it should return the finished duel object
-        if (res?.success && res?.data) {
-          await handleDuelFinished(res.data as Duel);
-        } else {
-          // Fallback: close locally with computed winner
-          const localWinner = decision.winner_id === duelData.challenger.id ? duelData.challenger : duelData.opponent;
-          const closed: Duel = {
-            ...duelData,
-            status: 'finished',
-            winner: localWinner,
-            winner_id: decision.winner_id,
-            winner_xp: duelData.winner_xp ?? 3,      // default rewards
-            winner_stars: duelData.winner_stars ?? 1,
-            ended_at: new Date().toISOString(),
-            last_updated: new Date().toISOString(),
-          } as Duel;
-
-          await handleDuelFinished(closed);
-        }
-      } catch (e) {
-        console.warn('Finalize failed, showing local result:', e);
-        const decision2 = decideWinnerFromSubmissions(duelData);
-        const localWinner = decision2.winner_id === duelData.challenger.id ? duelData.challenger : duelData.opponent;
-        const closed: Duel = {
-          ...duelData,
-          status: 'finished',
-          winner: localWinner,
-          winner_id: decision2.winner_id!,
-          winner_xp: duelData.winner_xp ?? 3,        // default rewards
-          winner_stars: duelData.winner_stars ?? 1,
-          ended_at: new Date().toISOString(),
-          last_updated: new Date().toISOString(),
-        } as Duel;
-        await handleDuelFinished(closed);
-      } finally {
-        setFinalizing(false);
-        setWaitingForOpponent(false);
       }
-    };
+    } catch {}
+    if (attempts >= maxAttempts) clearInterval(iv);
+  }, 2000);
+};
+
 
     const fetchChallenges = async () => {
         try {
@@ -784,18 +769,25 @@ const fetchParticipants = async () => {
                         });
                     }
                 }
+const lastByUser = (uid: number) =>
+  duelData.submissions!
+    .filter(s => s.user_id === uid)
+    .sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
 
-                // Decide & finalize when both sides have submitted
-               // ✅ Only attempt finalize when BOTH sides are FINISHED (not just “have a submission”)
-                    if (
-                    duelData.status !== 'finished' &&
-                    !finalizing &&
-                    duelData.challenger_finished_at &&
-                    duelData.opponent_finished_at
-                    ) {
-                    await finalizeDuelIfReady(duelData);
-                    return;
-                    }
+const you = lastByUser(user.id);
+const them = lastByUser(
+  duelData.challenger.id === user.id ? duelData.opponent.id : duelData.challenger.id
+);
+
+// finalize only when both correct (your current logic)
+if (you?.is_correct && them?.is_correct) {
+  await finalizeDuelIfReady(duelData);
+  return;
+}
+
+// show waiting only if YOU are correct and they are not yet
+setWaitingForOpponent(!!you?.is_correct && !them?.is_correct);
+
 
             }
         } catch (error) {
@@ -804,8 +796,9 @@ const fetchParticipants = async () => {
     };
 
     const handleDuelFinished = async (duelData: Duel) => {
-  stopResultWatch();   
-     resultShownRef.current = true;
+
+    
+
         // >>> UPDATED: hydrate and use safe defaults for rewards
         const hydrated = hydrateWinner(duelData);
         const isWinner = hydrated.winner_id === user.id;
@@ -881,18 +874,13 @@ const cmpHtml = cmp ? `
 });
 
         
-        stopAllTimers();
-        setShowDuelModal(false);     
-        exitFullscreen?.();        
-        setActiveDuel(null);
-        setOpponentSubmission(null);
-        setWaitingForOpponent(false);
-
-        // Reflect latest state
-        setDuels(prevDuels => prevDuels.map(d => d.id === hydrated.id ? hydrated : d));
+        // Update local duels list with server data (hydrated)
+        setDuels(prevDuels => 
+            prevDuels.map(d => d.id === hydrated.id ? hydrated : d)
+        );
+        
         fetchMyDuels();
         fetchDuelStats();
-
     };
 
     const fetchDuelStats = async () => {
@@ -1255,11 +1243,22 @@ if (duel.status === 'finished') {
                           confirmButtonColor: '#10B981'
                     });
                     
-                     stopAllTimers();
-                    setShowDuelModal(false);
-                    exitFullscreen?.();
-                    setWaitingForOpponent(true);       
-                    startResultWatch(activeDuel.id); 
+                     setShowDuelModal(false);
+    setActiveDuel(null);
+     Swal.fire({
+      icon: 'info',
+      title: 'Waiting for opponent…',
+      text: 'We’ll pop results automatically once your opponent submits.',
+      timer: 2500,
+      showConfirmButton: false,
+      background: '#1f2937',
+      color: '#fff'
+    });
+
+    startFinishWatcher(activeDuel.id);   // <-- start background watcher
+    fetchMyDuels(true);
+    fetchDuelStats();
+    return; // stop here
                 } else {
                     if (!autoSubmit) {
                         audio.play('failure');
@@ -1296,8 +1295,7 @@ if (duel.status === 'finished') {
                     }
                 }
                 // If both haven't finished yet, show waiting state
-                setWaitingForOpponent(true);
-
+                setWaitingForOpponent(isCorrect); 
                 // Proactively re-fetch to see if opponent already submitted and to trigger finalize
                 fetchDuelStatus(activeDuel.id);
 
@@ -2398,7 +2396,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                     </div>
 
                                     {/* Opponent Status */}
-                                    {/* {opponentSubmission && (
+                                    {opponentSubmission && (
                                         <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-4">
                                             <div className="flex items-center space-x-2">
                                                 <CheckCircle className="h-4 w-4 text-green-400" />
@@ -2408,7 +2406,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                 </span>
                                             </div>
                                         </div>
-                                    )} */}
+                                    )}
 {waitingForOpponent && !duelEnded && (
   <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
     <div className="flex items-center space-x-2">
