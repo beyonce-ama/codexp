@@ -22,9 +22,10 @@ class DuelTaken extends Model
 
     public function user() { return $this->belongsTo(User::class); }
     public function duel() { return $this->belongsTo(Duel::class); }
-   public function match()
+public function match()
 {
-    return $this->belongsTo(\App\Models\Match::class, 'match_id');
+    return $this->belongsTo(\App\Models\MatchModel::class, 'match_id');
 }
+
 
 }
