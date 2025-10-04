@@ -97,23 +97,23 @@ export default function ParticipantAIChallenges() {
     // NEW: Modal state
     const [showChallengeModal, setShowChallengeModal] = useState(false);
 
-    // Fullscreen helpers
-const requestFullscreen = () => {
-  const el = document.documentElement;
-  if (el.requestFullscreen) {
-    el.requestFullscreen();
-  } else if ((el as any).webkitRequestFullscreen) {
-    (el as any).webkitRequestFullscreen(); // Safari
-  } else if ((el as any).msRequestFullscreen) {
-    (el as any).msRequestFullscreen(); // IE11
-  }
+// Fullscreen helpers (must be called synchronously in click handler BEFORE any await)
+const tryEnterFullscreen = () => {
+  const el = document.documentElement as any;
+  try {
+    if (document.fullscreenElement) return; // already in
+    if (el.requestFullscreen) return el.requestFullscreen();
+    if (el.webkitRequestFullscreen) return el.webkitRequestFullscreen(); // Safari
+    if (el.msRequestFullscreen) return el.msRequestFullscreen(); // IE11
+  } catch (_) { /* noop */ }
 };
 
 const exitFullscreen = () => {
-  if (document.fullscreenElement) {
-    document.exitFullscreen?.();
+  if (document.fullscreenElement && document.exitFullscreen) {
+    document.exitFullscreen().catch(() => {});
   }
 };
+
 
 useEffect(() => {
   if (showChallengeModal) {
@@ -329,13 +329,17 @@ useEffect(() => {
 
     const generateChallenge = async () => {
         try {
-            setGenerating(true);
+           setGenerating(true);
             audio.play('click');
-            
+
+            // Enter FS BEFORE any await (keeps user gesture context)
+            tryEnterFullscreen();
+
             const params: any = { language, difficulty };
             if (selectedTopic) params.topic = selectedTopic;
 
             const response = await apiClient.post('/api/ai-challenges/generate', params);
+
             
             // Handle ApiResponse format
             if (response.success && response.data) {
@@ -358,16 +362,6 @@ useEffect(() => {
                 
                 // NEW: Show modal instead of setting challenge directly
                 setShowChallengeModal(true);
-                requestFullscreen();
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Challenge Generated!',
-                    text: 'Your AI-generated challenge is ready. Good luck!',
-                    timer: 2000,
-                    showConfirmButton: false,
-                    background: '#1f2937',
-                    color: '#fff'
-                });
             } else {
                 throw new Error(response.message || 'Failed to generate challenge');
             }
@@ -885,8 +879,9 @@ const showCodeModal = (title: string, code: string) => {
 
             {/* Challenge Modal */}
             {showChallengeModal && currentChallenge && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
-                    <div className="bg-gray-900/95 border border-gray-700/50 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+               <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-0 animate-fadeIn">
+                 <div className="ai-modal bg-gray-900/95 border border-gray-700/50 w-full h-full max-w-none max-h-none overflow-y-auto rounded-none">
+
                         {/* Modal Header */}
                         <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-t-2xl p-6">
                             <div className="flex items-center justify-between mb-4">
@@ -1101,7 +1096,7 @@ const showCodeModal = (title: string, code: string) => {
                             </div>
 
                             {/* Stats Grid */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                 <StatCard title="Level" value={userStats.current_level} icon={Crown} color="bg-orange-500" />  
                                 <StatCard title="Total XP" value={userStats.total_xp || 0} icon={Trophy} color="bg-yellow-500" />
                                 <StatCard 
@@ -1111,7 +1106,7 @@ const showCodeModal = (title: string, code: string) => {
                                     color="bg-purple-500" 
                                     animated={showSuccess}
                                 />
-                                <StatCard title="Streak" value={userStats.streak || 0} icon={Zap} color="bg-cyan-500" />
+                                {/* <StatCard title="Streak" value={userStats.streak || 0} icon={Zap} color="bg-cyan-500" /> */}
                             </div>
                         </div>
                     )}
@@ -1206,12 +1201,30 @@ const showCodeModal = (title: string, code: string) => {
             </AppLayout>
               {/* Enhanced CSS Styles */}
             <style>{`
-            /* When the Solo challenge modal is open, completely hide the header */
-body.solo-open header {
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
+            /* Hide layout chrome when the Solo modal is open */
+            body.solo-open {
+            overflow: hidden !important;
+            }
+            body.solo-open header {
+            opacity: 0 !important;
+            pointer-events: none !important;
+            }
 
+            /* Make the modal actually fill the screen in fullscreen */
+            :fullscreen .ai-modal,
+            :-webkit-full-screen .ai-modal {
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: none !important;
+            max-height: none !important;
+            border-radius: 0 !important;
+            }
+
+            /* Ensure the overlay also stretches in fullscreen */
+            :fullscreen .ai-modal > *,
+            :-webkit-full-screen .ai-modal > * {
+            max-height: inherit;
+            }
 
             `}</style>
         </div>

@@ -5,8 +5,9 @@ import { apiClient } from '@/utils/api';
 import type { BreadcrumbItem } from '@/types';
 import {
   Swords, Users, Brain, Loader2, Clock, ShieldCheck, X,
-  CheckCircle2, Code2, Trophy, Zap,
+  CheckCircle2, Code2, Trophy, Zap, History, Medal,
 } from 'lucide-react';
+
 import AnimatedBackground from '@/components/AnimatedBackground';
 
 type Lang = 'python' | 'java' | 'cpp'; // ← add cpp
@@ -48,6 +49,27 @@ type PollResponse =
   | { slug: string; token?: string | null }
   | { slug: null };
 
+  type HistoryItem = {
+  id: number;
+  duel_id: number;
+  match_id: number;
+  match_public_id?: string | null;
+  language: string | null;
+  difficulty: string | null;
+  status: string | null;
+  is_winner: boolean;
+  time_spent_sec: number | null;
+  finished_at: string | null;
+  opponent: { id: number | null; name: string };
+};
+
+const formatSecs = (s: number | null | undefined) => {
+  if (!s && s !== 0) return '—';
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return m ? `${m}m ${sec}s` : `${sec}s`;
+};
+
 const Matchmaking: React.FC = () => {
   const { props } = usePage<PageProps>();
   const user = props?.auth?.user;
@@ -64,6 +86,10 @@ const [matchFound, setMatchFound] = useState<boolean>(false);
     () => `presence-queue.${language}.${difficulty}`,
     [language, difficulty]
   );
+const [historyOpen, setHistoryOpen] = useState(false);
+const [historyLoading, setHistoryLoading] = useState(false);
+const [history, setHistory] = useState<HistoryItem[]>([]);
+const [historyErr, setHistoryErr] = useState<string | null>(null);
 
   const goToMatch = (slug: string, token?: string | null) => {
     const url = token ? `/play/m/${slug}?t=${encodeURIComponent(token)}` : `/play/m/${slug}`;
@@ -89,38 +115,7 @@ const [matchFound, setMatchFound] = useState<boolean>(false);
     return () => clearInterval(id);
   }, [searching]);
 
-  // Presence listeners (simplified for brevity)
-  useEffect(() => {
-    if (!searching) return;
-    const Echo = (window as any).Echo;
-    if (!Echo) return;
-
-    const presence = Echo.join(queueChannelName)
-      .here((members: any[]) => setQueueCount(members.length))
-      .joining(() => setQueueCount((c) => c + 1))
-      .leaving(() => setQueueCount((c) => Math.max(1, c - 1)))
-      .listen('MatchFound', async () => {
-        setMatchFound(true); // show "preparing challenge..."
-        try {
-          const data = await postJSON<PollResponse>('/api/matchmaking/poll', { language, difficulty });
-          if ('slug' in data && data.slug) goToMatch(data.slug, data.token);
-        } catch {}
-      });
-
-    const priv = Echo.private(`user.${user.id}`).listen('MatchFound', async () => {
-      setMatchFound(true);
-      try {
-        const data = await postJSON<PollResponse>('/api/matchmaking/poll', { language, difficulty });
-        if ('slug' in data && data.slug) goToMatch(data.slug, data.token);
-      } catch {}
-    });
-
-    return () => {
-      try { Echo.leave(queueChannelName); } catch {}
-      try { Echo.leave(`user.${user.id}`); } catch {}
-    };
-  }, [searching, queueChannelName, user?.id, language, difficulty]);
-
+ 
   // Cancel queue
   const cancelQueue = async () => {
     setError(null);
@@ -138,14 +133,32 @@ const [matchFound, setMatchFound] = useState<boolean>(false);
     const res: any = body ? await apiClient.post(url, body) : await apiClient.post(url);
     return (res && typeof res === 'object' && 'data' in res) ? res.data : res;
   }
-
+const loadHistory = async () => {
+  setHistoryErr(null);
+  setHistoryLoading(true);
+  try {
+    const res: any = await apiClient.get('/api/matchmaking/history', {
+      params: { limit: 20 },
+    });
+    const items: HistoryItem[] = res?.data?.items ?? res?.items ?? [];
+    setHistory(items);
+  } catch (e: any) {
+    setHistoryErr(e?.response?.data?.message || 'Failed to load history.');
+  } finally {
+    setHistoryLoading(false);
+  }
+};
+const openHistory = async () => {
+  setHistoryOpen(true);
+  await loadHistory();
+};
   // Presence + private listeners (nudge; poll is still authoritative)
   useEffect(() => {
     if (!searching) return;
     const Echo = (window as any).Echo;
     if (!Echo) return;
 
-    const presence = Echo.join(queueChannelName)
+    Echo.join(queueChannelName)
       .here((members: any[]) => setQueueCount(members.length))
       .joining(() => setQueueCount((c: number) => c + 1))
       .leaving(() => setQueueCount((c: number) => Math.max(1, c - 1)))
@@ -156,7 +169,7 @@ const [matchFound, setMatchFound] = useState<boolean>(false);
         } catch {}
       });
 
-    const priv = Echo.private(`user.${user.id}`).listen('MatchFound', async () => {
+    Echo.private(`user.${user.id}`).listen('MatchFound', async () => {
       try {
         const data = await postJSON<PollResponse>('/api/matchmaking/poll', { language, difficulty });
         if ('slug' in data && data.slug) goToMatch(data.slug, data.token);
@@ -329,39 +342,55 @@ const [matchFound, setMatchFound] = useState<boolean>(false);
                 </span>
               </div>
 
-              <div className="flex items-center gap-3">
-               {searching ? (
-  <>
-    <div className="inline-flex items-center gap-2 px-4 py-3 rounded-xl border border-slate-700/60 bg-slate-900/40 text-zinc-200">
-      {!matchFound ? (
-        <>
-          <Loader2 className="w-4 h-4 animate-spin" />
-          Searching… <span className="ml-2 text-xs text-zinc-400">{waitTime}s</span>
-        </>
-      ) : (
-        <>
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          Match found! Preparing challenge…
-        </>
-      )}
-    </div>
-    <button
-      onClick={cancelQueue}
-      className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 transition text-zinc-200"
-    >
-      <X className="w-4 h-4" /> Cancel
-    </button>
-  </>
-) : (
-  <button
-    onClick={joinQueue}
-    className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:opacity-95 active:opacity-100 transition text-white font-medium"
-  >
-    <Swords className="w-4 h-4" /> Find Match
-  </button>
-)}
-
+             <div className="flex items-center gap-3">
+                {searching ? (
+                  <>
+                    <div className="inline-flex items-center gap-2 px-4 py-3 rounded-xl border border-slate-700/60 bg-slate-900/40 text-zinc-200">
+                      {!matchFound ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Searching… <span className="ml-2 text-xs text-zinc-400">{waitTime}s</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                          Match found! Preparing challenge…
+                        </>
+                      )}
+                    </div>
+                    <button
+                      onClick={cancelQueue}
+                      className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 transition text-zinc-200"
+                    >
+                      <X className="w-4 h-4" /> Cancel
+                    </button>
+                    <button
+                      onClick={openHistory}
+                      className="inline-flex items-center gap-2 px-3 py-3 rounded-xl border border-slate-700/60 bg-slate-900/40 hover:bg-slate-800 transition text-zinc-200"
+                      type="button"
+                    >
+                      <History className="w-4 h-4" /> History
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={joinQueue}
+                      className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:opacity-95 active:opacity-100 transition text-white font-medium"
+                    >
+                      <Swords className="w-4 h-4" /> Find Match
+                    </button>
+                    <button
+                      onClick={openHistory}
+                      className="inline-flex items-center gap-2 px-3 py-3 rounded-xl border border-slate-700/60 bg-slate-900/40 hover:bg-slate-800 transition text-zinc-200"
+                      type="button"
+                    >
+                      <History className="w-4 h-4" /> History
+                    </button>
+                  </>
+                )}
               </div>
+
             </div>
           </div>
 
@@ -391,6 +420,101 @@ const [matchFound, setMatchFound] = useState<boolean>(false);
             </div>
           )}
         </div>
+        {/* History Modal */}
+{historyOpen && (
+  <div className="fixed inset-0 z-[999] flex items-center justify-center">
+    <div className="absolute inset-0 bg-black/60" onClick={() => setHistoryOpen(false)} />
+    <div className="relative w-full max-w-3xl mx-4 rounded-2xl border border-slate-700/60 bg-slate-900/90 backdrop-blur p-4">
+      <div className="flex items-center justify-between px-2">
+        <div className="flex items-center gap-2">
+          <History className="w-5 h-5 text-indigo-400" />
+          <h2 className="text-lg font-semibold">Recent 1v1 History</h2>
+        </div>
+        <button
+          onClick={() => setHistoryOpen(false)}
+          className="p-2 rounded-lg hover:bg-slate-800"
+          aria-label="Close"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="mt-3 px-2">
+        {historyLoading ? (
+          <div className="flex items-center gap-2 text-zinc-400">
+            <Loader2 className="w-4 h-4 animate-spin" /> Loading…
+          </div>
+        ) : historyErr ? (
+          <div className="text-red-300 bg-red-900/20 border border-red-900/40 px-3 py-2 rounded-lg">{historyErr}</div>
+        ) : history.length === 0 ? (
+          <div className="text-zinc-400">No recent matches yet.</div>
+        ) : (
+          <ul className="divide-y divide-slate-700/50">
+            {history.map((h) => (
+              <li key={h.id} className="py-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    {h.is_winner ? (
+                      <span className="inline-flex items-center gap-1 text-emerald-300">
+                        <Medal className="w-4 h-4" /> Win
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-red-300">
+                        <X className="w-4 h-4" /> Loss
+                      </span>
+                    )}
+                    <span className="text-zinc-300">vs <span className="font-medium">{h.opponent?.name}</span></span>
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+                    <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700/60">
+                      {displayLanguage(h.language || '')}
+                    </span>
+                    {h.difficulty && (
+                      <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700/60 capitalize">
+                        {h.difficulty}
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> {formatSecs(h.time_spent_sec)}
+                    </span>
+                    {h.finished_at && <span>{new Date(h.finished_at).toLocaleString()}</span>}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {h.match_public_id && (
+                    <a
+                      href={`/play/m/${h.match_public_id}`}
+                      className="text-xs px-3 py-1 rounded-lg border border-slate-700/60 hover:bg-slate-800 text-zinc-200"
+                    >
+                      View
+                    </a>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="mt-3 flex items-center justify-end gap-2 px-2">
+        <button
+          onClick={() => setHistoryOpen(false)}
+          className="px-3 py-2 rounded-lg border border-slate-700/60 hover:bg-slate-800 text-zinc-200"
+        >
+          Close
+        </button>
+        <button
+          onClick={loadHistory}
+          className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-zinc-100"
+        >
+          Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
       </AppLayout>
     </div>
   );

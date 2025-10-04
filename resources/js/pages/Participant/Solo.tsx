@@ -3,10 +3,11 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, usePage } from '@inertiajs/react';
 import { useState, useEffect, useRef } from 'react';
+import type React from 'react';
 import {
     Target, Code, Play, Clock, Star, Trophy, 
     RefreshCw, Filter, Search, AlertTriangle, Zap,
-    CheckCircle, X, Send, Lightbulb, BookOpen, Flame,
+    CheckCircle, Send, Lightbulb, BookOpen, Flame,
     Award, TrendingUp, Sparkles, PartyPopper, Crown,
     Rocket, Heart, Shield, Sword
 } from 'lucide-react';
@@ -817,6 +818,7 @@ if (isConfirmed) {
     };
 
     const markChallengeAsTaken = async (status: 'viewed' | 'abandoned' | 'completed') => {
+
         try {
             if (selectedChallenge) {
                 const markAsTakenData = {
@@ -865,7 +867,44 @@ if (isConfirmed) {
         }
         
     };
+ // Quit button helper: abandon then reveal solution
+        const quitAndShowSolution = async () => {
+        try {
+            if (!selectedChallenge) return;
 
+            // cache solution before state reset
+            const fixed = selectedChallenge.fixed_code;
+
+            // if user hasn't edited anything, mimic "viewed" behavior warning
+            const userEdited =
+            (selectedChallenge && (userCode.trim() !== (selectedChallenge.buggy_code ?? '').trim())) ||
+            timeSpent > 0;
+
+            if (userEdited) {
+            // mark as abandoned (same effect as your current X flow)
+            await markChallengeAsTaken('abandoned');
+            } else {
+            // if they didn't edit, still treat as abandoned per your request
+            await markChallengeAsTaken('abandoned');
+            }
+
+            // after modal has closed & state reset, show solution if available
+            if (fixed && fixed.trim().length > 0) {
+            showCodeModal('Correct Answer', fixed);
+            } else {
+            Swal.fire({
+                icon: 'info',
+                title: 'No Stored Solution',
+                text: 'This challenge has no fixed solution saved in the database.',
+                background: '#1f2937',
+                color: '#fff',
+                confirmButtonColor: '#10B981'
+            });
+            }
+        } catch (e) {
+            console.error('quitAndShowSolution error:', e);
+        }
+        };
     const showCorrectAnswerHandler = () => {
         if (selectedChallenge?.fixed_code) {
             audio.play('click');
@@ -1061,17 +1100,6 @@ const showCodeModal = (title: string, code: string) => {
                         </div>
                         <div className="flex items-center space-x-3">
                             {/* <button
-                                onClick={() => setSoundEnabled(!soundEnabled)}
-                                className={`p-2 rounded-lg transition-all duration-300 ${
-                                    soundEnabled 
-                                        ? 'bg-green-600 text-white' 
-                                        : 'bg-gray-600 text-gray-300'
-                                }`}
-                                onMouseEnter={() => audio.play('hover')}
-                            >
-                                {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-                            </button> */}
-                            <button
                                 onClick={() => {
                                     audio.play('click');
                                     fetchChallenges();
@@ -1081,7 +1109,7 @@ const showCodeModal = (title: string, code: string) => {
                             >
                                 <RefreshCw className="h-4 w-4" />
                                 <span>Refresh</span>
-                            </button>
+                            </button> */}
                         </div>
                     </div>
 
@@ -1132,8 +1160,6 @@ const showCodeModal = (title: string, code: string) => {
                                 /> 
                                 <StatCard title="Available" value={availableChallenges.length} icon={Target} color="bg-cyan-500" />
                                 
-                                {/* <StatCard title="Stars" value={userStats.total_stars || 0} icon={Star} color="bg-purple-500" /> */}
-                               
                                 
                             </div>
                         </div>
@@ -1155,15 +1181,6 @@ const showCodeModal = (title: string, code: string) => {
                                 </div>
                             </div>
                             <div className="flex gap-2">
-                                {/* <select
-                                    value={modeFilter}
-                                    onChange={(e) => setModeFilter(e.target.value)}
-                                    className="px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 text-gray-200 transition-all duration-300"
-                                >
-                                    <option value="all">All Modes</option>
-                                    <option value="fixbugs">Fix Bugs</option>
-                                    <option value="random">Random</option>
-                                </select> */}
                                 <select
                                     value={languageFilter}
                                     onChange={(e) => setLanguageFilter(e.target.value)}
@@ -1284,11 +1301,12 @@ const showCodeModal = (title: string, code: string) => {
                                                 <Clock className="h-4 w-4" />
                                                 <span className="text-sm font-medium">{formatTime(timeSpent)}</span>
                                             </div>
-                                            <button
-                                                onClick={closeModal}
-                                                className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-1 transition-all duration-200"
+                                       <button
+                                            onClick={quitAndShowSolution}
+                                            className="text-xs md:text-sm font-semibold px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all duration-200"
+                                            title="Quit and show correct solution"
                                             >
-                                                <X className="h-6 w-6" />
+                                            Quit and show correct solution
                                             </button>
                                         </div>
                                     </div>
@@ -1369,13 +1387,6 @@ const showCodeModal = (title: string, code: string) => {
                                             )}
                                         </div>
                                         <div className="flex items-center space-x-3">
-                                            <button
-                                                onClick={closeModal}
-                                                disabled={submitting}
-                                                className="px-6 py-3 bg-gray-700/50 text-gray-300 rounded-lg hover:bg-gray-600/50 disabled:opacity-50 transition-all duration-300 font-medium"
-                                            >
-                                                {hasSubmitted && lastSubmissionResult?.isCorrect ? 'Continue' : 'Cancel'}
-                                            </button>
                                             {(!hasSubmitted || !lastSubmissionResult?.isCorrect) && (
                                                 <button
                                                     onClick={submitAttempt}

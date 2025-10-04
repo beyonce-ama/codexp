@@ -299,27 +299,30 @@ useEffect(() => {
         setDuelEnded(true);
         audio.play('warning');
 
-        if (userCode.trim() && !hasSubmitted) {
-            await submitDuelCode(true);
-        } else {
-            Swal.fire({
-                  icon: 'warning',
-                  title: "Time's Up!",
-                  text: 'The duel has ended. Results will be determined based on submissions.',
-                  timer: 3000,
-                  showConfirmButton: false,
-                  background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
-                  color: '#fff'
-                });
-
-            // Try to finalize if both have already submitted (server will be authoritative)
-            if (activeDuel?.id) {
-              fetchDuelStatus(activeDuel.id);
+       try {
+            // tell backend your personal session ended
+            await apiClient.post(`/api/duels/${activeDuel.id}/time-up`);
+            } catch (e) {
+            console.warn('time-up POST failed (will rely on finalize fallback)', e);
             }
 
-            setShowDuelModal(false);
-            fetchMyDuels();
-        }
+            if (userCode.trim() && !hasSubmitted) {
+            await submitDuelCode(true);
+            } else {
+            Swal.fire({
+                icon: 'warning',
+                title: "Time's Up!",
+                text: 'Waiting for the other player to finish…',
+                timer: 2500,
+                showConfirmButton: false,
+                background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
+                color: '#fff'
+            });
+            }
+
+            // Don’t close immediately if opponent hasn’t finished—let polling continue
+            fetchDuelStatus(activeDuel.id);
+
     };
 
     // Helper function to calculate string similarity (Levenshtein distance)
@@ -525,12 +528,17 @@ const buildComparisonForModal = (duel: Duel) => {
       setWaitingForOpponent(false); 
       if (!duelData || !duelData.submissions) return;
 
-      const decision = decideWinnerFromSubmissions(duelData);
-      if (!decision.winner_id) {
-        // still waiting
+     // ✅ extra guard: finalize only when both finished
+        if (!duelData.challenger_finished_at || !duelData.opponent_finished_at) {
         setWaitingForOpponent(true);
         return;
-      }
+        }
+
+        const decision = decideWinnerFromSubmissions(duelData);
+        if (!decision.winner_id) {
+        setWaitingForOpponent(true);
+        return;
+        }
 
       // We have a winner — try to persist to backend
       try {
@@ -748,15 +756,17 @@ const fetchParticipants = async () => {
                 }
 
                 // Decide & finalize when both sides have submitted
-                if (duelData.submissions && duelData.submissions.length >= 2) {
-                    const hasChallenger = duelData.submissions.some((s: DuelSubmission) => s.user_id === duelData.challenger.id);
-                    const hasOpponent   = duelData.submissions.some((s: DuelSubmission) => s.user_id === duelData.opponent.id);
-
-                    if (hasChallenger && hasOpponent && duelData.status !== 'finished' && !finalizing) {
-                        await finalizeDuelIfReady(duelData);
-                        return;
+               // ✅ Only attempt finalize when BOTH sides are FINISHED (not just “have a submission”)
+                    if (
+                    duelData.status !== 'finished' &&
+                    !finalizing &&
+                    duelData.challenger_finished_at &&
+                    duelData.opponent_finished_at
+                    ) {
+                    await finalizeDuelIfReady(duelData);
+                    return;
                     }
-                }
+
             }
         } catch (error) {
             console.error('Error fetching duel status:', error);
@@ -842,13 +852,18 @@ const cmpHtml = cmp ? `
 });
 
         
-        // Update local duels list with server data (hydrated)
-        setDuels(prevDuels => 
-            prevDuels.map(d => d.id === hydrated.id ? hydrated : d)
-        );
-        
+        stopAllTimers();
+        setShowDuelModal(false);     
+        exitFullscreen?.();        
+        setActiveDuel(null);
+        setOpponentSubmission(null);
+        setWaitingForOpponent(false);
+
+        // Reflect latest state
+        setDuels(prevDuels => prevDuels.map(d => d.id === hydrated.id ? hydrated : d));
         fetchMyDuels();
         fetchDuelStats();
+
     };
 
     const fetchDuelStats = async () => {

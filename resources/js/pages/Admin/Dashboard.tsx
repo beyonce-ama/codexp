@@ -312,48 +312,48 @@ export default function AdminDashboard() {
             )}
           </Section>
 
-          {/* TODAY + LANG */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Section
-              title={
-                <>
-                  <Shield className="h-5 w-5 text-cyan-300" />
-                  <span className="text-white font-semibold">Today&apos;s Activity</span>
-                </>
-              }
-              right={
-                <button
-                  onClick={() => setShowToday(s => !s)}
-                  className="text-xs inline-flex items-center gap-2 px-2 py-1 rounded-lg border border-white/10 text-slate-200 hover:bg-white/5"
-                >
-                  {showToday ? 'Hide' : 'Show'}
-                </button>
-              }
-            >
-              {showToday && (
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4 grid gap-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg border border-white/10 bg-white/5">
-                        <Target className="h-4 w-4 text-white" />
-                      </div>
-                      <span className="text-sm text-white/90">Solo Attempts</span>
-                    </div>
-                    <span className="text-lg font-bold text-white">{stats?.solo_attempts_today ?? 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg border border-white/10 bg-white/5">
-                        <Swords className="h-4 w-4 text-white" />
-                      </div>
-                      <span className="text-sm text-white/90">New Duels</span>
-                    </div>
-                    <span className="text-lg font-bold text-white">{stats?.duels_today ?? 0}</span>
-                  </div>
-                </div>
-              )}
-            </Section>
-{/* CHALLENGES */}
+         {/* TODAY’S ACTIVITY */}
+<Section
+  title={
+    <>
+      <Shield className="h-5 w-5 text-cyan-300" />
+      <span className="text-white font-semibold">Today&apos;s Activity</span>
+    </>
+  }
+  right={
+    <button
+      onClick={() => setShowToday(s => !s)}
+      className="text-xs inline-flex items-center gap-2 px-2 py-1 rounded-lg border border-white/10 text-slate-200 hover:bg-white/5"
+    >
+      {showToday ? 'Hide' : 'Show'}
+    </button>
+  }
+>
+  {showToday && (
+    <div className="rounded-xl border border-white/10 bg-white/5 p-4 grid gap-4 md:grid-cols-2">
+      <div className="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/10">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg border border-white/10 bg-white/10">
+            <Target className="h-4 w-4 text-white" />
+          </div>
+          <span className="text-sm text-white/90">Solo Attempts</span>
+        </div>
+        <span className="text-lg font-bold text-white">{stats?.solo_attempts_today ?? 0}</span>
+      </div>
+      <div className="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/10">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg border border-white/10 bg-white/10">
+            <Swords className="h-4 w-4 text-white" />
+          </div>
+          <span className="text-sm text-white/90">New Duels</span>
+        </div>
+        <span className="text-lg font-bold text-white">{stats?.duels_today ?? 0}</span>
+      </div>
+    </div>
+  )}
+</Section>
+
+{/* CHALLENGE MANAGEMENT */}
 <Section
   title={
     <>
@@ -371,29 +371,29 @@ export default function AdminDashboard() {
   }
 >
   {showChallenges && (
-    <div className="space-y-6">
-      {/* Solo Challenges */}
+    <div className="space-y-8">
+      {/* SOLO */}
       <div>
         <h3 className="text-sm font-semibold text-white/70 mb-2">Solo Challenges</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           <StatTile icon={BookOpen} label="Total Solo" value={stats?.total_solo_challenges ?? 0} tone="slate" />
           <StatTile icon={Code} label="Python" value={stats?.solo_python_challenges ?? 0} tone="blue" />
           <StatTile icon={Code} label="Java" value={stats?.solo_java_challenges ?? 0} tone="red" />
-          <StatTile icon={Code} label="C++"    value={stats?.solo_cpp_challenges    ?? 0} tone="purple" />
+          <StatTile icon={Code} label="C++" value={stats?.solo_cpp_challenges ?? 0} tone="purple" />
           <StatTile icon={Target} label="Easy" value={stats?.solo_easy ?? 0} tone="green" />
           <StatTile icon={Target} label="Medium" value={stats?.solo_medium ?? 0} tone="yellow" />
           <StatTile icon={Target} label="Hard" value={stats?.solo_hard ?? 0} tone="purple" />
         </div>
       </div>
 
-      {/* 1v1 Challenges */}
+      {/* 1v1 */}
       <div>
         <h3 className="text-sm font-semibold text-white/70 mb-2">1v1 Challenges</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           <StatTile icon={Swords} label="Total 1v1" value={stats?.total_1v1_challenges ?? 0} tone="slate" />
           <StatTile icon={Code} label="Python" value={stats?.duel_python_challenges ?? 0} tone="blue" />
           <StatTile icon={Code} label="Java" value={stats?.duel_java_challenges ?? 0} tone="red" />
-           <StatTile icon={Code} label="C++"    value={stats?.duel_cpp_challenges    ?? 0} tone="purple" /> {/* NEW */}
+          <StatTile icon={Code} label="C++" value={stats?.duel_cpp_challenges ?? 0} tone="purple" />
           <StatTile icon={Target} label="Easy" value={stats?.duel_easy ?? 0} tone="green" />
           <StatTile icon={Target} label="Medium" value={stats?.duel_medium ?? 0} tone="yellow" />
           <StatTile icon={Target} label="Hard" value={stats?.duel_hard ?? 0} tone="purple" />
@@ -403,64 +403,41 @@ export default function AdminDashboard() {
   )}
 </Section>
 
-            <Section
-              title={
-                <>
-                  <Code className="h-5 w-5 text-emerald-300" />
-                  <span className="text-white font-semibold">Language Popularity</span>
-                </>
-              }
-              right={
-                <button
-                  onClick={() => setShowLang(s => !s)}
-                  className="text-xs inline-flex items-center gap-2 px-2 py-1 rounded-lg border border-white/10 text-slate-200 hover:bg-white/5"
-                >
-                  {showLang ? 'Hide' : 'Show'}
-                </button>
-              }
-            >
-              {showLang && (
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4 grid gap-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg border border-white/10 bg-white/5">
-                        <Code className="h-4 w-4 text-white" />
-                      </div>
-                      <span className="text-sm text-white/90">Python Attempts</span>
-                    </div>
-                    <span className="text-lg font-bold text-white">{stats?.python_attempts ?? 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg border border-white/10 bg-white/5">
-                        <Code className="h-4 w-4 text-white" />
-                      </div>
-                      <span className="text-sm text-white/90">Java Attempts</span>
-                    </div>
-                    <span className="text-lg font-bold text-white">{stats?.java_attempts ?? 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between">{/* NEW */}
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg border border-white/10 bg-white/5">
-                        <Code className="h-4 w-4 text-white" />
-                      </div>
-                      <span className="text-sm text-white/90">C++ Attempts</span>
-                    </div>
-                    <span className="text-lg font-bold text-white">{stats?.cpp_attempts ?? 0}</span>
-                  </div>
-                </div>
-              )}
-            </Section>
-          </div>
+{/* LANGUAGE POPULARITY */}
+<Section
+  title={
+    <>
+      <Code className="h-5 w-5 text-emerald-300" />
+      <span className="text-white font-semibold">Language Popularity</span>
+    </>
+  }
+  right={
+    <button
+      onClick={() => setShowLang(s => !s)}
+      className="text-xs inline-flex items-center gap-2 px-2 py-1 rounded-lg border border-white/10 text-slate-200 hover:bg-white/5"
+    >
+      {showLang ? 'Hide' : 'Show'}
+    </button>
+  }
+>
+  {showLang && (
+    <div className="grid md:grid-cols-3 gap-4">
+      <StatTile icon={Code} label="Python Attempts" value={stats?.python_attempts ?? 0} tone="blue" />
+      <StatTile icon={Code} label="Java Attempts" value={stats?.java_attempts ?? 0} tone="red" />
+      <StatTile icon={Code} label="C++ Attempts" value={stats?.cpp_attempts ?? 0} tone="purple" />
+    </div>
+  )}
+</Section>
+
 
 
           {/* Footer tiny stat */}
-          <div className="text-xs text-white/50">
+          {/* <div className="text-xs text-white/50">
             {typeof stats?.total_characters === 'number' && (
               <span>Total Characters Generated: {stats.total_characters}</span>
             )}
             {error && <span className="ml-3 text-red-300">{error}</span>}
-          </div>
+          </div> */}
         </div>
       </AppLayout>
     </div>

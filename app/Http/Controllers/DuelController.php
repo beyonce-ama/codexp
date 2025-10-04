@@ -212,12 +212,19 @@ class DuelController extends Controller
             'time_spent_sec' => $data['time_spent_sec'],
         ]);
 
-        // Mark when user finishes
-        if ($request->user()->id === $duel->challenger_id) {
-            $duel->update(['challenger_finished_at' => now()]);
-        } else {
-            $duel->update(['opponent_finished_at' => now()]);
-        }
+        // ✅ Only mark a side finished when they submit a CORRECT answer.
+            // If incorrect, they may retry until their personal timer expires or they surrender.
+            if ($data['is_correct']) {
+                if ($request->user()->id === $duel->challenger_id) {
+                    if (!$duel->challenger_finished_at) {
+                        $duel->update(['challenger_finished_at' => now()]);
+                    }
+                } else {
+                    if (!$duel->opponent_finished_at) {
+                        $duel->update(['opponent_finished_at' => now()]);
+                    }
+                }
+            }
 
         // If both finished, resolve
         $duel->refresh();
@@ -271,6 +278,35 @@ class DuelController extends Controller
         ]);
     }
 
+    public function timeUp(Request $request, Duel $duel)
+    {
+        $this->authorizeUser($request->user()->id, $duel);
+
+        if ($duel->status !== 'active') {
+            return response()->json(['success'=>false, 'message'=>'Duel is not active'], 422);
+        }
+
+        $userId = $request->user()->id;
+        $fieldFinished = $userId === $duel->challenger_id ? 'challenger_finished_at' : 'opponent_finished_at';
+        $fieldStarted  = $userId === $duel->challenger_id ? 'challenger_started_at'  : 'opponent_started_at';
+
+        // If already marked finished, just return
+        if ($duel->$fieldFinished) {
+            return response()->json(['success'=>true, 'message'=>'Already finished', 'data'=>$duel->fresh()]);
+        }
+
+        // Mark finished due to time-up
+        $duel->update([$fieldFinished => now()]);
+
+        // If both sides are finished now, resolve winner
+        $duel->refresh();
+        if ($duel->challenger_finished_at && $duel->opponent_finished_at) {
+            $this->determineWinner($duel);
+        }
+
+        return response()->json(['success'=>true, 'message'=>'Marked finished (time up)', 'data'=>$duel->fresh()]);
+    }
+
     public function stats(Request $request)
     {
         $userId = $request->user()->id;
@@ -312,18 +348,31 @@ class DuelController extends Controller
             return response()->json(['success' => true, 'data' => $duel]);
         }
 
-        // Ensure both sides have at least one submission
-        $hasCh = DuelSubmission::where('duel_id', $duel->id)
-            ->where('user_id', $duel->challenger_id)->exists();
-        $hasOp = DuelSubmission::where('duel_id', $duel->id)
-            ->where('user_id', $duel->opponent_id)->exists();
+       // ✅ Only finalize when BOTH players are finished
+        $duel->refresh();
 
-        if (!$hasCh || !$hasOp) {
+        // Auto-mark time-up if their individual timer elapsed but they never finished
+        $sessionSec = max(300, min(1800, ($duel->session_duration_minutes ?? 15) * 60)); // 5–30 min guard
+
+        $now = now();
+        $chStart = $duel->challenger_started_at ?: $duel->started_at;
+        $opStart = $duel->opponent_started_at  ?: $duel->started_at;
+
+        if ($chStart && !$duel->challenger_finished_at && $now->diffInSeconds($chStart) >= $sessionSec) {
+            $duel->update(['challenger_finished_at' => $now]);
+        }
+        if ($opStart && !$duel->opponent_finished_at && $now->diffInSeconds($opStart) >= $sessionSec) {
+            $duel->update(['opponent_finished_at' => $now]);
+        }
+
+        $duel->refresh();
+        if (!$duel->challenger_finished_at || !$duel->opponent_finished_at) {
             return response()->json(['success' => false, 'message' => 'Not ready to finalize'], 422);
         }
 
-        // Decide winner now
+        // ✅ Now both finished: decide winner
         $this->determineWinner($duel);
+
 
         $duel->refresh()->load(['challenger','opponent','winner','challenge','submissions']);
         return response()->json(['success' => true, 'data' => $duel]);
