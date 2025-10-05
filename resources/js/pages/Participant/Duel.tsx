@@ -1809,17 +1809,19 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
 
                                                     {duel.status === 'active' && (() => {
                                                        const myCorrect = duel.submissions?.some((s) => s.user_id === user.id && s.is_correct);
-                                                            const mySubmitted = duel.submissions?.some((s) => s.user_id === user.id);
-                                                            const locallyWaiting = waitingDuels.includes(duel.id);
+                                                        const mySubmitted = duel.submissions?.some((s) => s.user_id === user.id);
+                                                        const opponentCorrect = duel.submissions?.some((s) => s.user_id !== user.id && s.is_correct);
+                                                        const locallyWaiting = waitingDuels.includes(duel.id);
 
-                                                            // Disable when: user already submitted (correct OR wrong), waiting, finalizing, or duel ended/finished
-                                                            const disabled =
-                                                            mySubmitted ||
-                                                            myCorrect ||
-                                                            locallyWaiting ||
-                                                            finalizing ||
-                                                            duel.status === 'finished' ||
-                                                            duelEnded;
+                                                        const disabled =
+                                                        mySubmitted ||
+                                                        myCorrect ||
+                                                        opponentCorrect ||   
+                                                        locallyWaiting ||
+                                                        finalizing ||
+                                                        duel.status === 'finished' ||
+                                                        duelEnded;
+
 
                                                         return (
                                                             <button
@@ -1835,12 +1837,15 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                             >
                                                             <Play className="h-4 w-4" />
                                                             <span>
-                                                                    {myCorrect || locallyWaiting
-                                                                        ? 'Waiting for opponent...'
-                                                                        : duelEnded || duel.status === 'finished'
-                                                                        ? 'Completed'
-                                                                        : 'Start Duel'}
-                                                                    </span>
+                                                                {myCorrect || locallyWaiting
+                                                                    ? 'Waiting for opponent...'
+                                                                    : opponentCorrect
+                                                                    ? 'Opponent already submitted'
+                                                                    : duelEnded || duel.status === 'finished'
+                                                                    ? 'Completed'
+                                                                    : 'Start Duel'}
+                                                                </span>
+
 
                                                             </button>
                                                         );
@@ -2453,28 +2458,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                         </div>
                                     </div>
 
-                                    {/* Opponent Status */}
-                                    {/* {opponentSubmission && (
-                                        <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-4">
-                                            <div className="flex items-center space-x-2">
-                                                <CheckCircle className="h-4 w-4 text-green-400" />
-                                                <span className="text-green-400 font-medium">
-                                                    Opponent submitted their solution! ({formatTime(opponentSubmission.time_spent_sec)})
-                                                    {opponentSubmission.is_correct ? ' ✅ Correct!' : ' ❌ Incorrect'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )} */}
-{/* {waitingForOpponent && !duelEnded && (
-  <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
-    <div className="flex items-center space-x-2">
-      <Timer className="h-4 w-4 text-blue-400" />
-      <span className="text-blue-300 font-medium">
-        Waiting for opponent to submit… We’ll announce the winner automatically.
-      </span>
-    </div>
-  </div>
-)} */}
+                                   
 {finalizing && (
   <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-4">
     <div className="flex items-center space-x-2">

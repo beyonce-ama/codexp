@@ -1004,30 +1004,39 @@ if (isConfirmed) {
     );
 const showCodeModal = (title: string, code: string) => {
   Swal.fire({
-    title,
+    title: `<span class="text-lg font-semibold text-emerald-400">${title}</span>`,
     html: `
-      <div class="correct-answer-modal">
-        <p class="mb-4 text-gray-300">100% match required:</p>
-        <div class="bg-gray-900 rounded-lg p-4 text-left">
+      <div class="rounded-xl bg-gray-800/70 shadow-lg border border-gray-700 p-5 text-left">
+        <p class="mb-3 text-gray-400 text-sm">
+          ⚙️ <span class="text-emerald-400">100% match required</span> — make sure your code logic is exact.
+        </p>
+        <div class="relative rounded-md bg-gray-900 border border-gray-700 p-3 overflow-hidden">
           <pre id="swal-code"
-               class="text-green-400 text-sm overflow-auto"
+               class="text-emerald-300 text-sm overflow-y-auto scrollbar-hide"
                style="
-                 font-family:'Courier New',monospace;
-                 white-space: pre;      /* keep indentation and angle brackets */
-                 max-height: 70vh;      /* taller */
-                 max-width: 90vw;       /* responsive */
+                 font-family:'Courier New', monospace;
+                 white-space: pre-wrap;
+                 word-break: break-word;
+                 max-height: 50vh;
+                 padding-right: 10px;
                "></pre>
         </div>
       </div>
     `,
-    width: 900,
-    background: '#1f2937',
+    width: 700,
+    background: '#111827', // darker for contrast
     color: '#fff',
-    confirmButtonText: 'Got it!',
+    confirmButtonText: 'Close',
     confirmButtonColor: '#10B981',
+    showClass: {
+      popup: 'animate__animated animate__fadeInUp animate__faster'
+    },
+    hideClass: {
+      popup: 'animate__animated animate__fadeOutDown animate__faster'
+    },
     didOpen: () => {
       const el = Swal.getHtmlContainer()?.querySelector<HTMLElement>('#swal-code');
-      if (el) el.textContent = code; // <-- TEXT, not HTML
+      if (el) el.textContent = code;
     }
   });
 };

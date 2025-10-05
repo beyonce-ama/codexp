@@ -559,7 +559,11 @@ const openHistory = async () => {
       className="absolute inset-0 bg-black/60"
       onClick={() => setShowChallengeModal(false)}
     />
-    <div className="relative w-full max-w-2xl mx-4 rounded-2xl border border-slate-700/60 bg-slate-900/90 backdrop-blur p-5 max-h-[80vh] overflow-y-auto">
+   <div
+  className="relative w-full max-w-2xl mx-4 rounded-2xl border border-slate-700/60 bg-slate-900/90 backdrop-blur p-5 max-h-[80vh] overflow-y-auto scrollbar-hide"
+  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+>
+
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-indigo-400">
           {selectedChallenge.title || 'Challenge Info'}
@@ -624,9 +628,15 @@ const TipCard = ({ icon, title, text }: { icon: React.ReactNode; title: string; 
 );
 
 export default Matchmaking;
-// Hide scrollbar globally for .scrollbar-hide
 const style = document.createElement('style');
 style.innerHTML = `
   .scrollbar-hide::-webkit-scrollbar { display: none; }
 `;
 document.head.appendChild(style);
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.innerHTML = `
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+  `;
+  document.head.appendChild(style);
+}
