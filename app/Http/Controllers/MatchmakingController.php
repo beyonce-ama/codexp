@@ -12,6 +12,64 @@ use App\Models\MatchParticipant;
 
 class MatchmakingController extends Controller
 {
+
+        public function history(Request $request)
+    {
+        $user = $request->user();
+        $limit = (int)($request->input('limit', 20));
+        $limit = max(1, min(50, $limit));
+
+        $items = \App\Models\DuelTaken::query()
+            ->where('user_id', $user->id)
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->with([
+                // Pull only the columns we need from matches
+                'match:id,public_id,language,difficulty,challenge_json,payload',
+                // We’ll fetch participants to find the opponent
+                'match.participants:id,match_id,user_id',
+            ])
+            ->get();
+
+        // Preload opponent names in one query to avoid N+1
+        $byOpponentIds = [];
+        foreach ($items as $dt) {
+            $oppId = optional($dt->match?->participants)->firstWhere('user_id', '!=', $user->id)->user_id ?? null;
+            if ($oppId) { $byOpponentIds[$oppId] = true; }
+        }
+        $opponents = $byOpponentIds
+            ? \App\Models\User::query()->whereIn('id', array_keys($byOpponentIds))
+                ->get(['id','name'])->keyBy('id')
+            : collect();
+
+        $data = $items->map(function (\App\Models\DuelTaken $dt) use ($user, $opponents) {
+            $match = $dt->match;
+            $oppUserId = optional($match?->participants)->firstWhere('user_id', '!=', $user->id)->user_id ?? null;
+            $oppName = $oppUserId && isset($opponents[$oppUserId]) ? $opponents[$oppUserId]->name : 'Unknown';
+
+            return [
+                'id'              => $dt->id,
+                'duel_id'         => $dt->duel_id,
+                'match_id'        => $dt->match_id,
+                'match_public_id' => $match?->public_id,
+                'language'        => $match?->language ?? $dt->language,
+                'difficulty'      => $match?->difficulty ?? null,
+                'status'          => $dt->status,
+                'is_winner'       => (bool)$dt->is_winner,
+                'time_spent_sec'  => $dt->time_spent_sec,
+                'finished_at'     => optional($dt->ended_at)->toIso8601String(),
+                // This is what your React modal checks:
+                'challenge'       => $match?->challenge,  // ← accessor now serialized via $appends
+                'opponent'        => [
+                    'id'   => $oppUserId,
+                    'name' => $oppName,
+                ],
+            ];
+        })->values();
+
+        return response()->json(['items' => $data]);
+    }
+
     /**
      * Join matchmaking: queue, try to pair, create match, generate challenge,
      * and return { slug, token } when ready. Mode is fixed to "aigenerated".
@@ -235,60 +293,5 @@ class MatchmakingController extends Controller
         DB::table('match_searches')->where('user_id', $r->user()->id)->delete();
         return response()->json(['ok' => true]);
     }
-
-public function history(Request $request)
-{
-    $user = $request->user();
-    $limit = $request->get('limit', 20);
-
-    $items = \App\Models\DuelTaken::query()
-        ->with([
-            'match' => function ($q) {
-                $q->select('id', 'public_id', 'language', 'difficulty', 'winner_user_id', 'finished_at');
-            }
-        ])
-        ->where('user_id', $user->id)
-        ->whereIn('status', ['finished', 'surrendered'])
-        ->orderByDesc('ended_at')
-        ->limit(10)
-
-        ->get()
-        ->map(function ($row) use ($user) {
-            $match = $row->match;
-
-            // Get opponent
-            $opponentTaken = \App\Models\DuelTaken::where('match_id', $row->match_id)
-                ->where('user_id', '!=', $user->id)
-                ->first();
-
-            $opponentUser = $opponentTaken
-                ? \App\Models\User::find($opponentTaken->user_id, ['id', 'name'])
-                : null;
-
-           return [
-                'id'             => $row->id,
-                'duel_id'        => $row->duel_id,
-                'match_id'       => $row->match_id,
-                'match_public_id'=> $match?->public_id,
-                'language'       => $match?->language ?? $row->language,
-                'difficulty'     => $match?->difficulty,
-                'status'         => $row->status,
-                'is_winner'      => (bool) $row->is_winner,
-                'time_spent_sec' => $row->time_spent_sec,
-                'finished_at'    => $match?->finished_at ?? $row->ended_at,
-                'challenge'      => $match?->challenge_json, // 👈 include full challenge data
-                'opponent' => [
-                    'id'   => $opponentUser?->id,
-                    'name' => $opponentUser?->name ?? 'Unknown',
-                ],
-            ];
-
-        });
-
-    return response()->json([
-        'success' => true,
-        'items' => $items,
-    ]);
-}
 
 }

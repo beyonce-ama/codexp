@@ -150,7 +150,7 @@ export default function ParticipantDuel() {
     // Add near other useStates
     const [waitingForOpponent, setWaitingForOpponent] = useState(false);
     const [finalizing, setFinalizing] = useState(false);
-
+const [waitingDuels, setWaitingDuels] = useState<number[]>([]);
 const sessionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 const displayLanguage = (s: string) => (s === 'cpp' ? 'C++' : (s ?? '').toUpperCase());
@@ -867,6 +867,7 @@ const cmpHtml = cmp ? `
         );
         
         fetchMyDuels();
+        setWaitingDuels((prev) => prev.filter((id) => id !== duelData.id));
         fetchDuelStats();
     };
 
@@ -1235,6 +1236,8 @@ if (duel.status === 'finished') {
                     setWaitingForOpponent(true);
                     fetchMyDuels(true);
                     fetchDuelStatus(activeDuel.id);
+                    setWaitingDuels((prev) => [...new Set([...prev, activeDuel.id])]);
+
                 } else {
                     if (!autoSubmit) {
                         audio.play('failure');
@@ -1697,14 +1700,18 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                     <span className={`px-3 py-1 text-xs font-bold rounded-full ${getStatusColor(duel.status)}`}>
                                                         {duel.status.toUpperCase()}
                                                     </span>
-                                                    {duel.status === 'active' && (
+                                                   {duel.status === 'active' && (
+                                                    (waitingDuels.includes(duel.id) ||
+                                                        (
                                                         duel.submissions?.some((s) => s.user_id === user.id && s.is_correct) &&
-                                                        !duel.submissions?.some((s) => s.user_id !== user.id && s.is_correct) && (
-                                                            <span className="text-xs text-blue-400 font-medium ml-2">
+                                                        !duel.submissions?.some((s) => s.user_id !== user.id && s.is_correct)
+                                                        )) && (
+                                                        <span className="text-xs text-blue-400 font-medium ml-2">
                                                             ⏳ Waiting for opponent...
-                                                            </span>
-                                                        )
-                                                        )}
+                                                        </span>
+                                                    )
+                                                    )}
+
 
 
 

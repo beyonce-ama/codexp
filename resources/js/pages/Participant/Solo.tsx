@@ -727,7 +727,8 @@ if (isConfirmed) {
                                 <li>Ensure your code is at least 20 characters long</li>
                                 <li>Don’t just copy the buggy version</li>
                                 <li>Whitespace, symbols & punctuation matter</li>
-                                <li>⚠️ Don’t remove or add unnecessary comments — they are also compared in the database</li>
+                                 <li>⚠️ Don’t remove or add unnecessary comments — they are also compared in the database</li>
+
                                 </ul>
                             </div>
                             </div>
@@ -1003,46 +1004,33 @@ if (isConfirmed) {
     );
 const showCodeModal = (title: string, code: string) => {
   Swal.fire({
-    title: `
-      <div class="flex flex-col items-center">
-        <div class="animate-bounce mb-2 text-5xl">💻</div>
-        <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 font-extrabold text-2xl">
-          ${title}
-        </span>
-      </div>
-    `,
+    title,
     html: `
-      <div class="relative rounded-xl border border-cyan-500/40 bg-gradient-to-br from-gray-900/90 via-gray-800/90 to-gray-900/80 p-5 shadow-2xl backdrop-blur-md">
-        <div class="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 rounded-xl blur-md"></div>
-
-        <p class="mb-4 text-sm text-gray-300 relative z-10">🧠 This is the <span class="text-cyan-400 font-semibold">exact</span> solution from our database — your code must match it <strong>100%</strong>.</p>
-
-        <div class="relative z-10 bg-gray-950/70 border border-gray-700/60 rounded-lg p-4 overflow-auto max-h-[65vh]">
+      <div>
+        <p class="mb-3 text-gray-300">100% match required:</p>
+        <div class="bg-gray-900 rounded-lg p-4 text-left">
           <pre id="swal-code"
-               class="text-green-400 text-sm leading-relaxed font-mono whitespace-pre-wrap glow-text"
-               style="font-family:'Courier New', monospace;"></pre>
-        </div>
-
-        <div class="mt-5 text-xs text-gray-400 text-center italic relative z-10">
-          <span>Tip: Check indentation, spaces, and semicolons — they all matter!</span>
+               class="text-green-400 text-sm overflow-auto"
+               style="
+                 font-family:'Courier New',monospace;
+                 white-space: pre;      /* keep indentation and angle brackets */
+                 max-height: 70vh;      /* taller */
+                 max-width: 90vw;       /* responsive */
+               "></pre>
         </div>
       </div>
     `,
     width: 900,
-    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+    background: '#1f2937',
     color: '#fff',
     confirmButtonText: 'Got it!',
     confirmButtonColor: '#10B981',
-    customClass: {
-      popup: 'shadow-2xl rounded-2xl border border-cyan-600/30 animate-fadeInUp',
-    },
     didOpen: () => {
       const el = Swal.getHtmlContainer()?.querySelector<HTMLElement>('#swal-code');
-      if (el) el.textContent = code; // show raw text, preserve indentation
-    },
+      if (el) el.textContent = code; // <-- TEXT, not HTML
+    }
   });
 };
-
 
     return (
         <div className="min-h-screen relative overflow-hidden">
