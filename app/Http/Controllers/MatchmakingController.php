@@ -13,96 +13,84 @@ use App\Models\MatchParticipant;
 class MatchmakingController extends Controller
 {
 
-       public function history(Request $request)
-    {
-        $user  = $request->user();
-        $limit = (int)($request->input('limit', 20));
-        $limit = max(1, min(50, $limit));
+    public function history(Request $request)
+{
+    $user = $request->user();
+    $limit = max(1, min(50, (int)$request->input('limit', 20)));
 
-        // Load recent DuelTaken rows for this user + the linked match
-        $items = \App\Models\DuelTaken::query()
-            ->where('user_id', $user->id)
-            ->orderByDesc('id')
-            ->limit($limit)
-            ->with([
-                'match:id,public_id,language,difficulty,challenge_json,payload,status',
-            ])
+    // Get only LIVE matches for this user
+    $duels = \App\Models\DuelTaken::query()
+        ->where('user_id', $user->id)
+        ->where('source', 'live') // ← only live
+        ->orderByDesc('id')
+        ->limit($limit)
+        ->with(['match:id,public_id,language,difficulty,challenge_json,payload,status'])
+        ->get();
+
+    // Collect all match_ids
+    $matchIds = $duels->pluck('match_id')->filter()->unique()->values();
+
+    // Fetch other players from the same matches (the opponents)
+    $opponents = [];
+    if ($matchIds->isNotEmpty()) {
+        $rows = \App\Models\DuelTaken::query()
+            ->select(['duels_taken.match_id', 'duels_taken.user_id', 'users.name'])
+            ->join('users', 'users.id', '=', 'duels_taken.user_id')
+            ->whereIn('duels_taken.match_id', $matchIds)
+            ->where('duels_taken.user_id', '!=', $user->id)
             ->get();
 
-        // Collect match_ids and fetch "the other user" from DuelTaken (not participants)
-        $matchIds = $items->pluck('match_id')->filter()->unique()->all();
+        foreach ($rows as $r) {
+            $opponents[$r->match_id] = ['id' => $r->user_id, 'name' => $r->name];
+        }
+    }
 
-        $opponents = [];
-        if (!empty($matchIds)) {
-            $oppRows = \App\Models\DuelTaken::query()
-                ->select(['duels_taken.match_id', 'users.id as user_id', 'users.name'])
-                ->join('users', 'users.id', '=', 'duels_taken.user_id')
-                ->whereIn('duels_taken.match_id', $matchIds)
-                ->where('duels_taken.user_id', '!=', $user->id)
-                ->get();
+    // Helper: decode challenge from JSON text or array
+    $decodeChallenge = function ($match) {
+        if (!$match) return null;
+        $raw = $match->challenge_json ?? $match->payload ?? null;
 
-            foreach ($oppRows as $r) {
-                $opponents[(int)$r->match_id] = ['id' => (int)$r->user_id, 'name' => (string)$r->name];
+        // Already array?
+        if (is_array($raw)) {
+            return $raw['challenge'] ?? $raw;
+        }
+
+        // Decode if string
+        if (is_string($raw) && $raw !== '') {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                // handle nested {"challenge": {...}}
+                return $decoded['challenge'] ?? $decoded;
             }
         }
 
-        // Helper: robust decode of challenge for ANY storage shape (array or string)
-        $decodeChallenge = function ($match) {
-            if (!$match) return null;
+        return null;
+    };
 
-            // Prefer accessor (works when $appends includes 'challenge')
-            $c = $match->challenge ?? null;
+    // Build final list
+    $items = $duels->map(function ($d) use ($user, $opponents, $decodeChallenge) {
+        $match = $d->match;
+        $opponent = $opponents[$d->match_id] ?? ['id' => null, 'name' => 'Unknown'];
+        $challenge = $decodeChallenge($match);
 
-            // If still null, try manual decode (handles double-encoded JSON strings)
-            if ($c === null) {
-                $raw = $match->challenge_json ?? $match->payload ?? null;
+        return [
+            'id'              => $d->id,
+            'duel_id'         => $d->duel_id,
+            'match_id'        => $d->match_id,
+            'match_public_id' => $match?->public_id,
+            'language'        => $match?->language ?? $d->language,
+            'difficulty'      => $match?->difficulty ?? null,
+            'status'          => $d->status,
+            'is_winner'       => (bool)$d->is_winner,
+            'time_spent_sec'  => $d->time_spent_sec,
+            'finished_at'     => optional($d->ended_at)->toIso8601String(),
+            'challenge'       => $challenge, // always returned
+            'opponent'        => $opponent,
+        ];
+    });
 
-                // Already an array?
-                if (is_array($raw)) {
-                    $c = $raw['challenge'] ?? $raw;
-                } elseif (is_string($raw) && $raw !== '') {
-                    // First decode
-                    $decoded = json_decode($raw, true);
-                    if (is_array($decoded)) {
-                        $c = $decoded['challenge'] ?? $decoded;
-                    } else {
-                        // Some rows might have a JSON string inside a string (double-encoded)
-                        $decoded2 = json_decode((string)$decoded, true);
-                        if (is_array($decoded2)) {
-                            $c = $decoded2['challenge'] ?? $decoded2;
-                        }
-                    }
-                }
-            }
-
-            return $c;
-        };
-
-        $data = $items->map(function (\App\Models\DuelTaken $dt) use ($user, $opponents, $decodeChallenge) {
-            $match   = $dt->match;
-            $oppInfo = $opponents[(int)$dt->match_id] ?? ['id' => null, 'name' => 'Unknown'];
-
-            // Always attempt to expose a challenge object for the frontend "View" button
-            $challenge = $decodeChallenge($match);
-
-            return [
-                'id'              => $dt->id,
-                'duel_id'         => $dt->duel_id,
-                'match_id'        => $dt->match_id,
-                'match_public_id' => $match?->public_id,
-                'language'        => $match?->language ?? $dt->language,
-                'difficulty'      => $match?->difficulty ?? null,
-                'status'          => $dt->status,
-                'is_winner'       => (bool)$dt->is_winner,
-                'time_spent_sec'  => $dt->time_spent_sec,
-                'finished_at'     => optional($dt->ended_at)->toIso8601String(),
-                'challenge'       => $challenge,        // ← ALWAYS try to return this
-                'opponent'        => $oppInfo,          // ← No more "Unknown" if there’s another DuelTaken row
-            ];
-        })->values();
-
-        return response()->json(['items' => $data]);
-    }
+    return response()->json(['items' => $items]);
+}
 
     /**
      * Join matchmaking: queue, try to pair, create match, generate challenge,

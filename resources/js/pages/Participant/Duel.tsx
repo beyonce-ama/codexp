@@ -1087,6 +1087,18 @@ const cmpHtml = cmp ? `
             }
 
             setUserCode(duel.challenge.buggy_code || '');
+            if (waitingDuels.includes(duel.id)) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Waiting for Opponent',
+                    text: 'You’ve already submitted your correct solution. Please wait for your opponent to finish.',
+                    timer: 3000,
+                    background: '#1f2937',
+                    color: '#fff',
+                });
+                return;
+                }
+
             setShowDuelModal(true);
             resultShownRef.current = false; 
             setTimeSpent(0);
@@ -1795,16 +1807,45 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                           </div>
                                                       )}
 
-                                                      {(duel.status === 'active') && (
-                                                          <button
-                                                              onClick={() => startDuel(duel)}
-                                                              className="flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg hover:from-cyan-600 hover:to-blue-700 text-sm hover:scale-105 transition-all duration-300"
-                                                              onMouseEnter={() => audio.play('hover')}
-                                                          >
-                                                              <Play className="h-4 w-4" />
-                                                              <span>Start Duel</span>
-                                                          </button>
-                                                      )}
+                                                    {duel.status === 'active' && (() => {
+                                                       const myCorrect = duel.submissions?.some((s) => s.user_id === user.id && s.is_correct);
+                                                            const mySubmitted = duel.submissions?.some((s) => s.user_id === user.id);
+                                                            const locallyWaiting = waitingDuels.includes(duel.id);
+
+                                                            // Disable when: user already submitted (correct OR wrong), waiting, finalizing, or duel ended/finished
+                                                            const disabled =
+                                                            mySubmitted ||
+                                                            myCorrect ||
+                                                            locallyWaiting ||
+                                                            finalizing ||
+                                                            duel.status === 'finished' ||
+                                                            duelEnded;
+
+                                                        return (
+                                                            <button
+                                                            onClick={() => !disabled && startDuel(duel)}
+                                                            disabled={disabled}
+                                                            className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm transition-all duration-300 font-medium shadow-md
+                                                                ${
+                                                                disabled
+                                                                    ? 'bg-gray-700/40 text-gray-400 cursor-not-allowed opacity-50'
+                                                                    : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700 hover:scale-105'
+                                                                }`}
+                                                            onMouseEnter={() => !disabled && audio.play('hover')}
+                                                            >
+                                                            <Play className="h-4 w-4" />
+                                                            <span>
+                                                                    {myCorrect || locallyWaiting
+                                                                        ? 'Waiting for opponent...'
+                                                                        : duelEnded || duel.status === 'finished'
+                                                                        ? 'Completed'
+                                                                        : 'Start Duel'}
+                                                                    </span>
+
+                                                            </button>
+                                                        );
+                                                        })()}
+
                                                      {duel.status === 'finished' && (
                                                         <button
                                                          onClick={async () => {
@@ -2413,7 +2454,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                     </div>
 
                                     {/* Opponent Status */}
-                                    {opponentSubmission && (
+                                    {/* {opponentSubmission && (
                                         <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-4">
                                             <div className="flex items-center space-x-2">
                                                 <CheckCircle className="h-4 w-4 text-green-400" />
@@ -2423,8 +2464,8 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                 </span>
                                             </div>
                                         </div>
-                                    )}
-{waitingForOpponent && !duelEnded && (
+                                    )} */}
+{/* {waitingForOpponent && !duelEnded && (
   <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
     <div className="flex items-center space-x-2">
       <Timer className="h-4 w-4 text-blue-400" />
@@ -2433,7 +2474,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
       </span>
     </div>
   </div>
-)}
+)} */}
 {finalizing && (
   <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-4">
     <div className="flex items-center space-x-2">
