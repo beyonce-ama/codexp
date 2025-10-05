@@ -1193,14 +1193,14 @@ const showCodeModal = (title: string, code: string) => {
                             </div>
 
                             {/* Stats Grid */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                              
                                 <StatCard title="Level" value={userStats.current_level} icon={Crown} color="bg-orange-500" />
                                 <StatCard title="Total XP" value={userStats.total_xp || 0} icon={Trophy} color="bg-yellow-500" />   
                                 <StatCard title="Completed" value={userStats.successful_attempts || 0} icon={CheckCircle} color="bg-green-500" animated={showSuccess}
                                 /> 
-                                <StatCard title="Available" value={availableChallenges.length} icon={Target} color="bg-cyan-500" />
-                                
+                                {/* <StatCard title="Available" value={availableChallenges.length} icon={Target} color="bg-cyan-500" />
+                                 */}
                                 
                             </div>
                         </div>
