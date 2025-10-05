@@ -13,32 +13,33 @@ class Challenge1v1Controller extends Controller
 public function index(Request $request)
 {
     $user = auth()->user();
-
     $q = \App\Models\Challenge1v1::query();
 
-    // filters already used by the UI
-    if ($request->filled('language') && $request->language !== 'all') {
+    // ✅ Apply filters (language, difficulty, search)
+    if ($request->filled('language') && strtolower($request->language) !== 'all') {
         $q->where('language', $request->language);
     }
 
-    if ($request->filled('difficulty') && $request->difficulty !== 'all') {
+    if ($request->filled('difficulty') && strtolower($request->difficulty) !== 'all') {
         $q->where('difficulty', $request->difficulty);
     }
 
-    // optional text search (UI sends `search`)
     if ($request->filled('search')) {
-        $term = $request->string('search')->toString();
-        $q->where(function ($qq) use ($term) {
-            $qq->where('title', 'like', "%{$term}%")
-               ->orWhere('description', 'like', "%{$term}%");
+        $term = trim($request->search);
+        $q->where(function ($sub) use ($term) {
+            $sub->where('title', 'like', "%{$term}%")
+                ->orWhere('description', 'like', "%{$term}%");
         });
     }
 
     // ✅ Exclude challenges the current user has already taken
-    if ($request->boolean('exclude_taken', true)) {
-        $takenIds = \DB::table('duels_taken')
-            ->where('user_id', $user->id)
-            ->pluck('challenge_id')
+    if ($user) {
+        $takenIds = \App\Models\Duel::where(function ($duel) use ($user) {
+                $duel->where('challenger_id', $user->id)
+                     ->orWhere('opponent_id', $user->id);
+            })
+            ->pluck('challenge_id') // ← real column name
+            ->unique()
             ->toArray();
 
         if (!empty($takenIds)) {
@@ -46,8 +47,8 @@ public function index(Request $request)
         }
     }
 
-    // return the remaining challenges
-    $challenges = $q->orderByDesc('id')->get();
+    // ✅ Get all remaining challenges (untaken)
+    $challenges = $q->orderByDesc('created_at')->get();
 
     return response()->json([
         'success' => true,
