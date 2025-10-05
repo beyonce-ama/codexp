@@ -125,6 +125,7 @@ export default function ParticipantDuel() {
     const [languageFilter, setLanguageFilter] = useState<string>('all');
     const [difficultyFilter, setDifficultyFilter] = useState<string>('all');
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
 
     // Create Duel Modal
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -197,6 +198,10 @@ useEffect(() => {
     document.body.classList.remove('duel-open');
   };
 }, [showDuelModal, showCreateModal, showReviewModal]);
+useEffect(() => {
+  const t = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 300);
+  return () => clearTimeout(t);
+}, [searchTerm]);
 
 // Fullscreen helpers
 const enterFullscreen = () => {
@@ -222,16 +227,17 @@ const exitFullscreen = () => {
         return d;
     };
 
-    useEffect(() => {
-        if (activeTab === 'browse') {
-            fetchChallenges();
-            fetchParticipants();
-        }
-        if (activeTab === 'my-duels') {
-            fetchMyDuels();
-        }
-        fetchDuelStats();
-    }, [activeTab, languageFilter, difficultyFilter, searchTerm]);
+ useEffect(() => {
+  if (activeTab === 'browse') {
+    fetchChallenges();
+    fetchParticipants();
+  }
+  if (activeTab === 'my-duels') {
+    fetchMyDuels();
+  }
+  fetchDuelStats();
+}, [activeTab, languageFilter, difficultyFilter, debouncedSearch]); 
+
 
 
     // Handle fullscreen when duel modal opens/closes
@@ -589,7 +595,11 @@ const buildComparisonForModal = (duel: Duel) => {
             const params: any = {};
             if (languageFilter !== 'all') params.language = languageFilter;
             if (difficultyFilter !== 'all') params.difficulty = difficultyFilter;
-            if (searchTerm.trim()) params.search = searchTerm.trim();
+            if (debouncedSearch) {
+                params.search = debouncedSearch; // new API
+                params.q = debouncedSearch;       // legacy API
+                }
+
             params.exclude_taken = true;
             if (selectedOpponent?.id) params.opponent_id = selectedOpponent.id;
 
@@ -605,6 +615,16 @@ const buildComparisonForModal = (duel: Duel) => {
             setLoading(false);
         }
     };
+const matchesSearch = (c: Challenge1v1, q: string) => {
+  if (!q) return true;
+  const hay = `${c.title} ${c.description ?? ''}`.toLowerCase();
+  return hay.includes(q.toLowerCase());
+};
+const displayedChallenges = challenges.filter(c =>
+  (languageFilter === 'all' || c.language === languageFilter) &&
+  (difficultyFilter === 'all' || c.difficulty === difficultyFilter) &&
+  matchesSearch(c, debouncedSearch) // 👈 client-side guard
+);
 
     const fetchMyDuels = async (silent: boolean = false) => {
         try {
@@ -2061,10 +2081,10 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                     </div>
                                 ) : challenges.length === 0 ? (
                                     <div className="col-span-full text-center py-12 text-gray-400">
-                                        {searchTerm ? `No challenges found matching "${searchTerm}"` : 'No challenges available'}
+                                         {debouncedSearch ? `No challenges found matching "${debouncedSearch}"` : 'No challenges available'}
                                     </div>
                                 ) : (
-                                    challenges.map((challenge) => (
+                                     displayedChallenges.map((challenge) => (
                                         <div key={challenge.id} className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-xl p-6 hover:scale-105 transition-all duration-300 hover:border-cyan-500/50">
                                             <div className="flex items-start justify-between mb-4">
                                                 <h3 className="text-lg font-bold text-white">{challenge.title}</h3>
