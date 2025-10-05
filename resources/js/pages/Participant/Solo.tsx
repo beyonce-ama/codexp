@@ -714,8 +714,10 @@ if (isConfirmed) {
                         html: `
                             <div class="text-center">
                             <div class="text-5xl mb-4">⚠️</div>
-                            <p class="mb-3 text-lg font-semibold text-red-200">Your solution must exactly match the database answer.</p>
-                            
+                            <p class="mb-3 text-lg font-semibold text-red-200">
+                                Your solution must exactly match the database answer.
+                            </p>
+
                             <div class="bg-red-900/30 border border-red-500/40 rounded-lg p-4 mb-4">
                                 <div class="text-lg font-bold text-yellow-300">${Math.round(similarity * 100)}% Match</div>
                                 <div class="text-sm text-gray-200 opacity-80">Need 100% for Success</div>
@@ -727,8 +729,7 @@ if (isConfirmed) {
                                 <li>Ensure your code is at least 20 characters long</li>
                                 <li>Don’t just copy the buggy version</li>
                                 <li>Whitespace, symbols & punctuation matter</li>
-                                 <li>⚠️ Don’t remove or add unnecessary comments — they are also compared in the database</li>
-
+                                <li>⚠️ Don’t remove or add unnecessary comments — they are also compared in the database</li>
                                 </ul>
                             </div>
                             </div>
@@ -736,10 +737,12 @@ if (isConfirmed) {
                         timer: 4500,
                         showConfirmButton: true,
                         confirmButtonText: 'Try Again',
-                        background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
-                        color: '#fff',
+                        background: 'linear-gradient(160deg, #0f172a 0%, #1e293b 50%, #111827 100%)',
+                        color: '#e5e7eb',
                         confirmButtonColor: '#3B82F6',
+                        backdrop: 'rgba(0,0,0,0.6)', 
                         });
+
                 }
                 
                 // Refresh stats and challenges to ensure UI is up to date
@@ -1002,19 +1005,17 @@ if (isConfirmed) {
             </div>
         </div>
     );
-const showSolutionModal = (title: string, code: string) => {
+const showCodeModal = (title: string, code: string) => {
   Swal.fire({
-    title: `
-      <div class="text-center">
-        <h2 class="text-xl font-bold text-yellow-400 mb-2">💡 ${title}</h2>
-        <p class="text-gray-300 text-sm">You chose to quit — here's the correct solution:</p>
-      </div>
-    `,
+    title: `<span class="text-lg font-semibold text-emerald-400">${title}</span>`,
     html: `
       <div class="rounded-xl bg-gray-800/70 shadow-lg border border-gray-700 p-5 text-left">
+        <p class="mb-3 text-gray-400 text-sm">
+          ⚙️ <span class="text-emerald-400">100% match required</span> — make sure your code logic is exact.
+        </p>
         <div class="relative rounded-md bg-gray-900 border border-gray-700 p-3 overflow-hidden">
           <pre id="swal-code"
-               class="text-green-400 text-sm overflow-y-auto scrollbar-hide"
+               class="text-emerald-300 text-sm overflow-y-auto scrollbar-hide"
                style="
                  font-family:'Courier New', monospace;
                  white-space: pre-wrap;
@@ -1023,15 +1024,12 @@ const showSolutionModal = (title: string, code: string) => {
                  padding-right: 10px;
                "></pre>
         </div>
-        <p class="mt-4 text-gray-400 text-xs text-center italic">
-          Don’t worry — every great coder learns from their bugs. Try again next time! 🚀
-        </p>
       </div>
     `,
-    width: 680,
-    background: '#111827',
+    width: 700,
+    background: '#111827', // darker for contrast
     color: '#fff',
-    confirmButtonText: 'Got it!',
+    confirmButtonText: 'Close',
     confirmButtonColor: '#10B981',
     showClass: {
       popup: 'animate__animated animate__fadeInUp animate__faster'

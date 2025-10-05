@@ -45,24 +45,33 @@ const DarkModal = Swal.mixin({
   },
 });
 
-// Custom dark toast styled like Codexp XP theme
-const DarkToast = Swal.mixin({
-  toast: true,
-  position: 'bottom-end',
-  showConfirmButton: false,
-  timer: 2500,
-  timerProgressBar: true,
-  iconColor: '#facc15', // yellow-400
-  background: '#0f172a', // slate-900
-  color: '#e2e8f0', // slate-300
-  customClass: {
-    popup:
-      'flex items-center gap-3 rounded-xl border border-yellow-700 bg-slate-900/90 backdrop-blur px-4 py-3 shadow-lg',
-    icon: 'p-2 rounded-lg border border-yellow-700 bg-yellow-500/10',
-    title: 'text-sm text-white font-semibold',
-    timerProgressBar: 'bg-yellow-500/50'
-  },
-});
+// Minimal dark toast for Practice (pure HTML, no Swal icon/title)
+const fireToast = (text: string, ms = 2500) =>
+  Swal.fire({
+    toast: true,
+    position: 'bottom-end',
+    showConfirmButton: false,
+    timer: ms,
+    timerProgressBar: true,
+    background: 'transparent', // important: we render the card ourselves
+    customClass: {
+      popup: '!p-0 !bg-transparent !shadow-none !border-0',
+      timerProgressBar: 'bg-yellow-500/50',
+    },
+    html: `
+      <div class="flex items-center gap-3 rounded-xl border border-yellow-700 bg-slate-900/90 backdrop-blur px-4 py-3 shadow-lg">
+        <div class="p-2 rounded-lg border border-yellow-700 bg-yellow-500/10">
+          <!-- simple info icon (no external deps) -->
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8"  x2="12" y2="8"></line>
+          </svg>
+        </div>
+        <p class="text-sm text-white font-semibold">${text}</p>
+      </div>
+    `,
+  });
 
 export default function ParticipantPractice() {
   const { auth } = usePage().props as any;
@@ -338,22 +347,12 @@ if (uniqueIds.size !== data.length) {
     if (res.isDenied) setLanguage(nextLang);
   } else {
     // Same error happening again → lightweight toast only
-    Swal.fire({
-      toast: true,
-      position: 'top-end',
-      icon: 'info',
-      title: error?.code === 'FILE_MISSING'
-        ? 'Still updating — please check back later.'
-        : 'Still can’t load — try again soon.',
-      showConfirmButton: false,
-      timer: 2000,
-    });
-    DarkToast.fire({
-       icon: 'info',
-      title: error?.code === 'FILE_MISSING'
-        ? 'Still updating — please check back later.'
-        : 'Still can’t load — try again soon.',
-    });
+    fireToast(
+  error?.code === 'FILE_MISSING'
+    ? 'Still updating — please check back later.'
+    : 'Still can’t load — try again soon.'
+);
+
   }
 }
  finally {
