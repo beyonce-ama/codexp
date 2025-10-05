@@ -3,11 +3,10 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, usePage } from '@inertiajs/react';
 import { useState, useEffect, useRef } from 'react';
-import type React from 'react';
 import {
     Target, Code, Play, Clock, Star, Trophy, 
     RefreshCw, Filter, Search, AlertTriangle, Zap,
-    CheckCircle, Send, Lightbulb, BookOpen, Flame,
+    CheckCircle, X, Send, Lightbulb, BookOpen, Flame,
     Award, TrendingUp, Sparkles, PartyPopper, Crown,
     Rocket, Heart, Shield, Sword
 } from 'lucide-react';
@@ -631,23 +630,22 @@ const exitFullscreen = () => {
                     }, 500);
 
                  // inside: if (isCorrect) { ... after sounds/particles/level calc }
+
 const { isConfirmed } = await Swal.fire({
   title: 'PERFECT SOLUTION!',
   html: `
     <div class="text-center">
       <div class="text-5xl mb-4">🏆</div>
-      <p class="mb-3 text-lg font-semibold text-amber-200">
-        Outstanding! Your code is a perfect 100% match!
-      </p>
+      <p class="mb-3 text-lg font-semibold text-cyan-200">Outstanding! Your code is a perfect 100% match!</p>
 
-      <div class="bg-amber-900/30 border border-amber-600/40 rounded-lg p-4 mb-4">
-        <div class="text-2xl font-bold text-amber-300">100% Perfect Match</div>
+      <div class="bg-blue-900/30 border border-blue-500/40 rounded-lg p-4 mb-4">
+        <div class="text-2xl font-bold text-green-400">100% Perfect Match</div>
         <div class="text-sm text-gray-200 opacity-80">Exact Database Solution</div>
       </div>
 
       <div class="grid grid-cols-2 gap-4 mb-4">
         <div class="bg-gray-900/40 rounded-lg p-3">
-          <div class="text-lg font-bold text-amber-300">+${xpEarned ?? 3}</div>
+          <div class="text-lg font-bold text-yellow-300">+${xpEarned ?? 3}</div>
           <div class="text-xs text-gray-300">XP Earned</div>
         </div>
         <div class="bg-gray-900/40 rounded-lg p-3">
@@ -656,30 +654,24 @@ const { isConfirmed } = await Swal.fire({
         </div>
       </div>
 
-      <div class="text-sm text-gray-300">
-        ⏱️ Completed in ${Math.floor(timeSpent / 60)}m ${timeSpent % 60}s
-      </div>
-
+      <div class="text-sm text-gray-300">⏱️ Completed in ${Math.floor(timeSpent / 60)}m ${timeSpent % 60}s</div>
       ${leveledUp ? `
         <div class="mt-4 text-center">
-          <div class="text-lg font-bold text-amber-300 animate-pulse">✨ LEVEL UP! ✨</div>
-          <p class="text-sm text-gray-200">
-            You’ve reached Level ${newLevel}! Next: ${calculateXPToNextLevel(newTotalXP)} XP needed.
-          </p>
+          <div class="text-lg font-bold text-pink-400 animate-pulse">✨ LEVEL UP! ✨</div>
+          <p class="text-sm text-gray-200">You’ve reached Level ${newLevel}! Next: ${calculateXPToNextLevel(newTotalXP)} XP needed.</p>
         </div>
       ` : ''}
     </div>
   `,
+  // IMPORTANT: no timer; force explicit confirm
   showConfirmButton: true,
   confirmButtonText: 'Continue Coding!',
-  confirmButtonColor: '#CA8A04', // rich amber-gold button
-  background: 'linear-gradient(160deg, #0f172a 0%, #422006 35%, #854d0e 100%)', // dark amber gradient
-  color: '#fefce8', // warm soft text
-  backdrop: 'rgba(0,0,0,0.6)',
+  confirmButtonColor: '#10B981',
+  background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
+  color: '#fff',
   allowOutsideClick: false,
   allowEscapeKey: false,
 });
-
 
 if (isConfirmed) {
   // stop the celebration visuals
@@ -721,10 +713,8 @@ if (isConfirmed) {
                         html: `
                             <div class="text-center">
                             <div class="text-5xl mb-4">⚠️</div>
-                            <p class="mb-3 text-lg font-semibold text-red-200">
-                                Your solution must exactly match the database answer.
-                            </p>
-
+                            <p class="mb-3 text-lg font-semibold text-red-200">Your solution must exactly match the database answer.</p>
+                            
                             <div class="bg-red-900/30 border border-red-500/40 rounded-lg p-4 mb-4">
                                 <div class="text-lg font-bold text-yellow-300">${Math.round(similarity * 100)}% Match</div>
                                 <div class="text-sm text-gray-200 opacity-80">Need 100% for Success</div>
@@ -736,7 +726,6 @@ if (isConfirmed) {
                                 <li>Ensure your code is at least 20 characters long</li>
                                 <li>Don’t just copy the buggy version</li>
                                 <li>Whitespace, symbols & punctuation matter</li>
-                                <li>⚠️ Don’t remove or add unnecessary comments — they are also compared in the database</li>
                                 </ul>
                             </div>
                             </div>
@@ -744,12 +733,10 @@ if (isConfirmed) {
                         timer: 4500,
                         showConfirmButton: true,
                         confirmButtonText: 'Try Again',
-                        background: 'linear-gradient(160deg, #0f172a 0%, #1e293b 50%, #111827 100%)',
-                        color: '#e5e7eb',
+                        background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
+                        color: '#fff',
                         confirmButtonColor: '#3B82F6',
-                        backdrop: 'rgba(0,0,0,0.6)', 
                         });
-
                 }
                 
                 // Refresh stats and challenges to ensure UI is up to date
@@ -830,7 +817,6 @@ if (isConfirmed) {
     };
 
     const markChallengeAsTaken = async (status: 'viewed' | 'abandoned' | 'completed') => {
-
         try {
             if (selectedChallenge) {
                 const markAsTakenData = {
@@ -879,44 +865,62 @@ if (isConfirmed) {
         }
         
     };
- // Quit button helper: abandon then reveal solution
-        const quitAndShowSolution = async () => {
-        try {
-            if (!selectedChallenge) return;
+const surrenderAndShowAnswer = async () => {
+  if (!selectedChallenge?.fixed_code) return;
 
-            // cache solution before state reset
-            const fixed = selectedChallenge.fixed_code;
+  // Step 1: Confirm
+  const result = await Swal.fire({
+    title: `
+      <div class="text-center space-y-2">
+        <div class="text-4xl text-red-400 font-bold mb-2">!</div>
+        <h2 class="text-xl font-bold text-red-400">Surrender & Show Answer?</h2>
+        <p class="text-gray-300 text-sm mt-1">You will NOT receive any rewards for this challenge.</p>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Show Answer',
+    cancelButtonText: 'Cancel',
+    background: '#0f172a',
+    color: '#f8fafc',
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#6b7280',
+    width: 600,
+    customClass: { popup: 'rounded-xl border border-gray-700/50' }
+  });
 
-            // if user hasn't edited anything, mimic "viewed" behavior warning
-            const userEdited =
-            (selectedChallenge && (userCode.trim() !== (selectedChallenge.buggy_code ?? '').trim())) ||
-            timeSpent > 0;
+  if (!result.isConfirmed) return;
 
-            if (userEdited) {
-            // mark as abandoned (same effect as your current X flow)
-            await markChallengeAsTaken('abandoned');
-            } else {
-            // if they didn't edit, still treat as abandoned per your request
-            await markChallengeAsTaken('abandoned');
-            }
+  audio.play('click');
 
-            // after modal has closed & state reset, show solution if available
-            if (fixed && fixed.trim().length > 0) {
-            showCodeModal('Correct Answer', fixed);
-            } else {
-            Swal.fire({
-                icon: 'info',
-                title: 'No Stored Solution',
-                text: 'This challenge has no fixed solution saved in the database.',
-                background: '#1f2937',
-                color: '#fff',
-                confirmButtonColor: '#10B981'
-            });
-            }
-        } catch (e) {
-            console.error('quitAndShowSolution error:', e);
-        }
-        };
+  // Step 2: Show the official solution (textContent, not innerHTML)
+  await Swal.fire({
+    title: 'Correct Answer',
+    html: `
+      <div class="correct-answer-modal">
+        <p class="mb-4 text-gray-300">Here's the exact solution from the database (100% match required):</p>
+        <div class="bg-gray-900 rounded-lg p-4 text-left">
+          <pre id="solo-surrender-solution"
+               class="text-green-400 text-sm overflow-auto max-h-64"
+               style="font-family:'Courier New',monospace; white-space:pre;"></pre>
+        </div>
+        <p class="mt-4 text-xs text-gray-400">Reminder: Comments and punctuation are also compared.</p>
+      </div>
+    `,
+    didOpen: () => {
+      const el = document.getElementById('solo-surrender-solution');
+      if (el) el.textContent = selectedChallenge!.fixed_code || '';
+    },
+    confirmButtonText: 'Got it',
+    confirmButtonColor: '#10B981',
+    background: '#1f2937',
+    color: '#fff',
+    width: 700
+  });
+
+  // Step 3: Mark abandoned & reset modal/editor
+  await markChallengeAsTaken('abandoned');
+};
+
     const showCorrectAnswerHandler = () => {
         if (selectedChallenge?.fixed_code) {
             audio.play('click');
@@ -1012,75 +1016,35 @@ if (isConfirmed) {
             </div>
         </div>
     );
-const showCodeModal = async (title: string, code: string) => {
-  // Confirm first — no SweetAlert icon, we render our own “!”
-  const confirmRes = await Swal.fire({
-    title: `
-      <div class="text-center space-y-2">
-        <div class="text-4xl text-red-400 font-bold mb-2">!</div>
-        <h2 class="text-xl font-bold text-red-400">Surrender & Show Answer?</h2>
-        <p class="text-gray-300 text-sm mt-1">You will NOT receive any rewards for this challenge.</p>
-      </div>
-    `,
-    showCancelButton: true,
-    confirmButtonText: 'Show Answer',
-    cancelButtonText: 'Cancel',
-    background: '#0f172a',
-    color: '#f8fafc',
-    confirmButtonColor: '#ef4444',
-    cancelButtonColor: '#6b7280',
-    width: 600,
-    customClass: {
-      popup: 'rounded-xl border border-slate-700 shadow-2xl backdrop-blur-sm',
-      title: 'p-0',
-      htmlContainer: 'p-0',
-      confirmButton: 'px-5 py-2 rounded-lg font-semibold',
-      cancelButton: 'px-5 py-2 rounded-lg font-semibold'
-    },
-    didOpen: () => {
-      const icon = document.querySelector('.swal2-icon');
-      if (icon) icon.remove();
-    }
-  });
-  if (!confirmRes.isConfirmed) return;
-
-  // Then show the solution
-  await Swal.fire({
-    title: `
-      <div class="text-center">
-        <h2 class="text-2xl font-bold text-red-400 mb-1">You Quit</h2>
-        <p class="text-gray-300 text-sm">Here’s the correct solution 💡</p>
-      </div>
-    `,
+const showCodeModal = (title: string, code: string) => {
+  Swal.fire({
+    title,
     html: `
-      <div class="bg-slate-900 border border-slate-700 rounded-xl p-5 shadow-lg text-left">
-        <div class="mb-3 flex items-center justify-between border-b border-slate-700 pb-2">
-          <span class="text-yellow-400 font-semibold">🏆 ${title}</span>
-          <span class="text-xs text-gray-400 italic">100% logic match required</span>
+      <div>
+        <p class="mb-3 text-gray-300">100% match required:</p>
+        <div class="bg-gray-900 rounded-lg p-4 text-left">
+          <pre id="swal-code"
+               class="text-green-400 text-sm overflow-auto"
+               style="
+                 font-family:'Courier New',monospace;
+                 white-space: pre;      /* keep indentation and angle brackets */
+                 max-height: 70vh;      /* taller */
+                 max-width: 90vw;       /* responsive */
+               "></pre>
         </div>
-        <pre id="swal-code"
-             class="text-green-400 text-sm font-mono whitespace-pre-wrap break-words max-h-[55vh] overflow-y-auto"></pre>
       </div>
     `,
-    width: 700,
-    background: '#0f172a',
-    color: '#f8fafc',
+    width: 900,
+    background: '#1f2937',
+    color: '#fff',
     confirmButtonText: 'Got it!',
     confirmButtonColor: '#10B981',
-    customClass: {
-      popup: 'rounded-xl border border-slate-700 shadow-2xl backdrop-blur-sm',
-      confirmButton: 'px-6 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg shadow-md transition-all',
-    },
-    showClass: { popup: 'animate__animated animate__fadeInUp animate__faster' },
-    hideClass: { popup: 'animate__animated animate__fadeOutDown animate__faster' },
     didOpen: () => {
       const el = Swal.getHtmlContainer()?.querySelector<HTMLElement>('#swal-code');
-      if (el) el.textContent = code;
-    },
+      if (el) el.textContent = code; // <-- TEXT, not HTML
+    }
   });
 };
-
-
 
     return (
         <div className="min-h-screen relative overflow-hidden">
@@ -1353,13 +1317,17 @@ const showCodeModal = async (title: string, code: string) => {
                                                 <Clock className="h-4 w-4" />
                                                 <span className="text-sm font-medium">{formatTime(timeSpent)}</span>
                                             </div>
-                                       <button
-                                            onClick={quitAndShowSolution}
-                                            className="text-xs md:text-sm font-semibold px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all duration-200"
-                                            title="Quit and show correct solution"
-                                            >
-                                            Quit and show correct solution
-                                            </button>
+                                          <button
+                                                    onClick={surrenderAndShowAnswer}
+                                                    className="rounded-lg px-3 py-1.5 text-sm font-semibold flex items-center gap-2
+                                                                bg-red-500/20 border border-red-400/40 text-red-200
+                                                                hover:bg-red-500/30 hover:text-white transition-all duration-200"
+                                                    title="Quit & Show Answer"
+                                                    >
+                                                    <X className="h-4 w-4" />
+                                                    <span>Quit &amp; Show Answer</span>
+                                                    </button>
+
                                         </div>
                                     </div>
                                 </div>

@@ -398,17 +398,18 @@ useEffect(() => {
   setHasForfeited(false);
    }, 0);
  };
-// Forfeit flow: confirm ➜ show solution ➜ clear board (clean + centered)
+// Forfeit flow: confirm ➜ show solution ➜ clear board (no title container, no extra spacing)
 const surrenderAndShowAnswer = async () => {
   if (!currentChallenge?.fixed_code) return;
 
-  // Step 1: Confirm (NO SweetAlert default icon; we render our own “!”)
+  // Step 1: Confirm (render our own header; no Swal title)
   const result = await Swal.fire({
-    title: `
+    title: '', // ⬅ remove Swal title container
+    html: `
       <div class="text-center space-y-2">
-        <div class="text-4xl text-red-400 font-bold mb-2">!</div>
+        <div class="text-4xl text-red-400 font-bold">!</div>
         <h2 class="text-xl font-bold text-red-400">Surrender & Show Answer?</h2>
-        <p class="text-gray-300 text-sm mt-1">You will NOT receive any rewards for this challenge.</p>
+        <p class="text-gray-300 text-sm">You will NOT receive any rewards for this challenge.</p>
       </div>
     `,
     showCancelButton: true,
@@ -421,15 +422,9 @@ const surrenderAndShowAnswer = async () => {
     width: 600,
     customClass: {
       popup: 'rounded-xl border border-slate-700 shadow-2xl backdrop-blur-sm',
-      title: 'p-0',          // remove default title padding
-      htmlContainer: 'p-0',  // remove extra spacing
+      htmlContainer: 'p-0', // no extra padding above/below
       confirmButton: 'px-5 py-2 rounded-lg font-semibold',
-      cancelButton: 'px-5 py-2 rounded-lg font-semibold'
-    },
-    didOpen: () => {
-      // safety: if any default icon appears, remove it
-      const icon = document.querySelector('.swal2-icon');
-      if (icon) icon.remove();
+      cancelButton: 'px-5 py-2 rounded-lg font-semibold',
     }
   });
 
@@ -438,22 +433,23 @@ const surrenderAndShowAnswer = async () => {
   setHasForfeited(true);
   audio.play('click');
 
-  // Step 2: Show solution
+  // Step 2: Show solution (header also inside html to avoid Swal title spacing)
   await Swal.fire({
-    title: `
-      <div class="text-center">
+    title: '', // ⬅ remove Swal title container
+    html: `
+      <div class="text-center mb-4">
         <h2 class="text-2xl font-bold text-red-400 mb-1">You Quit</h2>
         <p class="text-gray-300 text-sm">Here’s the correct solution 💡</p>
       </div>
-    `,
-    html: `
+
       <div class="bg-slate-900 border border-slate-700 rounded-xl p-5 shadow-lg text-left">
         <div class="mb-3 flex items-center justify-between border-b border-slate-700 pb-2">
           <span class="text-yellow-400 font-semibold">🏆 ${currentChallenge?.title ?? 'Solution'}</span>
           <span class="text-xs text-gray-400 italic">100% logic match required</span>
         </div>
         <pre id="ai-solution-surrender"
-             class="text-green-400 text-sm font-mono whitespace-pre-wrap break-words max-h-[55vh] overflow-y-auto"></pre>
+             class="text-green-400 text-sm font-mono whitespace-pre-wrap break-words max-h-[55vh] overflow-y-auto"
+             style="margin:0;"></pre>
       </div>
     `,
     width: 700,
@@ -463,6 +459,7 @@ const surrenderAndShowAnswer = async () => {
     confirmButtonColor: '#10B981',
     customClass: {
       popup: 'rounded-xl border border-slate-700 shadow-2xl backdrop-blur-sm',
+      htmlContainer: 'p-0', // no extra padding
       confirmButton: 'px-6 py-2 rounded-lg font-semibold'
     },
     didOpen: () => {
