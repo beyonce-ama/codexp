@@ -193,57 +193,61 @@ class DuelController extends Controller
         return response()->json(['success'=>true, 'message'=>'User session started', 'data'=>$duel]);
     }
 
-    public function submit(Request $request, Duel $duel)
-    {
-        $this->authorizeUser($request->user()->id, $duel);
+   public function submit(Request $request, Duel $duel)
+{
+    $this->authorizeUser($request->user()->id, $duel);
 
-        $data = $request->validate([
-            'code_submitted' => 'required|string',
-            'is_correct'     => 'required|boolean',
-            'time_spent_sec' => 'required|integer|min:0',
-        ]);
+    $data = $request->validate([
+        'code_submitted' => 'required|string',
+        'is_correct'     => 'required|boolean',
+        'time_spent_sec' => 'required|integer|min:0',
+    ]);
 
-        $sub = DuelSubmission::create([
-            'duel_id'        => $duel->id,
-            'user_id'        => $request->user()->id,
-            'code_submitted' => $data['code_submitted'],
-            'is_correct'     => $data['is_correct'],
-            'judge_feedback' => $data['is_correct'] ? 'Correct' : 'Incorrect',
-            'time_spent_sec' => $data['time_spent_sec'],
-        ]);
+    // Record the submission
+    $submission = DuelSubmission::create([
+        'duel_id'        => $duel->id,
+        'user_id'        => $request->user()->id,
+        'code_submitted' => $data['code_submitted'],
+        'is_correct'     => $data['is_correct'],
+        'judge_feedback' => $data['is_correct'] ? 'Correct' : 'Incorrect',
+        'time_spent_sec' => $data['time_spent_sec'],
+    ]);
 
-        // Mark when user finishes
-        if ($request->user()->id === $duel->challenger_id) {
-            $duel->update(['challenger_finished_at' => now()]);
-        } else {
-            $duel->update(['opponent_finished_at' => now()]);
-        }
-
-        // If both finished, resolve
-        $duel->refresh();
-        $challengerFinished = $duel->challenger_finished_at !== null;
-        $opponentFinished   = $duel->opponent_finished_at !== null;
-
-       if ($challengerFinished && $opponentFinished) {
-            // Load latest submissions
-            $ch = $this->latestSubmission($duel->id, $duel->challenger_id);
-            $op = $this->latestSubmission($duel->id, $duel->opponent_id);
-
-            // Case 1: both correct → decide immediately
-            if ($ch && $op && $ch->is_correct && $op->is_correct) {
-                $this->determineWinner($duel);
-            } 
-            // Case 2: both wrong → wait for time limit
-            elseif ($duel->started_at && now()->greaterThanOrEqualTo(
-                \Carbon\Carbon::parse($duel->started_at)->addMinutes($duel->session_duration_minutes)
-            )) {
-                $this->determineWinner($duel);
-            }
-            // Else do nothing yet; still within time window and not both correct
-}
-
-        return response()->json(['success'=>true, 'data'=>$sub], 201);
+    // Mark finish time
+    if ($request->user()->id === $duel->challenger_id) {
+        $duel->update(['challenger_finished_at' => now()]);
+    } else {
+        $duel->update(['opponent_finished_at' => now()]);
     }
+
+    $duel->refresh();
+
+    $challengerSub = $this->latestSubmission($duel->id, $duel->challenger_id);
+    $opponentSub   = $this->latestSubmission($duel->id, $duel->opponent_id);
+
+    $bothFinished = $duel->challenger_finished_at && $duel->opponent_finished_at;
+    $expired = $duel->started_at && now()->greaterThanOrEqualTo(
+        \Carbon\Carbon::parse($duel->started_at)->addMinutes($duel->session_duration_minutes)
+    );
+
+    // --- Winner logic ---
+    if ($bothFinished) {
+        // Case 1: both correct → compare times immediately
+        if ($challengerSub->is_correct && $opponentSub->is_correct) {
+            $this->determineWinner($duel);
+        }
+        // Case 2: one correct → winner now
+        elseif ($challengerSub->is_correct xor $opponentSub->is_correct) {
+            $this->determineWinner($duel);
+        }
+        // Case 3: both wrong → only finalize if expired
+        elseif ($expired) {
+            $this->determineWinner($duel);
+        }
+    }
+
+    return response()->json(['success' => true, 'data' => $submission], 201);
+}
 
     public function surrender(Request $request, Duel $duel)
     {

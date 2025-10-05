@@ -1220,7 +1220,13 @@ if (duel.status === 'finished') {
                           confirmButtonColor: '#10B981'
                     });
                     
-                    // Don't close the modal yet - wait for both players to finish
+                    stopAllTimers();
+                    setShowDuelModal(false);
+                    setWaitingForOpponent(true);
+                    audio.play('success');
+                    // Force refresh so duel tile shows waiting
+                    fetchMyDuels(true);
+                    fetchDuelStatus(activeDuel.id);
                 } else {
                     if (!autoSubmit) {
                         audio.play('failure');
@@ -1682,6 +1688,12 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                     <span className={`px-3 py-1 text-xs font-bold rounded-full ${getStatusColor(duel.status)}`}>
                                                         {duel.status.toUpperCase()}
                                                     </span>
+                                                    {duel.status === 'active' && duel.submissions?.length === 1 && (
+                                                    <span className="text-xs text-blue-400 font-medium ml-2">
+                                                        ⏳ Waiting for opponent…
+                                                    </span>
+                                                    )}
+
                                                 </div>
 
                                                 <div className="space-y-3 mb-4">

@@ -250,7 +250,8 @@ public function history(Request $request)
         ->where('user_id', $user->id)
         ->whereIn('status', ['finished', 'surrendered'])
         ->orderByDesc('ended_at')
-        ->limit($limit)
+        ->limit(10)
+
         ->get()
         ->map(function ($row) use ($user) {
             $match = $row->match;
@@ -264,7 +265,7 @@ public function history(Request $request)
                 ? \App\Models\User::find($opponentTaken->user_id, ['id', 'name'])
                 : null;
 
-            return [
+           return [
                 'id'             => $row->id,
                 'duel_id'        => $row->duel_id,
                 'match_id'       => $row->match_id,
@@ -275,11 +276,13 @@ public function history(Request $request)
                 'is_winner'      => (bool) $row->is_winner,
                 'time_spent_sec' => $row->time_spent_sec,
                 'finished_at'    => $match?->finished_at ?? $row->ended_at,
+                'challenge'      => $match?->challenge_json, // 👈 include full challenge data
                 'opponent' => [
                     'id'   => $opponentUser?->id,
                     'name' => $opponentUser?->name ?? 'Unknown',
                 ],
             ];
+
         });
 
     return response()->json([

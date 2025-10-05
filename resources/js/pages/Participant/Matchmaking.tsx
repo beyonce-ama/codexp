@@ -50,6 +50,7 @@ type PollResponse =
   | { slug: null };
 
   type HistoryItem = {
+  challenge: any;
   id: number;
   duel_id: number;
   match_id: number;
@@ -90,6 +91,13 @@ const [historyOpen, setHistoryOpen] = useState(false);
 const [historyLoading, setHistoryLoading] = useState(false);
 const [history, setHistory] = useState<HistoryItem[]>([]);
 const [historyErr, setHistoryErr] = useState<string | null>(null);
+const [selectedChallenge, setSelectedChallenge] = useState<any | null>(null);
+const [showChallengeModal, setShowChallengeModal] = useState(false);
+
+const openChallengeModal = (challenge: any) => {
+  setSelectedChallenge(challenge);
+  setShowChallengeModal(true);
+};
 
   const goToMatch = (slug: string, token?: string | null) => {
     const url = token ? `/play/m/${slug}?t=${encodeURIComponent(token)}` : `/play/m/${slug}`;
@@ -482,14 +490,24 @@ const openHistory = async () => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {h.match_public_id && (
-                    <a
-                      href={`/play/m/${h.match_public_id}`}
-                      className="text-xs px-3 py-1 rounded-lg border border-slate-700/60 hover:bg-slate-800 text-zinc-200"
-                    >
-                      View
-                    </a>
-                  )}
+                 {h.challenge ? (
+                <button
+                  onClick={() => openChallengeModal(h.challenge)}
+                  className="text-xs px-3 py-1 rounded-lg border border-slate-700/60 hover:bg-slate-800 text-zinc-200"
+                >
+                  View
+                </button>
+              ) : (
+                h.match_public_id && (
+                  <a
+                    href={`/play/m/${h.match_public_id}`}
+                    className="text-xs px-3 py-1 rounded-lg border border-slate-700/60 hover:bg-slate-800 text-zinc-200"
+                  >
+                    View
+                  </a>
+                )
+              )}
+
                 </div>
               </li>
             ))}
@@ -509,6 +527,53 @@ const openHistory = async () => {
           className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-zinc-100"
         >
           Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+{showChallengeModal && selectedChallenge && (
+  <div className="fixed inset-0 z-[1000] flex items-center justify-center">
+    <div className="absolute inset-0 bg-black/60" onClick={() => setShowChallengeModal(false)} />
+    <div className="relative w-full max-w-2xl mx-4 rounded-2xl border border-slate-700/60 bg-slate-900/90 backdrop-blur p-5">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-indigo-400">
+          {selectedChallenge.title || 'Challenge Info'}
+        </h3>
+        <button
+          onClick={() => setShowChallengeModal(false)}
+          className="p-2 rounded-lg hover:bg-slate-800"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      <div className="mt-3 text-sm text-zinc-300 space-y-2">
+        {selectedChallenge.description && (
+          <p className="text-zinc-400">{selectedChallenge.description}</p>
+        )}
+        {selectedChallenge.buggy_code && (
+          <>
+            <h4 className="text-zinc-200 font-medium">Buggy Code:</h4>
+            <pre className="p-3 bg-slate-800 rounded-lg text-xs overflow-auto text-zinc-300 whitespace-pre-wrap">
+              {selectedChallenge.buggy_code}
+            </pre>
+          </>
+        )}
+        {selectedChallenge.fixed_code && (
+          <>
+            <h4 className="text-zinc-200 font-medium mt-2">Fixed Code:</h4>
+            <pre className="p-3 bg-slate-800 rounded-lg text-xs overflow-auto text-zinc-300 whitespace-pre-wrap">
+              {selectedChallenge.fixed_code}
+            </pre>
+          </>
+        )}
+      </div>
+      <div className="mt-4 flex justify-end">
+        <button
+          onClick={() => setShowChallengeModal(false)}
+          className="px-4 py-2 rounded-lg border border-slate-700/60 hover:bg-slate-800 text-zinc-200"
+        >
+          Close
         </button>
       </div>
     </div>

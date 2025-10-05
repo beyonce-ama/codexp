@@ -905,34 +905,64 @@ if (isConfirmed) {
             console.error('quitAndShowSolution error:', e);
         }
         };
-    const showCorrectAnswerHandler = () => {
-        if (selectedChallenge?.fixed_code) {
-            audio.play('click');
-            setShowCorrectAnswer(true);
-            showCodeModal('Correct Answer', selectedChallenge.fixed_code);
-            Swal.fire({
-                title: 'Correct Answer',
-                html: `
-                    <div class="correct-answer-modal">
-                        <p class="mb-4 text-gray-300">Here's the exact solution from the database (100% match required):</p>
-                        <div class="bg-gray-900 rounded-lg p-4 text-left">
-                            <pre class="text-green-400 text-sm overflow-auto max-h-64" style="font-family: 'Courier New', monospace; white-space: pre-wrap;">${selectedChallenge.fixed_code}</pre>
-                        </div>
-                        <p class="mt-4 text-sm text-gray-400">Your code must match this exactly to pass the challenge.</p>
-                    </div>
-                `,
-                didOpen: () => {
-                const el = document.getElementById('solo-solution');
-                if (el) el.textContent = selectedChallenge.fixed_code!; // <-- raw text, safe for C++
-                },
-                confirmButtonText: 'Got it!',
-                background: '#1f2937',
-                color: '#fff',
-                confirmButtonColor: '#10B981',
-                width: '600px'
-            });
-        }
-    };
+  const showCorrectAnswerHandler = () => {
+  if (selectedChallenge?.fixed_code) {
+    audio.play('click');
+    setShowCorrectAnswer(true);
+
+    Swal.fire({
+      title: `
+        <div class="flex flex-col items-center">
+          <div class="animate-bounce mb-2 text-5xl">💡</div>
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 font-extrabold text-2xl">
+            Correct Answer
+          </span>
+        </div>
+      `,
+      html: `
+        <div class="p-4 text-left text-gray-200">
+          <p class="mb-4 text-sm text-gray-300">
+            This is the exact <span class="text-green-400 font-semibold">solution from our database</span>.
+            You must match it <strong>100%</strong> to pass the challenge.
+          </p>
+
+          <div class="relative group border border-cyan-500/40 rounded-xl bg-gradient-to-br from-gray-900/80 to-gray-800/90 p-4 shadow-lg">
+            <div class="absolute inset-0 rounded-xl border border-cyan-500/10 blur-xl group-hover:blur-2xl opacity-50"></div>
+            <pre class="text-green-400 text-sm overflow-auto max-h-[65vh] leading-relaxed font-mono whitespace-pre-wrap">
+${selectedChallenge.fixed_code}
+            </pre>
+            <div class="absolute top-2 right-3 text-cyan-400 text-xs opacity-70">Solution Preview</div>
+          </div>
+
+          <div class="mt-5 flex items-center justify-between text-xs text-gray-400 italic">
+            <span>💻 Language: ${displayLanguage(selectedChallenge.language)}</span>
+            <span>🎯 Difficulty: ${selectedChallenge.difficulty.toUpperCase()}</span>
+          </div>
+
+          <div class="mt-5 text-center">
+            <div class="inline-flex items-center gap-2 px-4 py-2 bg-green-600/20 rounded-lg border border-green-500/40">
+              <Sparkles class="w-4 h-4 text-green-400" />
+              <span class="text-sm text-green-300">Analyze and learn the perfect syntax!</span>
+            </div>
+          </div>
+        </div>
+      `,
+      background: 'linear-gradient(135deg, #111827 0%, #1e293b 100%)',
+      color: '#fff',
+      confirmButtonText: 'Got it!',
+      confirmButtonColor: '#10B981',
+      width: '700px',
+      customClass: {
+        popup: 'animate-fadeInUp shadow-2xl border border-cyan-600/30 rounded-2xl backdrop-blur-lg',
+      },
+      didOpen: () => {
+        const el = Swal.getHtmlContainer()?.querySelector('pre');
+        if (el) el.textContent = selectedChallenge.fixed_code!;
+      },
+    });
+  }
+};
+
 
     const getDifficultyColor = (difficulty: string) => {
         switch (difficulty) {
