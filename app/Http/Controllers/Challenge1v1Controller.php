@@ -22,22 +22,23 @@ public function index(Request $request)
     $q = Challenge1v1::query();
 
     // --- Exclude any challenge already taken by me or the chosen opponent ---
-    if ($exclude && !empty($userId)) { // ✅ only run if logged in
-        $q->whereNotExists(function ($sub) use ($userId, $oppId) {
-            $sub->select(DB::raw(1))
-                ->from('duels as d')
-                ->whereColumn('d.challenge_id', 'challenges_1v1.id')
-                ->where(function ($w) use ($userId, $oppId) {
-                    $w->where('d.challenger_id', $userId)
-                      ->orWhere('d.opponent_id', $userId);
+   if ($exclude && !empty($userId)) {               // guard needs a real user id
+    $q->whereNotExists(function ($sub) use ($userId, $oppId) {
+        $sub->select(\DB::raw(1))
+            ->from('duels as d')
+            ->whereNotNull('d.challenge_id')     // don’t let NULLs exclude everything
+            ->whereColumn('d.challenge_id', 'challenges_1v1.id')
+            ->where(function ($w) use ($userId, $oppId) {
+                $w->where('d.challenger_id', $userId)
+                  ->orWhere('d.opponent_id', $userId);
 
-                    if ($oppId > 0) {
-                        $w->orWhere('d.challenger_id', $oppId)
-                          ->orWhere('d.opponent_id', $oppId);
-                    }
-                });
-        });
-    }
+                if ($oppId > 0) {
+                    $w->orWhere('d.challenger_id', $oppId)
+                      ->orWhere('d.opponent_id', $oppId);
+                }
+            });
+    });
+}
 
     // --- Filters ---
     if ($language !== '' && $language !== 'all') {
