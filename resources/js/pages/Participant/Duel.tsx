@@ -1237,40 +1237,48 @@ if (duel.status === 'finished') {
                 if (isCorrect) {
                     audio.play('success');
                     
-                  await Swal.fire({
-                        icon: 'success',
-                        title: 'Perfect Solution!',
-                        html: `
-                            <div class="text-center">
-                            <p class="mb-4 text-lg text-amber-200">
-                                Your solution is a perfect 100% match!
-                            </p>
-                            
-                            <div class="bg-amber-900/30 border border-amber-600/40 rounded-lg p-4 mb-4">
-                                <div class="text-2xl font-bold text-amber-300">100% Perfect Match</div>
-                                <div class="text-sm text-gray-300 opacity-80">Exact Database Solution</div>
-                            </div>
-                            
-                            <div class="text-lg font-bold text-amber-400 mb-2">
-                                ⏱️ Time: ${Math.floor(timeSpent / 60)}m ${timeSpent % 60}s
-                            </div>
-                            
-                            <p class="text-sm text-gray-300 italic">
-                                Waiting for opponent or final results...
-                            </p>
-                            </div>
-                        `,
-                        timer: 6000,
-                        timerProgressBar: true,
-                        showConfirmButton: true,
-                        confirmButtonText: 'Continue',
-                        confirmButtonColor: '#CA8A04', // darker warm gold
-                        background: 'linear-gradient(160deg, #0f172a 0%, #422006 40%, #854d0e 100%)', // deep amber-gold gradient
-                        color: '#fefce8',
-                        backdrop: 'rgba(0,0,0,0.6)',
-                        });
-
-
+                 const { isConfirmed } = await Swal.fire({
+                   title: 'PERFECT SOLUTION!',
+                   html: `
+                     <div class="text-center">
+                       <div class="text-5xl mb-4">🏆</div>
+                       <p class="mb-3 text-lg font-semibold text-cyan-200">Outstanding! Your code is a perfect 100% match!</p>
+                 
+                       <div class="bg-blue-900/30 border border-blue-500/40 rounded-lg p-4 mb-4">
+                         <div class="text-2xl font-bold text-green-400">100% Perfect Match</div>
+                         <div class="text-sm text-gray-200 opacity-80">Exact Database Solution</div>
+                       </div>
+                 
+                       <div class="grid grid-cols-2 gap-4 mb-4">
+                         <div class="bg-gray-900/40 rounded-lg p-3">
+                           <div class="text-lg font-bold text-yellow-300">+${xpEarned ?? 3}</div>
+                           <div class="text-xs text-gray-300">XP Earned</div>
+                         </div>
+                         <div class="bg-gray-900/40 rounded-lg p-3">
+                           <div class="text-lg font-bold text-purple-300">Level ${newLevel ?? 1}</div>
+                           <div class="text-xs text-gray-300">Current Level</div>
+                         </div>
+                       </div>
+                 
+                       <div class="text-sm text-gray-300">⏱️ Completed in ${Math.floor(timeSpent / 60)}m ${timeSpent % 60}s</div>
+                       ${leveledUp ? `
+                         <div class="mt-4 text-center">
+                           <div class="text-lg font-bold text-pink-400 animate-pulse">✨ LEVEL UP! ✨</div>
+                           <p class="text-sm text-gray-200">You’ve reached Level ${newLevel}! Next: ${calculateXPToNextLevel(newTotalXP)} XP needed.</p>
+                         </div>
+                       ` : ''}
+                     </div>
+                   `,
+                   // IMPORTANT: no timer; force explicit confirm
+                   showConfirmButton: true,
+                   confirmButtonText: 'Continue Coding!',
+                   confirmButtonColor: '#10B981',
+                   background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
+                   color: '#fff',
+                   allowOutsideClick: false,
+                   allowEscapeKey: false,
+                 });
+                 
                     stopAllTimers();
                     setShowDuelModal(false);
                     setWaitingForOpponent(true);
