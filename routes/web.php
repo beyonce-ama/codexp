@@ -37,6 +37,7 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
                         ->name('match.show');
 
         Route::prefix('api')->group(function () {
+Route::get('/1v1', [Challenge1v1Controller::class, 'index']);
 
         Route::post('/solo/attempts',   [SoloUsageController::class, 'storeAttempt']);
         Route::post('/solo/mark-taken', [SoloUsageController::class, 'markTaken']);
