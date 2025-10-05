@@ -728,22 +728,22 @@ const fetchParticipants = async () => {
                         sub.user_id !== user.id
                     );
                     
-                    if (opponentSub && (!opponentSubmission || opponentSub.id !== opponentSubmission.id)) {
-                        setOpponentSubmission(opponentSub);
-                        audio.play('tick');
+                    // if (opponentSub && (!opponentSubmission || opponentSub.id !== opponentSubmission.id)) {
+                    //     setOpponentSubmission(opponentSub);
+                    //     audio.play('tick');
                         
-                        Swal.fire({
-                            icon: 'info',
-                            title: 'Opponent Submitted!',
-                            text: `Your opponent has submitted their solution. ${opponentSub.is_correct ? 'They got it right!' : 'Their solution needs work.'}`,
-                            toast: true,
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            timer: 3000,
-                            background: '#1f2937',
-                            color: '#fff'
-                        });
-                    }
+                    //     Swal.fire({
+                    //         icon: 'info',
+                    //         title: 'Opponent Submitted!',
+                    //         text: `Your opponent has submitted their solution. ${opponentSub.is_correct ? 'They got it right!' : 'Their solution needs work.'}`,
+                    //         toast: true,
+                    //         position: 'top-end',
+                    //         showConfirmButton: false,
+                    //         timer: 3000,
+                    //         background: '#1f2937',
+                    //         color: '#fff'
+                    //     });
+                    // }
                 }
 
                 // Decide & finalize when both sides have submitted
@@ -1733,14 +1733,14 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                     if ((myCorrect || locallyWaiting) && !opponentHasSubmitted) {
                                                         return (
                                                         <span className="text-xs text-blue-400 font-medium ml-2">
-                                                            ⏳ Waiting for opponent to submit...
+                                                            ⏳ Waiting for opponent to submit.
                                                         </span>
                                                         );
                                                     }
                                                     if ((myCorrect || locallyWaiting) && opponentHasSubmitted && !opponentCorrect) {
                                                         return (
                                                         <span className="text-xs text-blue-400 font-medium ml-2">
-                                                            ⏳ Opponent submitted but not correct yet...
+                                                            ⏳ Opponent submitted but not correct yet.
                                                         </span>
                                                         );
                                                     }

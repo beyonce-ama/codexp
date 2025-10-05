@@ -29,6 +29,40 @@ interface Question {
 }
 type Lang = 'python' | 'java' | 'cpp';
 const LANGS: Lang[] = ['python', 'java', 'cpp'];
+// Global dark modal styled to our theme
+const DarkModal = Swal.mixin({
+  buttonsStyling: false,            // we'll style buttons via classes
+  background: '#0f172a',            // slate-900 fallback
+  color: '#e5e7eb',                 // slate-200/300 text
+  iconColor: '#22d3ee',             // info/cyan accent
+  customClass: {
+    popup: 'bg-slate-900 text-slate-200 border border-slate-700 rounded-2xl shadow-2xl',
+    title: 'text-slate-100 font-semibold text-xl',
+    htmlContainer: 'text-slate-300 leading-relaxed',
+    confirmButton: 'px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white font-medium shadow',
+    cancelButton:  'px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100 font-medium ml-2',
+    denyButton:    'px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100 font-medium ml-2',
+  },
+});
+
+// Custom dark toast styled like Codexp XP theme
+const DarkToast = Swal.mixin({
+  toast: true,
+  position: 'bottom-end',
+  showConfirmButton: false,
+  timer: 2500,
+  timerProgressBar: true,
+  iconColor: '#facc15', // yellow-400
+  background: '#0f172a', // slate-900
+  color: '#e2e8f0', // slate-300
+  customClass: {
+    popup:
+      'flex items-center gap-3 rounded-xl border border-yellow-700 bg-slate-900/90 backdrop-blur px-4 py-3 shadow-lg',
+    icon: 'p-2 rounded-lg border border-yellow-700 bg-yellow-500/10',
+    title: 'text-sm text-white font-semibold',
+    timerProgressBar: 'bg-yellow-500/50'
+  },
+});
 
 export default function ParticipantPractice() {
   const { auth } = usePage().props as any;
@@ -126,33 +160,33 @@ useEffect(() => {
 
         if (next) {
           try { audio.play('success'); } catch {}
-         const res =  await Swal.fire({
-            icon: 'success',
-            title: '🎉 Congratulations!',
-            html: `<div class="text-left">
-              <p>You’ve finished <b>Set #${set_index}</b> (${language}).</p>
-              <p class="mt-2">The next set <b>#${next.set_index}</b> is available. Ready to continue?</p>
-            </div>`,
-            confirmButtonText: `Start Set #${next.set_index}`,
-            showCancelButton: true,
-            cancelButtonText: 'Later',
-            customClass: { popup: 'bg-gray-900 text-gray-100' },
-          });
+       const res = await DarkModal.fire({
+          icon: 'success',
+          title: '🎉 Congratulations!',
+          html: `<div class="text-left">
+                  <p>You’ve finished <b>Set #${set_index}</b> (${language}).</p>
+                  <p class="mt-2">The next set <b>#${next.set_index}</b> is available. Ready to continue?</p>
+                </div>`,
+          confirmButtonText: `Start Set #${next.set_index}`,
+          showCancelButton: true,
+          cancelButtonText: 'Later',
+        });
+
           if (res.isConfirmed) {  
             loadQuestions();
           }
         } else {
           try { audio.play('success'); } catch {}
-          await Swal.fire({
-            icon: 'success',
-            title: '🎉 Great job!',
-            html: `<div class="text-left">
-              <p>You’ve finished <b>Set #${set_index}</b> (${language}).</p>
-              <p class="mt-2">No next set is uploaded yet. <b>Stay tuned</b> for more questions!</p>
-            </div>`,
-            confirmButtonText: 'Okay',
-            customClass: { popup: 'bg-gray-900 text-gray-100' },
-          });
+          await DarkModal.fire({
+          icon: 'success',
+          title: '🎉 Great job!',
+          html: `<div class="text-left">
+                  <p>You’ve finished <b>Set #${set_index}</b> (${language}).</p>
+                  <p class="mt-2">No next set is uploaded yet. <b>Stay tuned</b> for more questions!</p>
+                </div>`,
+          confirmButtonText: 'Okay',
+        });
+
         }
       } catch {
         // If the check fails, just refresh to whatever current() resolves to
@@ -290,15 +324,15 @@ if (uniqueIds.size !== data.length) {
 
   if (!alreadyShown) {
     // First time for this specific error → show blocking modal
-    const res = await Swal.fire({
+    const res = await DarkModal.fire({
       icon: 'info',
       title,
       html,
       confirmButtonText: confirmText,
       showDenyButton: showDeny,
       denyButtonText: denyText,
-      customClass: { popup: 'bg-gray-900 text-gray-100' },
     });
+
 
     if (res.isConfirmed && action) await action();
     if (res.isDenied) setLanguage(nextLang);
@@ -313,6 +347,12 @@ if (uniqueIds.size !== data.length) {
         : 'Still can’t load — try again soon.',
       showConfirmButton: false,
       timer: 2000,
+    });
+    DarkToast.fire({
+       icon: 'info',
+      title: error?.code === 'FILE_MISSING'
+        ? 'Still updating — please check back later.'
+        : 'Still can’t load — try again soon.',
     });
   }
 }

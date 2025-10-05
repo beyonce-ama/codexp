@@ -1002,17 +1002,19 @@ if (isConfirmed) {
             </div>
         </div>
     );
-const showCodeModal = (title: string, code: string) => {
+const showSolutionModal = (title: string, code: string) => {
   Swal.fire({
-    title: `<span class="text-lg font-semibold text-emerald-400">${title}</span>`,
+    title: `
+      <div class="text-center">
+        <h2 class="text-xl font-bold text-yellow-400 mb-2">💡 ${title}</h2>
+        <p class="text-gray-300 text-sm">You chose to quit — here's the correct solution:</p>
+      </div>
+    `,
     html: `
       <div class="rounded-xl bg-gray-800/70 shadow-lg border border-gray-700 p-5 text-left">
-        <p class="mb-3 text-gray-400 text-sm">
-          ⚙️ <span class="text-emerald-400">100% match required</span> — make sure your code logic is exact.
-        </p>
         <div class="relative rounded-md bg-gray-900 border border-gray-700 p-3 overflow-hidden">
           <pre id="swal-code"
-               class="text-emerald-300 text-sm overflow-y-auto scrollbar-hide"
+               class="text-green-400 text-sm overflow-y-auto scrollbar-hide"
                style="
                  font-family:'Courier New', monospace;
                  white-space: pre-wrap;
@@ -1021,12 +1023,15 @@ const showCodeModal = (title: string, code: string) => {
                  padding-right: 10px;
                "></pre>
         </div>
+        <p class="mt-4 text-gray-400 text-xs text-center italic">
+          Don’t worry — every great coder learns from their bugs. Try again next time! 🚀
+        </p>
       </div>
     `,
-    width: 700,
-    background: '#111827', // darker for contrast
+    width: 680,
+    background: '#111827',
     color: '#fff',
-    confirmButtonText: 'Close',
+    confirmButtonText: 'Got it!',
     confirmButtonColor: '#10B981',
     showClass: {
       popup: 'animate__animated animate__fadeInUp animate__faster'
