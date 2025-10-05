@@ -13,89 +13,60 @@ class Challenge1v1Controller extends Controller
 {
 public function index(Request $request)
 {
-    $user = $request->user();
-    if (!$user) {
-        return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+    $q = \App\Models\Challenge1v1::query();
+
+    // ✅ language filter (ignore 'all')
+    if ($request->filled('language') && strtolower($request->language) !== 'all') {
+        $q->where('language', $request->language);
     }
 
-    // --- sanitize inputs
-    $language   = $request->string('language')->toString();
-    $difficulty = $request->string('difficulty')->toString();
-    $search     = trim((string)$request->get('search', ''));
-    $oppId      = $request->has('opponent_id') ? (int)$request->get('opponent_id') : null;
-
-    // default: exclude taken
-    $excludeTaken = $request->boolean('exclude_taken', true);
-
-    // --- base query
-    $q = Challenge1v1::query();
-
-    // language filter (python|java|cpp)
-    if ($language && $language !== 'all') {
-        $q->where('language', $language);
+    // ✅ difficulty filter (ignore 'all')
+    if ($request->filled('difficulty') && strtolower($request->difficulty) !== 'all') {
+        $q->where('difficulty', $request->difficulty);
     }
 
-    // difficulty filter (easy|medium|hard)
-    if ($difficulty && $difficulty !== 'all') {
-        $q->where('difficulty', $difficulty);
-    }
-
-    // search filter (title + description)
-    if ($search !== '') {
-        $q->where(function ($w) use ($search) {
-            $w->where('title', 'like', "%{$search}%")
-              ->orWhere('description', 'like', "%{$search}%");
+    // ✅ search (respects filters)
+    if ($request->filled('search')) {
+        $term = trim($request->search);
+        $q->where(function ($sub) use ($term) {
+            $sub->where('title', 'like', "%{$term}%")
+                ->orWhere('description', 'like', "%{$term}%");
         });
     }
 
-    // --- strict exclusion via duels.challenge_id (participation only)
-    if ($excludeTaken) {
-        $uid = (int)$user->id;
+    // ✅ exclude challenges already taken by current user
+    if ($request->boolean('exclude_taken') && auth()->check()) {
+        $taken = \App\Models\Duel::where(function ($w) {
+            $w->where('challenger_id', auth()->id())
+              ->orWhere('opponent_id', auth()->id());
+        })->pluck('challenge_id')->toArray();
 
-        // challenges current user has been involved in (challenger or opponent)
-        $userTaken = Duel::query()
-            ->whereNotNull('challenge_id')
-            ->where(function ($w) use ($uid) {
-                $w->where('challenger_id', $uid)
-                  ->orWhere('opponent_id', $uid);
-            })
-            ->pluck('challenge_id')
-            ->all();
-
-        $excludeIds = $userTaken;
-
-        // optionally also exclude opponent's taken challenges
-        if (!empty($oppId)) {
-            $oppTaken = Duel::query()
-                ->whereNotNull('challenge_id')
-                ->where(function ($w) use ($oppId) {
-                    $w->where('challenger_id', $oppId)
-                      ->orWhere('opponent_id', $oppId);
-                })
-                ->pluck('challenge_id')
-                ->all();
-
-            $excludeIds = array_unique(array_merge($excludeIds, $oppTaken));
-        }
-
-        if (!empty($excludeIds)) {
-            $q->whereNotIn('id', $excludeIds);
+        if (!empty($taken)) {
+            $q->whereNotIn('id', $taken);
         }
     }
 
-    // sort newest first; cap the list (adjust as you like or paginate)
-    $rows = $q->orderByDesc('created_at')
-              ->take(30)
-              ->get([
-                  'id', 'title', 'description', 'language', 'difficulty',
-                  'buggy_code', 'fixed_code', 'created_at'
-              ]);
+    // ✅ exclude challenges taken by opponent (if any)
+    if ($request->filled('opponent_id')) {
+        $oppTaken = \App\Models\Duel::where(function ($w) use ($request) {
+            $w->where('challenger_id', $request->opponent_id)
+              ->orWhere('opponent_id', $request->opponent_id);
+        })->pluck('challenge_id')->toArray();
+
+        if (!empty($oppTaken)) {
+            $q->whereNotIn('id', $oppTaken);
+        }
+    }
+
+    // ✅ get all filtered challenges
+    $challenges = $q->orderBy('created_at', 'desc')->get();
 
     return response()->json([
         'success' => true,
-        'data'    => $rows,
+        'data' => $challenges,
     ]);
 }
+
     // Admin JSON import (array of items)
     public function import(Request $request)
     {
