@@ -222,13 +222,13 @@ const exitFullscreen = () => {
         return d;
     };
 
-// Fix this part
+// ✅ Fetch challenges whenever filters or opponent change
 useEffect(() => {
-  // Only fetch challenges if Browse tab is active OR modal needs them
   if (activeTab === 'browse' || showCreateModal) {
     fetchChallenges();
   }
 }, [languageFilter, difficultyFilter, searchTerm, selectedOpponent, showCreateModal]);
+
 
 
 useEffect(() => {
@@ -590,29 +590,36 @@ const buildComparisonForModal = (duel: Duel) => {
       }
     };
 
-    const fetchChallenges = async () => {
-        try {
-            setLoading(true);
-            const params: any = {};
-            if (languageFilter !== 'all') params.language = languageFilter;
-            if (difficultyFilter !== 'all') params.difficulty = difficultyFilter;
-            if (searchTerm.trim()) params.search = searchTerm.trim();
-            params.exclude_taken = true;
-            if (selectedOpponent?.id) params.opponent_id = selectedOpponent.id;
+   // 🧠 Fetch available 1v1 challenges (with working filters)
+const fetchChallenges = async () => {
+  try {
+    setLoading(true);
 
-            const response = await apiClient.get('/api/challenges/1v1', { params });
-            if (response.success) {
-               const challengeData = Array.isArray(response.data) ? response.data : (response.data.data || []);
+    const params: any = {};
+    if (languageFilter && languageFilter !== 'all') params.language = languageFilter;
+    if (difficultyFilter && difficultyFilter !== 'all') params.difficulty = difficultyFilter;
+    if (searchTerm.trim()) params.search = searchTerm.trim();
+    params.exclude_taken = true;
 
-                setChallenges(challengeData);
-            }
-        } catch (error) {
-            console.error('Error fetching challenges:', error);
-            setChallenges([]);
-        } finally {
-            setLoading(false);
-        }
-    };
+    if (selectedOpponent?.id) params.opponent_id = selectedOpponent.id;
+
+    console.log('Fetching challenges with params:', params); // ← debug
+
+    const response = await apiClient.get('/api/challenges/1v1', { params });
+    if (response.success) {
+      const challengeData = Array.isArray(response.data)
+        ? response.data
+        : response.data.data || [];
+      setChallenges(challengeData);
+    }
+  } catch (err) {
+    console.error('Error fetching challenges:', err);
+    setChallenges([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
     const fetchMyDuels = async (silent: boolean = false) => {
         try {
@@ -2060,28 +2067,28 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
-                                        <select
-                                            value={languageFilter}
-                                            onChange={(e) => setLanguageFilter(e.target.value)}
-                                            className="px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 text-gray-200 transition-all duration-300"
-                                            onMouseEnter={() => audio.play('hover')}
-                                        >
-                                            <option value="all">All Languages</option>
-                                            <option value="python">Python</option>
-                                            <option value="java">Java</option>
-                                             <option value="cpp">C++</option>
-                                        </select>
-                                        <select
-                                            value={difficultyFilter}
-                                            onChange={(e) => setDifficultyFilter(e.target.value)}
-                                            className="px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 text-gray-200 transition-all duration-300"
-                                            onMouseEnter={() => audio.play('hover')}
-                                        >
-                                            <option value="all">All Difficulties</option>
-                                            <option value="easy">Easy</option>
-                                            <option value="medium">Medium</option>
-                                            <option value="hard">Hard</option>
-                                        </select>
+                                       <select
+                                                value={languageFilter}
+                                                onChange={(e) => setLanguageFilter(e.target.value)}
+                                                className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2"
+                                                >
+                                                <option value="all">All Languages</option>
+                                                <option value="python">Python</option>
+                                                <option value="java">Java</option>
+                                                <option value="cpp">C++</option>
+                                                </select>
+
+                                                <select
+                                                value={difficultyFilter}
+                                                onChange={(e) => setDifficultyFilter(e.target.value)}
+                                                className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2"
+                                                >
+                                                <option value="all">All Difficulty</option>
+                                                <option value="easy">Easy</option>
+                                                <option value="medium">Medium</option>
+                                                <option value="hard">Hard</option>
+                                                </select>
+
                                     </div>
                                 </div>
                             </div>
