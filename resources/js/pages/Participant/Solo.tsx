@@ -1015,38 +1015,31 @@ if (isConfirmed) {
 const showCodeModal = (title: string, code: string) => {
   Swal.fire({
     title: `
-      <div class="flex flex-col items-center">
-        <div class="text-3xl mb-2 text-red-400 font-extrabold tracking-wide">You Quit</div>
-        <div class="text-sm text-gray-300">Here’s the correct solution 💡</div>
+      <div class="text-center">
+        <h2 class="text-2xl font-bold text-red-400 mb-1">You Quit</h2>
+        <p class="text-gray-300 text-sm">Here’s the correct solution 💡</p>
       </div>
     `,
     html: `
-      <div class="bg-gradient-to-b from-slate-900 to-slate-800 border border-slate-700/70 rounded-2xl p-5 shadow-[0_0_40px_rgba(0,0,0,0.6)] text-left max-h-[80vh] overflow-hidden backdrop-blur-lg">
-        
-        <div class="mb-4 flex items-center justify-between border-b border-slate-700/50 pb-2">
-          <span class="text-yellow-400 font-semibold text-base">🏆 ${title}</span>
+      <div class="bg-slate-900 border border-slate-700 rounded-xl p-5 shadow-lg text-left">
+        <div class="mb-3 flex items-center justify-between border-b border-slate-700 pb-2">
+          <span class="text-yellow-400 font-semibold">🏆 ${title}</span>
           <span class="text-xs text-gray-400 italic">100% logic match required</span>
         </div>
-        
-        <div class="relative bg-slate-950/70 border border-slate-800/60 rounded-lg p-4 overflow-y-auto max-h-[55vh] scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900">
-          <pre id="swal-code"
-               class="text-green-400 text-sm font-mono leading-relaxed"
-               style="
-                 white-space: pre-wrap;
-                 word-break: break-word;
-               "></pre>
-        </div>
+
+        <pre id="swal-code"
+             class="text-green-400 text-sm font-mono whitespace-pre-wrap break-words max-h-[55vh] overflow-y-auto">
+        </pre>
       </div>
     `,
-    width: 750,
-    background: 'linear-gradient(to bottom right, #0f172a, #1e293b)',
+    width: 700,
+    background: '#0f172a',
     color: '#f8fafc',
     confirmButtonText: 'Got it!',
     customClass: {
       confirmButton:
-        'px-6 py-2.5 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg shadow-md transition-all duration-200',
-      popup:
-        'border border-slate-700 shadow-[0_0_30px_rgba(34,197,94,0.2)] rounded-2xl backdrop-blur-md',
+        'px-6 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg shadow-md transition-all',
+      popup: 'rounded-xl border border-slate-700 shadow-2xl backdrop-blur-sm',
     },
     showClass: {
       popup: 'animate__animated animate__fadeInUp animate__faster',
@@ -1060,6 +1053,7 @@ const showCodeModal = (title: string, code: string) => {
     },
   });
 };
+
 
 
     return (

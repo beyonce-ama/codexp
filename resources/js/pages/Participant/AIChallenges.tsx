@@ -399,54 +399,72 @@ useEffect(() => {
    }, 0);
  };
 
-    // NEW: forfeit flow that shows solution and clears the board
-    const surrenderAndShowAnswer = async () => {
-        if (!currentChallenge?.fixed_code) return;
+ // NEW: forfeit flow that shows solution and clears the board (simplified UI)
+const surrenderAndShowAnswer = async () => {
+  if (!currentChallenge?.fixed_code) return;
 
-        const confirm = await Swal.fire({
-            icon: 'warning',
-            title: 'Surrender & Show Answer?',
-            html: `<p class="text-gray-200">You will NOT receive any rewards for this challenge.</p>`,
-            showCancelButton: true,
-            confirmButtonText: 'Yes, show the answer',
-            cancelButtonText: 'Cancel',
-            background: '#1f2937',
-            color: '#fff',
-            confirmButtonColor: '#ef4444',
-        });
+  const result = await Swal.fire({
+    icon: 'warning',
+    title: `
+      <div class="text-center">
+        <h2 class="text-xl font-bold text-red-400 mb-1">Surrender & Show Answer?</h2>
+        <p class="text-gray-300 text-sm">You will NOT receive any rewards for this challenge.</p>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Show Answer',
+    cancelButtonText: 'Cancel',
+    background: '#0f172a',
+    color: '#f8fafc',
+    confirmButtonColor: '#ef4444',
+    customClass: {
+      popup: 'rounded-xl border border-slate-700 shadow-2xl backdrop-blur-sm',
+      confirmButton: 'px-5 py-2 rounded-lg font-semibold',
+      cancelButton: 'px-5 py-2 rounded-lg font-semibold'
+    }
+  });
 
-        if (!confirm.isConfirmed) return;
+  if (!result.isConfirmed) return;
 
-        setHasForfeited(true);
-        audio.play('click');
+  setHasForfeited(true);
+  audio.play('click');
 
-        await Swal.fire({
-            title: 'AI Generated Solution',
-            html: `
-                <div class="correct-answer-modal">
-                    <p class="mb-4 text-gray-300">No rewards granted for surrendered challenges.</p>
-                    <div class="bg-gray-900 rounded-lg p-4 text-left">
-                       <pre id="ai-solution-surrender"
-          class="text-green-400 text-sm overflow-auto max-h-64"
-          style="font-family: 'Courier New', monospace; white-space: pre-wrap;"></pre>
-                    </div>
-                </div>
-            `,
-             didOpen: () => {
-                const el = document.getElementById('ai-solution-surrender');
-                if (el) el.textContent = currentChallenge.fixed_code!;
-                },
-            confirmButtonText: 'Close',
-            background: '#1f2937',
-            color: '#fff',
-            confirmButtonColor: '#10B981',
-            width: '600px'
-        });
+  await Swal.fire({
+    title: `
+      <div class="text-center">
+        <h2 class="text-2xl font-bold text-red-400 mb-1">You Quit</h2>
+        <p class="text-gray-300 text-sm">Here’s the correct solution 💡</p>
+      </div>
+    `,
+    html: `
+      <div class="bg-slate-900 border border-slate-700 rounded-xl p-5 shadow-lg text-left">
+        <div class="mb-3 flex items-center justify-between border-b border-slate-700 pb-2">
+          <span class="text-yellow-400 font-semibold">🏆 ${currentChallenge?.title ?? 'Solution'}</span>
+          <span class="text-xs text-gray-400 italic">100% logic match required</span>
+        </div>
+        <pre id="ai-solution-surrender"
+             class="text-green-400 text-sm font-mono whitespace-pre-wrap break-words max-h-[55vh] overflow-y-auto"></pre>
+      </div>
+    `,
+    width: 700,
+    background: '#0f172a',
+    color: '#f8fafc',
+    confirmButtonText: 'Close',
+    confirmButtonColor: '#10B981',
+    customClass: {
+      popup: 'rounded-xl border border-slate-700 shadow-2xl backdrop-blur-sm',
+      confirmButton: 'px-6 py-2 rounded-lg font-semibold'
+    },
+    didOpen: () => {
+      const el = document.getElementById('ai-solution-surrender');
+      if (el) el.textContent = currentChallenge.fixed_code!;
+    }
+  });
 
-        // clear board after surrender
-        closeChallengeModal();
-        exitFullscreen();
-    };
+  // clear board after surrender
+  closeChallengeModal();
+  exitFullscreen();
+};
 
     // Helper function to calculate string similarity
     const calculateStringSimilarity = (str1: string, str2: string): number => {
