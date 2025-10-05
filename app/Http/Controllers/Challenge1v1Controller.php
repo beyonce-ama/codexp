@@ -6,65 +6,97 @@ use App\Http\Controllers\Controller;
 use App\Models\Challenge1v1;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-
+use Illuminate\Support\Facades\DB;
 
 class Challenge1v1Controller extends Controller
 {
  public function index(Request $request)
 {
+    $userId     = auth()->id();
+    $oppId      = (int) $request->input('opponent_id', 0);
+    $languageIn = strtolower((string) $request->input('language', 'all'));
+    $difficulty = strtolower((string) $request->input('difficulty', 'all'));
+    $search     = trim((string) $request->input('search', ''));
+    $exclude    = filter_var($request->input('exclude_taken', true), FILTER_VALIDATE_BOOLEAN);
+
+    // --- Normalize language: accept aliases and case ---
+    // We keep storage canonical as 'python','java','cpp'
+    $langSet = null;
+    if ($languageIn !== '' && $languageIn !== 'all') {
+        if (in_array($languageIn, ['c++','cpp','cplusplus'], true)) {
+            $langSet = ['cpp','c++']; // match either in DB
+        } else {
+            $langSet = [$languageIn];
+        }
+    }
+
     $q = \App\Models\Challenge1v1::query();
 
-    // filters already used by the UI
-    if ($request->filled('language'))   $q->where('language', $request->language);
-    if ($request->filled('difficulty')) $q->where('difficulty', $request->difficulty);
+    // --- Exclude challenges already taken by me or the chosen opponent,
+    //     but ONLY if those duels are truly completed/finished.
+    if ($exclude && !empty($userId)) {
+        $q->whereNotExists(function ($sub) use ($userId, $oppId) {
+            $sub->select(DB::raw(1))
+                ->from('duels as d')
+                ->whereNotNull('d.challenge_id')
+                ->whereColumn('d.challenge_id', 'challenges_1v1.id')
+                ->where(function ($w) use ($userId, $oppId) {
+                    $w->where('d.challenger_id', $userId)
+                      ->orWhere('d.opponent_id', $userId);
 
-    // optional text search (UI sends `search`)
-    if ($request->filled('search')) {
-        $term = $request->string('search')->toString();
-        $q->where(function ($qq) use ($term) {
-            $qq->where('title', 'like', "%{$term}%")
-               ->orWhere('description', 'like', "%{$term}%");
+                    if ($oppId > 0) {
+                        $w->orWhere('d.challenger_id', $oppId)
+                          ->orWhere('d.opponent_id', $oppId);
+                    }
+                })
+                // 🚦 Only treat as "taken" when clearly done.
+                // Adjust the statuses to your real values if different.
+                ->where(function ($w) {
+                    $w->whereIn('d.status', ['finished','completed','ended','closed','decided'])
+                      ->orWhereNotNull('d.winner_id');
+                });
         });
     }
 
-    // exclude challenges the CURRENT user has already taken (default = true)
-    $excludeTaken = $request->boolean('exclude_taken', true);
-    if ($excludeTaken && $request->user()) {
-        $uid = $request->user()->id;
-
-        // any duel where THIS user submitted + the duel had a challenge_id
-        // (covers finished, surrendered, or still-active where user already answered)
-       $takenChallengeIds = \App\Models\Duel::query()
-            ->join('duel_submissions as ds', 'ds.duel_id', '=', 'duels.id')
-            ->where('ds.user_id', $uid)
-            ->whereIn('duels.status', ['finished','surrendered'])
-            ->whereNotNull('duels.challenge_id')
-            ->distinct()
-            ->pluck('duels.challenge_id');
-
-        if ($takenChallengeIds->isNotEmpty()) {
-            $q->whereNotIn('id', $takenChallengeIds);
-        }
+    // --- Language filter (case-insensitive; supports aliases)
+    if (is_array($langSet) && !empty($langSet)) {
+        $q->where(function ($w) use ($langSet) {
+            foreach ($langSet as $i => $code) {
+                $method = $i === 0 ? 'whereRaw' : 'orWhereRaw';
+                $w->{$method}('LOWER(language) = ?', [strtolower($code)]);
+            }
+        });
     }
-    // Optional: also exclude challenges the intended opponent already took
-    if ($request->filled('opponent_id')) {
-        $oppId = (int) $request->opponent_id;
 
-        $opponentTakenIds = \App\Models\Duel::query()
-            ->join('duel_submissions as ds', 'ds.duel_id', '=', 'duels.id')
-            ->where('ds.user_id', $oppId)
-            ->whereNotNull('duels.challenge_id')
-            ->distinct()
-            ->pluck('duels.challenge_id');
-
-        if ($opponentTakenIds->isNotEmpty()) {
-            $q->whereNotIn('id', $opponentTakenIds);
-        }
+    // --- Difficulty filter (case-insensitive)
+    if ($difficulty !== '' && $difficulty !== 'all') {
+        $q->whereRaw('LOWER(difficulty) = ?', [$difficulty]);
     }
+
+    // --- Search (grouped, safe)
+    if ($search !== '') {
+        $q->where(function ($g) use ($search) {
+            $g->where('title', 'like', "%{$search}%")
+              ->orWhere('description', 'like', "%{$search}%");
+        });
+    }
+
+    $items = $q->orderByDesc('created_at')
+               ->limit(300)  // bump cap so "All" can show everything
+               ->get();
+
+    // Optional: normalize outbound language strings for the UI
+    $items->transform(function ($row) {
+        $lang = strtolower((string)($row->language ?? ''));
+        if ($lang === 'c++') $lang = 'cpp';  // present uniformly
+        $row->language = $lang;
+        $row->difficulty = strtolower((string)($row->difficulty ?? ''));
+        return $row;
+    });
 
     return response()->json([
         'success' => true,
-        'data'    => $q->latest()->paginate(20),
+        'data'    => $items,
     ]);
 }
 
