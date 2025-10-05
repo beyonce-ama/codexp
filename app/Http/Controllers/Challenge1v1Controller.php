@@ -12,17 +12,17 @@ class Challenge1v1Controller extends Controller
 {
 public function index(Request $request)
 {
-    $userId    = auth()->id();
-    $oppId     = (int) $request->input('opponent_id', 0);
-    $language  = (string) $request->input('language', 'all');
-    $difficulty= (string) $request->input('difficulty', 'all');
-    $search    = trim((string) $request->input('search', ''));
-    $exclude   = filter_var($request->input('exclude_taken', true), FILTER_VALIDATE_BOOLEAN);
+    $userId     = auth()->id();
+    $oppId      = (int) $request->input('opponent_id', 0);
+    $language   = (string) $request->input('language', 'all');
+    $difficulty = (string) $request->input('difficulty', 'all');
+    $search     = trim((string) $request->input('search', ''));
+    $exclude    = filter_var($request->input('exclude_taken', true), FILTER_VALIDATE_BOOLEAN);
 
     $q = Challenge1v1::query();
 
     // --- Exclude any challenge already taken by me or the chosen opponent ---
-    if ($exclude) {
+    if ($exclude && !empty($userId)) { // ✅ only run if logged in
         $q->whereNotExists(function ($sub) use ($userId, $oppId) {
             $sub->select(DB::raw(1))
                 ->from('duels as d')
@@ -47,7 +47,7 @@ public function index(Request $request)
         $q->where('difficulty', $difficulty);
     }
 
-    // --- Search (GROUPED!) so it doesn't break the exclusion logic ---
+    // --- Search (keep grouped!) ---
     if ($search !== '') {
         $q->where(function ($g) use ($search) {
             $g->where('title', 'like', "%{$search}%")
@@ -55,8 +55,9 @@ public function index(Request $request)
         });
     }
 
+    // --- Always show something on browse ---
     $items = $q->orderByDesc('created_at')
-               ->limit(100) // safety cap
+               ->limit(100)
                ->get();
 
     return response()->json([
