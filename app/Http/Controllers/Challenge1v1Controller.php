@@ -14,13 +14,11 @@ class Challenge1v1Controller extends Controller
  public function index(Request $request)
 {
     $user = auth()->user();
-
-    // 1️⃣ Start base query
     $q = \App\Models\Challenge1v1::query();
 
-    // 2️⃣ Exclude challenges already taken by current user
-    if ($request->boolean('exclude_taken') && $user) {
-        $takenChallengeIds = \App\Models\Duel::where(function ($query) use ($user) {
+    // ✅ Step 1. Exclude challenges already taken by current user
+    if ($user) {
+        $taken = \App\Models\Duel::where(function ($query) use ($user) {
                 $query->where('challenger_id', $user->id)
                       ->orWhere('opponent_id', $user->id);
             })
@@ -28,30 +26,32 @@ class Challenge1v1Controller extends Controller
             ->unique()
             ->toArray();
 
-        if (!empty($takenChallengeIds)) {
-            $q->whereNotIn('id', $takenChallengeIds);
+        if (!empty($taken)) {
+            $q->whereNotIn('id', $taken);
         }
     }
 
-    // 3️⃣ Optional filters — only narrow results, not block all
+    // ✅ Step 2. Language filter — only narrow, ignore “all”
     if ($request->filled('language') && strtolower($request->language) !== 'all') {
         $q->where('language', $request->language);
     }
 
+    // ✅ Step 3. Difficulty filter — only narrow, ignore “all”
     if ($request->filled('difficulty') && strtolower($request->difficulty) !== 'all') {
         $q->where('difficulty', $request->difficulty);
     }
 
+    // ✅ Step 4. Search — narrow results further but never override
     if ($request->filled('search')) {
         $term = trim($request->search);
-        $q->where(function ($search) use ($term) {
-            $search->where('title', 'like', "%{$term}%")
-                   ->orWhere('description', 'like', "%{$term}%");
+        $q->where(function ($sub) use ($term) {
+            $sub->where('title', 'like', "%{$term}%")
+                ->orWhere('description', 'like', "%{$term}%");
         });
     }
 
-    // 4️⃣ Return sorted results
-    $challenges = $q->orderByDesc('created_at')->get();
+    // ✅ Step 5. Return everything that matches
+    $challenges = $q->orderBy('created_at', 'desc')->get();
 
     return response()->json([
         'success' => true,
