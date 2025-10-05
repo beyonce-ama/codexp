@@ -1222,21 +1222,21 @@ if (duel.status === 'finished') {
                 if (isCorrect) {
                     audio.play('success');
                     
-                    await Swal.fire({
+                   await Swal.fire({
                         icon: 'success',
                         title: 'Perfect Solution!',
                         html: `
                             <div class="text-center">
-                            <p class="mb-4 text-lg text-cyan-200">
+                            <p class="mb-4 text-lg text-yellow-200">
                                 Your solution is a perfect 100% match!
                             </p>
                             
-                            <div class="bg-emerald-900/30 border border-emerald-500/40 rounded-lg p-4 mb-4">
-                                <div class="text-2xl font-bold text-green-400">100% Perfect Match</div>
+                            <div class="bg-yellow-900/30 border border-yellow-500/40 rounded-lg p-4 mb-4">
+                                <div class="text-2xl font-bold text-yellow-300">100% Perfect Match</div>
                                 <div class="text-sm text-gray-300 opacity-80">Exact Database Solution</div>
                             </div>
                             
-                            <div class="text-lg font-bold text-green-500 mb-2">
+                            <div class="text-lg font-bold text-yellow-400 mb-2">
                                 ⏱️ Time: ${Math.floor(timeSpent / 60)}m ${timeSpent % 60}s
                             </div>
                             
@@ -1249,9 +1249,9 @@ if (duel.status === 'finished') {
                         timerProgressBar: true,
                         showConfirmButton: true,
                         confirmButtonText: 'Continue',
-                        confirmButtonColor: '#10B981',
-                        background: 'linear-gradient(160deg, #0f172a 0%, #064e3b 50%, #0b3b32 100%)', // dark teal gradient
-                        color: '#e5e7eb',
+                        confirmButtonColor: '#FACC15', // gold confirm button
+                        background: 'linear-gradient(160deg, #0f172a 0%, #78350f 40%, #fbbf24 100%)', // dark gold gradient
+                        color: '#fefce8', // warm off-white text
                         backdrop: 'rgba(0,0,0,0.6)',
                         });
 

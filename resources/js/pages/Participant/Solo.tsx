@@ -632,51 +632,52 @@ const exitFullscreen = () => {
 
                  // inside: if (isCorrect) { ... after sounds/particles/level calc }
 
-const { isConfirmed } = await Swal.fire({
-  title: 'PERFECT SOLUTION!',
-  html: `
-    <div class="text-center">
-      <div class="text-5xl mb-4">🏆</div>
-      <p class="mb-3 text-lg font-semibold text-cyan-200">
-        Outstanding! Your code is a perfect 100% match!
-      </p>
+                    const { isConfirmed } = await Swal.fire({
+                    title: 'PERFECT SOLUTION!',
+                    html: `
+                        <div class="text-center">
+                        <div class="text-5xl mb-4">🏆</div>
+                        <p class="mb-3 text-lg font-semibold text-yellow-200">
+                            Outstanding! Your code is a perfect 100% match!
+                        </p>
 
-      <div class="bg-blue-900/30 border border-blue-500/40 rounded-lg p-4 mb-4">
-        <div class="text-2xl font-bold text-green-400">100% Perfect Match</div>
-        <div class="text-sm text-gray-200 opacity-80">Exact Database Solution</div>
-      </div>
+                        <div class="bg-yellow-900/30 border border-yellow-500/40 rounded-lg p-4 mb-4">
+                            <div class="text-2xl font-bold text-yellow-300">100% Perfect Match</div>
+                            <div class="text-sm text-gray-200 opacity-80">Exact Database Solution</div>
+                        </div>
 
-      <div class="grid grid-cols-2 gap-4 mb-4">
-        <div class="bg-gray-900/40 rounded-lg p-3">
-          <div class="text-lg font-bold text-yellow-300">+${xpEarned ?? 3}</div>
-          <div class="text-xs text-gray-300">XP Earned</div>
-        </div>
-        <div class="bg-gray-900/40 rounded-lg p-3">
-          <div class="text-lg font-bold text-purple-300">Level ${newLevel ?? 1}</div>
-          <div class="text-xs text-gray-300">Current Level</div>
-        </div>
-      </div>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div class="bg-gray-900/40 rounded-lg p-3">
+                            <div class="text-lg font-bold text-yellow-300">+${xpEarned ?? 3}</div>
+                            <div class="text-xs text-gray-300">XP Earned</div>
+                            </div>
+                            <div class="bg-gray-900/40 rounded-lg p-3">
+                            <div class="text-lg font-bold text-purple-300">Level ${newLevel ?? 1}</div>
+                            <div class="text-xs text-gray-300">Current Level</div>
+                            </div>
+                        </div>
 
-      <div class="text-sm text-gray-300">⏱️ Completed in ${Math.floor(timeSpent / 60)}m ${timeSpent % 60}s</div>
-      ${leveledUp ? `
-        <div class="mt-4 text-center">
-          <div class="text-lg font-bold text-emerald-400 animate-pulse">✨ LEVEL UP! ✨</div>
-          <p class="text-sm text-gray-200">
-            You’ve reached Level ${newLevel}! Next: ${calculateXPToNextLevel(newTotalXP)} XP needed.
-          </p>
-        </div>
-      ` : ''}
-    </div>
-  `,
-  showConfirmButton: true,
-  confirmButtonText: 'Continue Coding!',
-  confirmButtonColor: '#10B981',
-  background: 'linear-gradient(160deg, #0f172a 0%, #064e3b 40%, #0b3b32 100%)', // deep teal-blue gradient
-  color: '#e5e7eb',
-  backdrop: 'rgba(0,0,0,0.6)',
-  allowOutsideClick: false,
-  allowEscapeKey: false,
-});
+                        <div class="text-sm text-gray-300">⏱️ Completed in ${Math.floor(timeSpent / 60)}m ${timeSpent % 60}s</div>
+                        ${leveledUp ? `
+                            <div class="mt-4 text-center">
+                            <div class="text-lg font-bold text-yellow-300 animate-pulse">✨ LEVEL UP! ✨</div>
+                            <p class="text-sm text-gray-200">
+                                You’ve reached Level ${newLevel}! Next: ${calculateXPToNextLevel(newTotalXP)} XP needed.
+                            </p>
+                            </div>
+                        ` : ''}
+                        </div>
+                    `,
+                    showConfirmButton: true,
+                    confirmButtonText: 'Continue Coding!',
+                    confirmButtonColor: '#FACC15', // warm gold button
+                    background: 'linear-gradient(160deg, #0f172a 0%, #78350f 35%, #fbbf24 100%)', // dark gold gradient
+                    color: '#fefce8', // soft off-white for warm readability
+                    backdrop: 'rgba(0,0,0,0.6)',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    });
+
 
 if (isConfirmed) {
   // stop the celebration visuals
@@ -1009,47 +1010,94 @@ if (isConfirmed) {
             </div>
         </div>
     );
+// Use ONLY for the Quit & Show Solution flow
 const showCodeModal = (title: string, code: string) => {
   Swal.fire({
-    title: `<span class="text-lg font-semibold text-yellow-400">${title}</span>`,
-    html: `
-      <div class="rounded-2xl bg-slate-900/90 border border-yellow-700 shadow-2xl backdrop-blur p-5 text-left">
-        <p class="mb-3 text-slate-300 text-sm">
-          ⚙️ <span class="text-yellow-400 font-medium">100% logic match required</span> 
-        </p>
-        <div class="relative rounded-lg bg-slate-800/70 border border-yellow-700 p-3 overflow-hidden">
-          <pre id="swal-code"
-               class="text-yellow-300 text-sm overflow-y-auto scrollbar-hide"
-               style="
-                 font-family:'Courier New', monospace;
-                 white-space: pre-wrap;
-                 word-break: break-word;
-                 max-height: 55vh;
-                 line-height: 1.5;
-                 padding-right: 10px;
-               "></pre>
+    title: `
+      <div class="flex flex-col items-center gap-2">
+        <span class="text-xl font-semibold text-rose-300 drop-shadow">${title}</span>
+        <div class="text-[11px] px-2 py-1 rounded bg-rose-900/60 border border-rose-600/70 text-rose-200 uppercase tracking-wider font-bold">
+          Quit & Show Solution
         </div>
       </div>
     `,
-    width: 700,
-    background: '#0f172a', // consistent slate background
-    color: '#f8fafc', // light text
+    html: `
+      <div class="bg-gradient-to-br from-slate-900 via-slate-950 to-black border border-rose-700/40 rounded-2xl shadow-[0_0_28px_rgba(244,63,94,0.25)] backdrop-blur-md p-5">
+        <div class="flex items-start justify-between gap-3 mb-3">
+          <div class="space-y-1">
+            <p class="text-slate-300 text-sm">
+              <span class="text-rose-300 font-semibold">You quit this attempt.
+            </p>
+            <p class="text-xs text-slate-400">
+              <span class="font-semibold text-amber-300">Reminder:</span>
+              Don’t add or delete unnecessary comments—exact match is enforced.
+            </p>
+          </div>
+        </div>
+
+        <div class="relative rounded-xl bg-slate-800/70 border border-slate-700/60 shadow-inner overflow-hidden">
+          <pre id="swal-code"
+            class="text-amber-200 text-sm p-4 overflow-y-auto"
+            style="
+              font-family:'JetBrains Mono','Courier New',monospace;
+              white-space: pre-wrap;
+              word-break: break-word;
+              max-height: 60vh;
+              line-height: 1.5;
+
+              /* Hide scrollbar cross-browser */
+              -ms-overflow-style: none;      /* IE/Edge */
+              scrollbar-width: none;         /* Firefox */
+            "></pre>
+          <style>
+            /* Hide scrollbar for WebKit inside the modal only */
+            .swal2-html-container pre::-webkit-scrollbar { display: none; }
+          </style>
+          <div class="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-slate-950/90 to-transparent"></div>
+        </div>
+
+        <div class="mt-3 text-[11px] text-slate-400 text-right">
+          Status: <span class="text-rose-300 font-semibold">Viewed Solution</span>
+        </div>
+      </div>
+    `,
+    width: 760,
+    background: '#0a0f1c',
+    color: '#f8fafc',
     confirmButtonText: 'Close',
+    allowOutsideClick: false,
+    allowEscapeKey: false,
     customClass: {
       confirmButton:
-        'px-5 py-2 bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-semibold rounded-lg shadow-lg transition-colors',
+        'px-6 py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-lg shadow-lg hover:shadow-rose-500/30 transition-all duration-200',
       popup:
-        'border border-yellow-800 shadow-[0_0_25px_rgba(234,179,8,0.2)] rounded-2xl',
+        'border border-rose-700/50 rounded-2xl',
     },
-    showClass: {
-      popup: 'animate__animated animate__fadeInDown animate__faster',
-    },
-    hideClass: {
-      popup: 'animate__animated animate__fadeOutUp animate__faster',
-    },
+    showClass: { popup: 'animate__animated animate__fadeInUp animate__faster' },
+    hideClass: { popup: 'animate__animated animate__fadeOutDown animate__faster' },
     didOpen: () => {
-      const el = Swal.getHtmlContainer()?.querySelector<HTMLElement>('#swal-code');
-      if (el) el.textContent = code;
+      const container = Swal.getHtmlContainer();
+      const pre = container?.querySelector<HTMLElement>('#swal-code');
+      if (pre) pre.textContent = code; // TEXT only, not HTML
+
+      const copyBtn = container?.querySelector<HTMLButtonElement>('#copy-code');
+      copyBtn?.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(code);
+          copyBtn.innerHTML = 'Copied!';
+          copyBtn.classList.add('bg-emerald-600','text-white','border-emerald-500');
+          setTimeout(() => {
+            copyBtn.innerHTML = `
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="1.5" d="M8 8h8v8H8z"/><path stroke-width="1.5" d="M4 4h8v2H6v6H4z"/></svg>
+              Copy code
+            `;
+            copyBtn.classList.remove('bg-emerald-600','text-white','border-emerald-500');
+          }, 1200);
+        } catch {
+          copyBtn.innerHTML = 'Copy failed';
+          setTimeout(() => (copyBtn.innerHTML = 'Copy code'), 1200);
+        }
+      });
     },
   });
 };
