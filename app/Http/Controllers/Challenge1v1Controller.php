@@ -6,64 +6,65 @@ use App\Http\Controllers\Controller;
 use App\Models\Challenge1v1;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\DB;
+
 
 class Challenge1v1Controller extends Controller
 {
-public function index(Request $request)
+ public function index(Request $request)
 {
-    $userId     = auth()->id();
-    $oppId      = (int) $request->input('opponent_id', 0);
-    $language   = (string) $request->input('language', 'all');
-    $difficulty = (string) $request->input('difficulty', 'all');
-    $search     = trim((string) $request->input('search', ''));
-    $exclude    = filter_var($request->input('exclude_taken', true), FILTER_VALIDATE_BOOLEAN);
+    $q = \App\Models\Challenge1v1::query();
 
-    $q = Challenge1v1::query();
+    // filters already used by the UI
+    if ($request->filled('language'))   $q->where('language', $request->language);
+    if ($request->filled('difficulty')) $q->where('difficulty', $request->difficulty);
 
-    // --- Exclude any challenge already taken by me or the chosen opponent ---
-   if ($exclude && !empty($userId)) {               // guard needs a real user id
-    $q->whereNotExists(function ($sub) use ($userId, $oppId) {
-        $sub->select(\DB::raw(1))
-            ->from('duels as d')
-            ->whereNotNull('d.challenge_id')     // don’t let NULLs exclude everything
-            ->whereColumn('d.challenge_id', 'challenges_1v1.id')
-            ->where(function ($w) use ($userId, $oppId) {
-                $w->where('d.challenger_id', $userId)
-                  ->orWhere('d.opponent_id', $userId);
-
-                if ($oppId > 0) {
-                    $w->orWhere('d.challenger_id', $oppId)
-                      ->orWhere('d.opponent_id', $oppId);
-                }
-            });
-    });
-}
-
-    // --- Filters ---
-    if ($language !== '' && $language !== 'all') {
-        $q->where('language', $language);
-    }
-    if ($difficulty !== '' && $difficulty !== 'all') {
-        $q->where('difficulty', $difficulty);
-    }
-
-    // --- Search (keep grouped!) ---
-    if ($search !== '') {
-        $q->where(function ($g) use ($search) {
-            $g->where('title', 'like', "%{$search}%")
-              ->orWhere('description', 'like', "%{$search}%");
+    // optional text search (UI sends `search`)
+    if ($request->filled('search')) {
+        $term = $request->string('search')->toString();
+        $q->where(function ($qq) use ($term) {
+            $qq->where('title', 'like', "%{$term}%")
+               ->orWhere('description', 'like', "%{$term}%");
         });
     }
 
-    // --- Always show something on browse ---
-    $items = $q->orderByDesc('created_at')
-               ->limit(100)
-               ->get();
+    // exclude challenges the CURRENT user has already taken (default = true)
+    $excludeTaken = $request->boolean('exclude_taken', true);
+    if ($excludeTaken && $request->user()) {
+        $uid = $request->user()->id;
+
+        // any duel where THIS user submitted + the duel had a challenge_id
+        // (covers finished, surrendered, or still-active where user already answered)
+       $takenChallengeIds = \App\Models\Duel::query()
+            ->join('duel_submissions as ds', 'ds.duel_id', '=', 'duels.id')
+            ->where('ds.user_id', $uid)
+            ->whereIn('duels.status', ['finished','surrendered'])
+            ->whereNotNull('duels.challenge_id')
+            ->distinct()
+            ->pluck('duels.challenge_id');
+
+        if ($takenChallengeIds->isNotEmpty()) {
+            $q->whereNotIn('id', $takenChallengeIds);
+        }
+    }
+    // Optional: also exclude challenges the intended opponent already took
+    if ($request->filled('opponent_id')) {
+        $oppId = (int) $request->opponent_id;
+
+        $opponentTakenIds = \App\Models\Duel::query()
+            ->join('duel_submissions as ds', 'ds.duel_id', '=', 'duels.id')
+            ->where('ds.user_id', $oppId)
+            ->whereNotNull('duels.challenge_id')
+            ->distinct()
+            ->pluck('duels.challenge_id');
+
+        if ($opponentTakenIds->isNotEmpty()) {
+            $q->whereNotIn('id', $opponentTakenIds);
+        }
+    }
 
     return response()->json([
         'success' => true,
-        'data'    => $items,
+        'data'    => $q->latest()->paginate(20),
     ]);
 }
 
