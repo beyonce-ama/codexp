@@ -146,7 +146,7 @@ const loadHistory = async () => {
   setHistoryLoading(true);
   try {
     const res: any = await apiClient.get('/api/matchmaking/history', {
-      params: { limit: 20 },
+      params: { limit: 10 }, 
     });
     const items: HistoryItem[] = res?.data?.items ?? res?.items ?? [];
     setHistory(items);
@@ -453,7 +453,11 @@ const openHistory = async () => {
       </div>
 
       {/* Scrollable List */}
-      <div className="mt-3 px-2 max-h-[70vh] overflow-y-auto">
+      <div
+        className="mt-3 px-2 max-h-[70vh] overflow-y-auto scrollbar-hide"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+
         {historyLoading ? (
           <div className="flex items-center gap-2 text-zinc-400">
             <Loader2 className="w-4 h-4 animate-spin" /> Loading…
@@ -537,12 +541,12 @@ const openHistory = async () => {
         >
           Close
         </button>
-        <button
+        {/* <button
           onClick={loadHistory}
           className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-zinc-100"
         >
           Refresh
-        </button>
+        </button> */}
       </div>
     </div>
   </div>
@@ -620,3 +624,9 @@ const TipCard = ({ icon, title, text }: { icon: React.ReactNode; title: string; 
 );
 
 export default Matchmaking;
+// Hide scrollbar globally for .scrollbar-hide
+const style = document.createElement('style');
+style.innerHTML = `
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+`;
+document.head.appendChild(style);
