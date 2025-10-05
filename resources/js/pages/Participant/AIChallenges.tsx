@@ -398,17 +398,17 @@ useEffect(() => {
   setHasForfeited(false);
    }, 0);
  };
-
- // NEW: forfeit flow that shows solution and clears the board (simplified UI)
+// Forfeit flow: confirm ➜ show solution ➜ clear board (clean + centered)
 const surrenderAndShowAnswer = async () => {
   if (!currentChallenge?.fixed_code) return;
 
+  // Step 1: Confirm (NO SweetAlert default icon; we render our own “!”)
   const result = await Swal.fire({
-    icon: 'warning',
     title: `
-      <div class="text-center">
-        <h2 class="text-xl font-bold text-red-400 mb-1">Surrender & Show Answer?</h2>
-        <p class="text-gray-300 text-sm">You will NOT receive any rewards for this challenge.</p>
+      <div class="text-center space-y-2">
+        <div class="text-4xl text-red-400 font-bold mb-2">!</div>
+        <h2 class="text-xl font-bold text-red-400">Surrender & Show Answer?</h2>
+        <p class="text-gray-300 text-sm mt-1">You will NOT receive any rewards for this challenge.</p>
       </div>
     `,
     showCancelButton: true,
@@ -417,10 +417,19 @@ const surrenderAndShowAnswer = async () => {
     background: '#0f172a',
     color: '#f8fafc',
     confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#6b7280',
+    width: 600,
     customClass: {
       popup: 'rounded-xl border border-slate-700 shadow-2xl backdrop-blur-sm',
+      title: 'p-0',          // remove default title padding
+      htmlContainer: 'p-0',  // remove extra spacing
       confirmButton: 'px-5 py-2 rounded-lg font-semibold',
       cancelButton: 'px-5 py-2 rounded-lg font-semibold'
+    },
+    didOpen: () => {
+      // safety: if any default icon appears, remove it
+      const icon = document.querySelector('.swal2-icon');
+      if (icon) icon.remove();
     }
   });
 
@@ -429,6 +438,7 @@ const surrenderAndShowAnswer = async () => {
   setHasForfeited(true);
   audio.play('click');
 
+  // Step 2: Show solution
   await Swal.fire({
     title: `
       <div class="text-center">
@@ -461,7 +471,7 @@ const surrenderAndShowAnswer = async () => {
     }
   });
 
-  // clear board after surrender
+  // Step 3: Clear board after surrender
   closeChallengeModal();
   exitFullscreen();
 };

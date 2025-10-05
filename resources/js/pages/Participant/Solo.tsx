@@ -1012,8 +1012,40 @@ if (isConfirmed) {
             </div>
         </div>
     );
-const showCodeModal = (title: string, code: string) => {
-  Swal.fire({
+const showCodeModal = async (title: string, code: string) => {
+  // Confirm first — no SweetAlert icon, we render our own “!”
+  const confirmRes = await Swal.fire({
+    title: `
+      <div class="text-center space-y-2">
+        <div class="text-4xl text-red-400 font-bold mb-2">!</div>
+        <h2 class="text-xl font-bold text-red-400">Surrender & Show Answer?</h2>
+        <p class="text-gray-300 text-sm mt-1">You will NOT receive any rewards for this challenge.</p>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Show Answer',
+    cancelButtonText: 'Cancel',
+    background: '#0f172a',
+    color: '#f8fafc',
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#6b7280',
+    width: 600,
+    customClass: {
+      popup: 'rounded-xl border border-slate-700 shadow-2xl backdrop-blur-sm',
+      title: 'p-0',
+      htmlContainer: 'p-0',
+      confirmButton: 'px-5 py-2 rounded-lg font-semibold',
+      cancelButton: 'px-5 py-2 rounded-lg font-semibold'
+    },
+    didOpen: () => {
+      const icon = document.querySelector('.swal2-icon');
+      if (icon) icon.remove();
+    }
+  });
+  if (!confirmRes.isConfirmed) return;
+
+  // Then show the solution
+  await Swal.fire({
     title: `
       <div class="text-center">
         <h2 class="text-2xl font-bold text-red-400 mb-1">You Quit</h2>
@@ -1026,27 +1058,21 @@ const showCodeModal = (title: string, code: string) => {
           <span class="text-yellow-400 font-semibold">🏆 ${title}</span>
           <span class="text-xs text-gray-400 italic">100% logic match required</span>
         </div>
-
         <pre id="swal-code"
-             class="text-green-400 text-sm font-mono whitespace-pre-wrap break-words max-h-[55vh] overflow-y-auto">
-        </pre>
+             class="text-green-400 text-sm font-mono whitespace-pre-wrap break-words max-h-[55vh] overflow-y-auto"></pre>
       </div>
     `,
     width: 700,
     background: '#0f172a',
     color: '#f8fafc',
     confirmButtonText: 'Got it!',
+    confirmButtonColor: '#10B981',
     customClass: {
-      confirmButton:
-        'px-6 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg shadow-md transition-all',
       popup: 'rounded-xl border border-slate-700 shadow-2xl backdrop-blur-sm',
+      confirmButton: 'px-6 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg shadow-md transition-all',
     },
-    showClass: {
-      popup: 'animate__animated animate__fadeInUp animate__faster',
-    },
-    hideClass: {
-      popup: 'animate__animated animate__fadeOutDown animate__faster',
-    },
+    showClass: { popup: 'animate__animated animate__fadeInUp animate__faster' },
+    hideClass: { popup: 'animate__animated animate__fadeOutDown animate__faster' },
     didOpen: () => {
       const el = Swal.getHtmlContainer()?.querySelector<HTMLElement>('#swal-code');
       if (el) el.textContent = code;
