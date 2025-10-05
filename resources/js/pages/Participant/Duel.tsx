@@ -784,7 +784,9 @@ const fetchParticipants = async () => {
 
     const handleDuelFinished = async (duelData: Duel) => {
 
-    
+    if (resultShownRef.current) return;
+resultShownRef.current = true;
+
 
         // >>> UPDATED: hydrate and use safe defaults for rewards
         const hydrated = hydrateWinner(duelData);
@@ -1049,6 +1051,8 @@ const cmpHtml = cmp ? `
 
     };
     const startDuel = async (duel: Duel) => {
+        resultShownRef.current = false;
+
         if (!duel.challenge) {
             Swal.fire('Error', 'Challenge data is not available for this duel.', 'error');
             return;
@@ -1700,19 +1704,36 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                     <span className={`px-3 py-1 text-xs font-bold rounded-full ${getStatusColor(duel.status)}`}>
                                                         {duel.status.toUpperCase()}
                                                     </span>
-                                                   {duel.status === 'active' && (
-                                                    (waitingDuels.includes(duel.id) ||
-                                                        (
-                                                        duel.submissions?.some((s) => s.user_id === user.id && s.is_correct) &&
-                                                        !duel.submissions?.some((s) => s.user_id !== user.id && s.is_correct)
-                                                        )) && (
+                                                 {duel.status === 'active' && (() => {
+                                                    const myCorrect = duel.submissions?.some(
+                                                        (s) => s.user_id === user.id && s.is_correct
+                                                    );
+                                                    const opponentHasSubmitted = duel.submissions?.some(
+                                                        (s) => s.user_id !== user.id
+                                                    );
+                                                    const opponentCorrect = duel.submissions?.some(
+                                                        (s) => s.user_id !== user.id && s.is_correct
+                                                    );
+
+                                                    // ✅ also use local waitingDuels array (duel you just submitted)
+                                                    const locallyWaiting = waitingDuels.includes(duel.id);
+
+                                                    if ((myCorrect || locallyWaiting) && !opponentHasSubmitted) {
+                                                        return (
                                                         <span className="text-xs text-blue-400 font-medium ml-2">
-                                                            ⏳ Waiting for opponent...
+                                                            ⏳ Waiting for opponent to submit...
                                                         </span>
-                                                    )
-                                                    )}
-
-
+                                                        );
+                                                    }
+                                                    if ((myCorrect || locallyWaiting) && opponentHasSubmitted && !opponentCorrect) {
+                                                        return (
+                                                        <span className="text-xs text-blue-400 font-medium ml-2">
+                                                            ⏳ Opponent submitted but not correct yet...
+                                                        </span>
+                                                        );
+                                                    }
+                                                    return null;
+                                                    })()}
 
 
                                                 </div>

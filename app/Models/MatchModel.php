@@ -11,17 +11,18 @@ class MatchModel extends Model
 
     // add 'mode' if you set it when creating matches
     protected $fillable = ['language', 'difficulty', 'status', 'challenge_json', 'mode'];
+        
+    protected $casts = [
+        'payload'        => 'array',
+        'challenge_json' => 'array',
+    ];
 
-  protected $casts = [
-    'payload'        => 'array', // legacy path
-    'challenge_json' => 'array', // if DB column is JSON, this will auto-decode
-];
+    /** Include normalized challenge in JSON output */
+    protected $appends = ['challenge'];
 
-/** Ensure the normalized accessor is included when serialized */
-protected $appends = ['challenge'];
+    /** Optional: hide the raw blobs */
+    protected $hidden = ['payload','challenge_json'];
 
-/** (optional) Hide raw blobs if you don’t want to expose them */
-protected $hidden = ['payload', 'challenge_json'];
 
     protected static function booted()
     {

@@ -1006,8 +1006,8 @@ const showCodeModal = (title: string, code: string) => {
   Swal.fire({
     title,
     html: `
-      <div>
-        <p class="mb-3 text-gray-300">100% match required:</p>
+      <div class="correct-answer-modal">
+        <p class="mb-4 text-gray-300">100% match required:</p>
         <div class="bg-gray-900 rounded-lg p-4 text-left">
           <pre id="swal-code"
                class="text-green-400 text-sm overflow-auto"
