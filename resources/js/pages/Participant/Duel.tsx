@@ -605,7 +605,7 @@ const fetchChallenges = async () => {
 
     console.log('Fetching challenges with params:', params); // ← debug
 
-    const response = await apiClient.get('/api/1v1', { params });
+    const response = await apiClient.get('/api/challenges/1v1', { params })
     if (response.success) {
       const challengeData = Array.isArray(response.data)
         ? response.data
