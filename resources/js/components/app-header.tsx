@@ -243,10 +243,16 @@ useEffect(() => {
               </button>
 
               <SafeLink href="/dashboard" className="flex items-center gap-2 group">
+                <img
+                  src="/images/logo.png"
+                  alt="CODEXP AI Logo"
+                  className="w-7 h-7 sm:w-8 sm:h-8 drop-shadow-[0_0_4px_rgba(255,200,0,0.6)] transition-transform group-hover:scale-110"
+                />
                 <span className="text-lg sm:text-xl font-extrabold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-300">
                   CODEXP AI
                 </span>
               </SafeLink>
+
             </div>
 
             {user && (

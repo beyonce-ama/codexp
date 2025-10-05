@@ -708,35 +708,40 @@ if (isConfirmed) {
                     setIsShaking(true);
                     setTimeout(() => setIsShaking(false), 600);
 
-                    await Swal.fire({
-                        title: 'Almost There!',
-                        html: `
-                            <div class="text-center">
-                            <div class="text-5xl mb-4">⚠️</div>
-                            <p class="mb-3 text-lg font-semibold text-red-200">Your solution must exactly match the database answer.</p>
-                            
-                            <div class="bg-red-900/30 border border-red-500/40 rounded-lg p-4 mb-4">
-                                <div class="text-lg font-bold text-yellow-300">${Math.round(similarity * 100)}% Match</div>
-                                <div class="text-sm text-gray-200 opacity-80">Need 100% for Success</div>
-                            </div>
-
-                            <div class="bg-gray-900/40 rounded-lg p-3 text-left text-sm text-gray-200">
-                                <div class="font-medium text-yellow-400 mb-1">💡 Tips:</div>
-                                <ul class="list-disc list-inside space-y-1">
-                                <li>Ensure your code is at least 20 characters long</li>
-                                <li>Don’t just copy the buggy version</li>
-                                <li>Whitespace, symbols & punctuation matter</li>
-                                </ul>
-                            </div>
-                            </div>
-                        `,
-                        timer: 4500,
-                        showConfirmButton: true,
-                        confirmButtonText: 'Try Again',
-                        background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
-                        color: '#fff',
-                        confirmButtonColor: '#3B82F6',
-                        });
+                  await Swal.fire({
+                                          title: 'Almost There!',
+                                          html: `
+                                              <div class="text-center">
+                                              <div class="text-5xl mb-4">⚠️</div>
+                                              <p class="mb-3 text-lg font-semibold text-red-200">
+                                                  Your solution must exactly match the database answer.
+                                              </p>
+                  
+                                              <div class="bg-red-900/30 border border-red-500/40 rounded-lg p-4 mb-4">
+                                                  <div class="text-lg font-bold text-yellow-300">${Math.round(similarity * 100)}% Match</div>
+                                                  <div class="text-sm text-gray-200 opacity-80">Need 100% for Success</div>
+                                              </div>
+                  
+                                              <div class="bg-gray-900/40 rounded-lg p-3 text-left text-sm text-gray-200">
+                                                  <div class="font-medium text-yellow-400 mb-1">💡 Tips:</div>
+                                                  <ul class="list-disc list-inside space-y-1">
+                                                  <li>Ensure your code is at least 20 characters long</li>
+                                                  <li>Don’t just copy the buggy version</li>
+                                                  <li>Whitespace, symbols & punctuation matter</li>
+                                                  <li>⚠️ Don’t remove or add unnecessary comments — they are also compared in the database</li>
+                                                  </ul>
+                                              </div>
+                                              </div>
+                                          `,
+                                          timer: 4500,
+                                          showConfirmButton: true,
+                                          confirmButtonText: 'Try Again',
+                                          background: 'linear-gradient(160deg, #0f172a 0%, #1e293b 50%, #111827 100%)', 
+                                          color: '#e5e7eb',
+                                          confirmButtonColor: '#3B82F6',
+                                          backdrop: 'rgba(0,0,0,0.6)', 
+                                          });
+                  
                 }
                 
                 // Refresh stats and challenges to ensure UI is up to date
@@ -868,13 +873,14 @@ if (isConfirmed) {
 const surrenderAndShowAnswer = async () => {
   if (!selectedChallenge?.fixed_code) return;
 
-  // Step 1: Confirm
+  // Step 1: Confirm — render our own header (no SweetAlert title container)
   const result = await Swal.fire({
-    title: `
+    title: '',
+    html: `
       <div class="text-center space-y-2">
-        <div class="text-4xl text-red-400 font-bold mb-2">!</div>
+        <div class="text-4xl text-red-400 font-bold">!</div>
         <h2 class="text-xl font-bold text-red-400">Surrender & Show Answer?</h2>
-        <p class="text-gray-300 text-sm mt-1">You will NOT receive any rewards for this challenge.</p>
+        <p class="text-gray-300 text-sm">You will NOT receive any rewards for this challenge.</p>
       </div>
     `,
     showCancelButton: true,
@@ -885,36 +891,55 @@ const surrenderAndShowAnswer = async () => {
     confirmButtonColor: '#ef4444',
     cancelButtonColor: '#6b7280',
     width: 600,
-    customClass: { popup: 'rounded-xl border border-gray-700/50' }
+    customClass: {
+      popup: 'rounded-xl border border-gray-700/50',
+      htmlContainer: 'p-0',
+      confirmButton: 'px-5 py-2 rounded-lg font-semibold',
+      cancelButton: 'px-5 py-2 rounded-lg font-semibold',
+    },
   });
 
   if (!result.isConfirmed) return;
 
   audio.play('click');
 
-  // Step 2: Show the official solution (textContent, not innerHTML)
+  // Step 2: Show the official solution (header also inside html)
   await Swal.fire({
-    title: 'Correct Answer',
+    title: '',
     html: `
-      <div class="correct-answer-modal">
-        <p class="mb-4 text-gray-300">Here's the exact solution from the database (100% match required):</p>
-        <div class="bg-gray-900 rounded-lg p-4 text-left">
-          <pre id="solo-surrender-solution"
-               class="text-green-400 text-sm overflow-auto max-h-64"
-               style="font-family:'Courier New',monospace; white-space:pre;"></pre>
-        </div>
-        <p class="mt-4 text-xs text-gray-400">Reminder: Comments and punctuation are also compared.</p>
+      <div class="text-center mb-4">
+        <h2 class="text-2xl font-bold text-red-400 mb-1">You Quit</h2>
+        <p class="text-gray-300 text-sm">Here’s the correct solution 💡</p>
       </div>
+
+      <div class="bg-slate-900 border border-slate-700 rounded-xl p-5 shadow-lg text-left">
+        <div class="mb-3 flex items-center justify-between border-b border-slate-700 pb-2">
+          <span class="text-yellow-400 font-semibold">🏆 ${selectedChallenge?.title ?? 'Correct Answer'}</span>
+          <span class="text-xs text-gray-400 italic">100% logic match required</span>
+        </div>
+        <pre id="solo-surrender-solution"
+             class="text-green-400 text-sm font-mono whitespace-pre-wrap break-words max-h-[55vh] overflow-y-auto"
+             style="margin:0;"></pre>
+      </div>
+
+      <p class="mt-4 text-xs text-gray-400 text-center">
+        Reminder: comments and punctuation are also compared.
+      </p>
     `,
+    width: 700,
+    background: '#0f172a',
+    color: '#f8fafc',
+    confirmButtonText: 'Close',
+    confirmButtonColor: '#10B981',
+    customClass: {
+      popup: 'rounded-xl border border-slate-700 shadow-2xl backdrop-blur-sm',
+      htmlContainer: 'p-0',
+      confirmButton: 'px-6 py-2 rounded-lg font-semibold',
+    },
     didOpen: () => {
       const el = document.getElementById('solo-surrender-solution');
-      if (el) el.textContent = selectedChallenge!.fixed_code || '';
+      if (el) el.textContent = selectedChallenge.fixed_code || '';
     },
-    confirmButtonText: 'Got it',
-    confirmButtonColor: '#10B981',
-    background: '#1f2937',
-    color: '#fff',
-    width: 700
   });
 
   // Step 3: Mark abandoned & reset modal/editor
