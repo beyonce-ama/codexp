@@ -345,6 +345,8 @@ Route::get('/dashboard/stats', function () {
         Route::get('/solo', [ChallengeSoloController::class, 'index']);
         Route::get('/1v1', [Challenge1v1Controller::class, 'index']);
     });
+// TEMP TEST ROUTE for participant challenge filtering
+Route::get('/api/test-challenges', [\App\Http\Controllers\Challenge1v1Controller::class, 'index']);
 
     // User stats and profile routes
     Route::prefix('api/me')->group(function () {
