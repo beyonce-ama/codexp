@@ -32,20 +32,21 @@ public function index(Request $request)
         });
     }
 
-    // ✅ Exclude challenges the current user has already taken
-    if ($user) {
-        $takenIds = \App\Models\Duel::where(function ($duel) use ($user) {
-                $duel->where('challenger_id', $user->id)
-                     ->orWhere('opponent_id', $user->id);
-            })
-            ->pluck('challenge_id') // ← real column name
-            ->unique()
-            ->toArray();
+// exclude challenges the CURRENT user has already participated in
+$userId = auth()->id();
 
-        if (!empty($takenIds)) {
-            $q->whereNotIn('id', $takenIds);
-        }
-    }
+$takenIds = DB::table('duels')
+    ->where(function ($q) use ($userId) {
+        $q->where('challenger_id', $userId)
+          ->orWhere('opponent_id', $userId);
+    })
+    ->pluck('challenge_id')
+    ->filter()
+    ->unique()
+    ->toArray();
+
+$q->whereNotIn('id', $takenIds);
+
 
     // ✅ Get all remaining challenges (untaken)
     $challenges = $q->orderByDesc('created_at')->get();
