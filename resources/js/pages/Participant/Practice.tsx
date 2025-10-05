@@ -45,23 +45,23 @@ const DarkModal = Swal.mixin({
   },
 });
 
-// Minimal dark toast for Practice (pure HTML, no Swal icon/title)
+// Dark toast (top-right position, Codexp-style)
 const fireToast = (text: string, ms = 2500) =>
   Swal.fire({
     toast: true,
-    position: 'bottom-end',
+    position: 'top-end', // ⬅️ move to top-right
     showConfirmButton: false,
     timer: ms,
     timerProgressBar: true,
-    background: 'transparent', // important: we render the card ourselves
+    background: 'transparent', // we’ll handle visuals in HTML
     customClass: {
       popup: '!p-0 !bg-transparent !shadow-none !border-0',
       timerProgressBar: 'bg-yellow-500/50',
     },
     html: `
-      <div class="flex items-center gap-3 rounded-xl border border-yellow-700 bg-slate-900/90 backdrop-blur px-4 py-3 shadow-lg">
+      <div class="flex items-center gap-3 rounded-xl border border-yellow-700 bg-slate-900/90 backdrop-blur px-4 py-3 shadow-2xl">
         <div class="p-2 rounded-lg border border-yellow-700 bg-yellow-500/10">
-          <!-- simple info icon (no external deps) -->
+          <!-- Info icon -->
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="12" y1="16" x2="12" y2="12"></line>

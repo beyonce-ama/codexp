@@ -637,7 +637,9 @@ const { isConfirmed } = await Swal.fire({
   html: `
     <div class="text-center">
       <div class="text-5xl mb-4">🏆</div>
-      <p class="mb-3 text-lg font-semibold text-cyan-200">Outstanding! Your code is a perfect 100% match!</p>
+      <p class="mb-3 text-lg font-semibold text-cyan-200">
+        Outstanding! Your code is a perfect 100% match!
+      </p>
 
       <div class="bg-blue-900/30 border border-blue-500/40 rounded-lg p-4 mb-4">
         <div class="text-2xl font-bold text-green-400">100% Perfect Match</div>
@@ -658,18 +660,20 @@ const { isConfirmed } = await Swal.fire({
       <div class="text-sm text-gray-300">⏱️ Completed in ${Math.floor(timeSpent / 60)}m ${timeSpent % 60}s</div>
       ${leveledUp ? `
         <div class="mt-4 text-center">
-          <div class="text-lg font-bold text-pink-400 animate-pulse">✨ LEVEL UP! ✨</div>
-          <p class="text-sm text-gray-200">You’ve reached Level ${newLevel}! Next: ${calculateXPToNextLevel(newTotalXP)} XP needed.</p>
+          <div class="text-lg font-bold text-emerald-400 animate-pulse">✨ LEVEL UP! ✨</div>
+          <p class="text-sm text-gray-200">
+            You’ve reached Level ${newLevel}! Next: ${calculateXPToNextLevel(newTotalXP)} XP needed.
+          </p>
         </div>
       ` : ''}
     </div>
   `,
-  // IMPORTANT: no timer; force explicit confirm
   showConfirmButton: true,
   confirmButtonText: 'Continue Coding!',
   confirmButtonColor: '#10B981',
-  background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
-  color: '#fff',
+  background: 'linear-gradient(160deg, #0f172a 0%, #064e3b 40%, #0b3b32 100%)', // deep teal-blue gradient
+  color: '#e5e7eb',
+  backdrop: 'rgba(0,0,0,0.6)',
   allowOutsideClick: false,
   allowEscapeKey: false,
 });
@@ -1007,40 +1011,46 @@ if (isConfirmed) {
     );
 const showCodeModal = (title: string, code: string) => {
   Swal.fire({
-    title: `<span class="text-lg font-semibold text-emerald-400">${title}</span>`,
+    title: `<span class="text-lg font-semibold text-yellow-400">${title}</span>`,
     html: `
-      <div class="rounded-xl bg-gray-800/70 shadow-lg border border-gray-700 p-5 text-left">
-        <p class="mb-3 text-gray-400 text-sm">
-          ⚙️ <span class="text-emerald-400">100% match required</span> — make sure your code logic is exact.
+      <div class="rounded-2xl bg-slate-900/90 border border-yellow-700 shadow-2xl backdrop-blur p-5 text-left">
+        <p class="mb-3 text-slate-300 text-sm">
+          ⚙️ <span class="text-yellow-400 font-medium">100% logic match required</span> 
         </p>
-        <div class="relative rounded-md bg-gray-900 border border-gray-700 p-3 overflow-hidden">
+        <div class="relative rounded-lg bg-slate-800/70 border border-yellow-700 p-3 overflow-hidden">
           <pre id="swal-code"
-               class="text-emerald-300 text-sm overflow-y-auto scrollbar-hide"
+               class="text-yellow-300 text-sm overflow-y-auto scrollbar-hide"
                style="
                  font-family:'Courier New', monospace;
                  white-space: pre-wrap;
                  word-break: break-word;
-                 max-height: 50vh;
+                 max-height: 55vh;
+                 line-height: 1.5;
                  padding-right: 10px;
                "></pre>
         </div>
       </div>
     `,
     width: 700,
-    background: '#111827', // darker for contrast
-    color: '#fff',
+    background: '#0f172a', // consistent slate background
+    color: '#f8fafc', // light text
     confirmButtonText: 'Close',
-    confirmButtonColor: '#10B981',
+    customClass: {
+      confirmButton:
+        'px-5 py-2 bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-semibold rounded-lg shadow-lg transition-colors',
+      popup:
+        'border border-yellow-800 shadow-[0_0_25px_rgba(234,179,8,0.2)] rounded-2xl',
+    },
     showClass: {
-      popup: 'animate__animated animate__fadeInUp animate__faster'
+      popup: 'animate__animated animate__fadeInDown animate__faster',
     },
     hideClass: {
-      popup: 'animate__animated animate__fadeOutDown animate__faster'
+      popup: 'animate__animated animate__fadeOutUp animate__faster',
     },
     didOpen: () => {
       const el = Swal.getHtmlContainer()?.querySelector<HTMLElement>('#swal-code');
       if (el) el.textContent = code;
-    }
+    },
   });
 };
 

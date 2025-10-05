@@ -1048,7 +1048,7 @@ const handleClaim = async (achievementId: number) => {
         </div>
 
 {/* Reward toasts (bottom-right) */}
-<div className="fixed bottom-4 right-4 z-[60] space-y-2">
+<div className="fixed top-4 right-4 z-[60] space-y-2">
   {toasts.map(t => (
     <div
       key={t.id}

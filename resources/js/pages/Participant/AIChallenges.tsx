@@ -730,33 +730,49 @@ useEffect(() => {
     };
 const showCodeModal = (title: string, code: string) => {
   Swal.fire({
-    title,
+    title: `<span class="text-yellow-400 font-semibold text-lg">${title}</span>`,
     html: `
-      <div>
-        <p class="mb-3 text-gray-300">100% match required:</p>
-        <div class="bg-gray-900 rounded-lg p-4 text-left">
+      <div class="rounded-2xl bg-slate-900/90 border border-yellow-700 shadow-2xl backdrop-blur-sm p-5 text-left">
+        <p class="mb-3 text-slate-300 text-sm">
+          ⚙️ <span class="text-yellow-400 font-medium">100% match required</span> — ensure your logic and syntax are exact.
+        </p>
+        <div class="bg-slate-800/70 rounded-lg p-4 border border-yellow-700 overflow-hidden">
           <pre id="swal-code"
-               class="text-green-400 text-sm overflow-auto"
+               class="text-yellow-300 text-sm overflow-y-auto scrollbar-hide"
                style="
-                 font-family:'Courier New',monospace;
-                 white-space: pre;      /* keep indentation and angle brackets */
-                 max-height: 70vh;      /* taller */
-                 max-width: 90vw;       /* responsive */
+                 font-family:'Courier New', monospace;
+                 white-space: pre; /* keep indentation */
+                 max-height: 65vh;
+                 max-width: 85vw;
+                 line-height: 1.5;
+                 padding-right: 10px;
                "></pre>
         </div>
       </div>
     `,
     width: 900,
-    background: '#1f2937',
-    color: '#fff',
+    background: '#0f172a', // slate-900
+    color: '#f8fafc', // light text
     confirmButtonText: 'Got it!',
-    confirmButtonColor: '#10B981',
+    customClass: {
+      confirmButton:
+        'px-5 py-2 bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-semibold rounded-lg shadow-lg transition-colors',
+      popup:
+        'border border-yellow-800 shadow-[0_0_25px_rgba(234,179,8,0.2)] rounded-2xl',
+    },
+    showClass: {
+      popup: 'animate__animated animate__fadeInDown animate__faster',
+    },
+    hideClass: {
+      popup: 'animate__animated animate__fadeOutUp animate__faster',
+    },
     didOpen: () => {
       const el = Swal.getHtmlContainer()?.querySelector<HTMLElement>('#swal-code');
-      if (el) el.textContent = code; // <-- TEXT, not HTML
-    }
+      if (el) el.textContent = code; // Keep raw text formatting
+    },
   });
 };
+
 
     const showCorrectAnswerHandler = () => {
         if (currentChallenge?.fixed_code) {

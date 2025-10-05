@@ -1227,26 +1227,34 @@ if (duel.status === 'finished') {
                         title: 'Perfect Solution!',
                         html: `
                             <div class="text-center">
-                                <p class="mb-4 text-lg">Your solution is a perfect 100% match!</p>
-                                <div class="accuracy-display mb-4">
-                                    <div class="text-2xl font-bold text-green-400">100% Perfect Match</div>
-                                    <div class="text-gray-400">Exact Database Solution</div>
-                                </div>
-                                <div class="text-lg font-bold text-green-600 mb-2">
-                                    Time: ${Math.floor(timeSpent / 60)}m ${timeSpent % 60}s
-                                </div>
-                                <p class="text-sm text-gray-600">Waiting for opponent or final results...</p>
+                            <p class="mb-4 text-lg text-cyan-200">
+                                Your solution is a perfect 100% match!
+                            </p>
+                            
+                            <div class="bg-emerald-900/30 border border-emerald-500/40 rounded-lg p-4 mb-4">
+                                <div class="text-2xl font-bold text-green-400">100% Perfect Match</div>
+                                <div class="text-sm text-gray-300 opacity-80">Exact Database Solution</div>
+                            </div>
+                            
+                            <div class="text-lg font-bold text-green-500 mb-2">
+                                ⏱️ Time: ${Math.floor(timeSpent / 60)}m ${timeSpent % 60}s
+                            </div>
+                            
+                            <p class="text-sm text-gray-300 italic">
+                                Waiting for opponent or final results...
+                            </p>
                             </div>
                         `,
-                          timer: 6000,
-                          timerProgressBar: true,
-                          showConfirmButton: true,
-                          confirmButtonText: 'Continue',
-                          background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
-                          color: '#fff',
-                          confirmButtonColor: '#10B981'
-                    });
-                    
+                        timer: 6000,
+                        timerProgressBar: true,
+                        showConfirmButton: true,
+                        confirmButtonText: 'Continue',
+                        confirmButtonColor: '#10B981',
+                        background: 'linear-gradient(160deg, #0f172a 0%, #064e3b 50%, #0b3b32 100%)', // dark teal gradient
+                        color: '#e5e7eb',
+                        backdrop: 'rgba(0,0,0,0.6)',
+                        });
+
                     stopAllTimers();
                     setShowDuelModal(false);
                     setWaitingForOpponent(true);
@@ -1315,33 +1323,49 @@ if (duel.status === 'finished') {
     };
 const showCodeModal = (title: string, code: string) => {
   Swal.fire({
-    title,
+    title: `<span class="text-yellow-400 font-semibold text-lg">${title}</span>`,
     html: `
-      <div>
-        <p class="mb-3 text-gray-300">100% match required:</p>
-        <div class="bg-gray-900 rounded-lg p-4 text-left">
+      <div class="rounded-2xl bg-slate-900/90 border border-yellow-700 shadow-2xl backdrop-blur-sm p-5 text-left">
+        <p class="mb-3 text-slate-300 text-sm">
+          ⚙️ <span class="text-yellow-400 font-medium">100% match required</span> — ensure your code logic matches exactly.
+        </p>
+        <div class="relative rounded-lg bg-slate-800/70 border border-yellow-700 p-4 overflow-hidden">
           <pre id="swal-code"
-               class="text-green-400 text-sm overflow-auto"
+               class="text-yellow-300 text-sm overflow-y-auto scrollbar-hide"
                style="
-                 font-family:'Courier New',monospace;
-                 white-space: pre;      /* keep indentation and angle brackets */
-                 max-height: 70vh;      /* taller */
-                 max-width: 90vw;       /* responsive */
+                 font-family:'Courier New', monospace;
+                 white-space: pre;
+                 max-height: 65vh;
+                 max-width: 85vw;
+                 line-height: 1.5;
+                 padding-right: 10px;
                "></pre>
         </div>
       </div>
     `,
     width: 900,
-    background: '#1f2937',
-    color: '#fff',
+    background: '#0f172a', // slate-900
+    color: '#f8fafc',
     confirmButtonText: 'Got it!',
-    confirmButtonColor: '#10B981',
+    customClass: {
+      confirmButton:
+        'px-5 py-2 bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-semibold rounded-lg shadow-lg transition-colors',
+      popup:
+        'border border-yellow-800 shadow-[0_0_25px_rgba(234,179,8,0.2)] rounded-2xl',
+    },
+    showClass: {
+      popup: 'animate__animated animate__fadeInDown animate__faster',
+    },
+    hideClass: {
+      popup: 'animate__animated animate__fadeOutUp animate__faster',
+    },
     didOpen: () => {
       const el = Swal.getHtmlContainer()?.querySelector<HTMLElement>('#swal-code');
-      if (el) el.textContent = code; // <-- TEXT, not HTML
-    }
+      if (el) el.textContent = code; // Keep code formatting intact
+    },
   });
 };
+
 
     const showCorrectAnswerHandler = () => {
         if (activeDuel?.challenge?.fixed_code) {
