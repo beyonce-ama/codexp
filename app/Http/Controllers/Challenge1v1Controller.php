@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Challenge1v1;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-
+use Illuminate\Support\Facades\DB;
 
 class Challenge1v1Controller extends Controller
 {
