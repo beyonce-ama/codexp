@@ -752,17 +752,27 @@ const fetchParticipants = async () => {
                     const hasOpponent   = duelData.submissions.some((s: DuelSubmission) => s.user_id === duelData.opponent.id);
 
                    if (hasChallenger && hasOpponent && duelData.status !== 'finished' && !finalizing) {
-                    const bothCorrect = duelData.submissions.every((s: DuelSubmission) => s.is_correct);
+                    
                     const allSubmitted = duelData.submissions.length >= 2;
 
                     // finalize only if both correct or duel expired
                     const duelExpired = duelData.ended_at && new Date(duelData.ended_at).getTime() <= Date.now();
 
-                    if (bothCorrect || duelExpired) {
-                        await finalizeDuelIfReady(duelData);
+                    const bothSubmitted = duelData.submissions.length >= 2;
+                    const bothCorrect = duelData.submissions.filter(s => s.is_correct).length === 2;
+
+                    if (bothCorrect) {
+                    await finalizeDuelIfReady(duelData);
+                    } else if (bothSubmitted) {
+                    // Both have submitted but not both correct yet
+                    setWaitingForOpponent(true);
                     } else {
-                        console.log('⏳ Waiting — both submitted but not both correct yet or time not up.');
+                    // Only one submitted
+                    setWaitingForOpponent(true);
                     }
+
+
+
                     }
 
                 }
@@ -1223,8 +1233,6 @@ if (duel.status === 'finished') {
                     stopAllTimers();
                     setShowDuelModal(false);
                     setWaitingForOpponent(true);
-                    audio.play('success');
-                    // Force refresh so duel tile shows waiting
                     fetchMyDuels(true);
                     fetchDuelStatus(activeDuel.id);
                 } else {
@@ -1248,6 +1256,7 @@ if (duel.status === 'finished') {
                                 <li>Ensure your code is at least 20 characters long</li>
                                 <li>Don’t just copy the buggy version</li>
                                 <li>Whitespace, symbols & punctuation matter</li>
+                                 <li>⚠️ Don’t remove or add unnecessary comments — they are also compared in the database</li>
                               </ul>
                             </div>
                           </div>
@@ -1688,11 +1697,16 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                     <span className={`px-3 py-1 text-xs font-bold rounded-full ${getStatusColor(duel.status)}`}>
                                                         {duel.status.toUpperCase()}
                                                     </span>
-                                                    {duel.status === 'active' && duel.submissions?.length === 1 && (
-                                                    <span className="text-xs text-blue-400 font-medium ml-2">
-                                                        ⏳ Waiting for opponent…
-                                                    </span>
-                                                    )}
+                                                    {duel.status === 'active' && (
+                                                        duel.submissions?.some((s) => s.user_id === user.id && s.is_correct) &&
+                                                        !duel.submissions?.some((s) => s.user_id !== user.id && s.is_correct) && (
+                                                            <span className="text-xs text-blue-400 font-medium ml-2">
+                                                            ⏳ Waiting for opponent...
+                                                            </span>
+                                                        )
+                                                        )}
+
+
 
                                                 </div>
 

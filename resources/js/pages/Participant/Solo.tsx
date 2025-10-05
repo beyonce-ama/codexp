@@ -727,6 +727,7 @@ if (isConfirmed) {
                                 <li>Ensure your code is at least 20 characters long</li>
                                 <li>Don’t just copy the buggy version</li>
                                 <li>Whitespace, symbols & punctuation matter</li>
+                                <li>⚠️ Don’t remove or add unnecessary comments — they are also compared in the database</li>
                                 </ul>
                             </div>
                             </div>
@@ -905,64 +906,34 @@ if (isConfirmed) {
             console.error('quitAndShowSolution error:', e);
         }
         };
-  const showCorrectAnswerHandler = () => {
-  if (selectedChallenge?.fixed_code) {
-    audio.play('click');
-    setShowCorrectAnswer(true);
-
-    Swal.fire({
-      title: `
-        <div class="flex flex-col items-center">
-          <div class="animate-bounce mb-2 text-5xl">💡</div>
-          <span class="text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 font-extrabold text-2xl">
-            Correct Answer
-          </span>
-        </div>
-      `,
-      html: `
-        <div class="p-4 text-left text-gray-200">
-          <p class="mb-4 text-sm text-gray-300">
-            This is the exact <span class="text-green-400 font-semibold">solution from our database</span>.
-            You must match it <strong>100%</strong> to pass the challenge.
-          </p>
-
-          <div class="relative group border border-cyan-500/40 rounded-xl bg-gradient-to-br from-gray-900/80 to-gray-800/90 p-4 shadow-lg">
-            <div class="absolute inset-0 rounded-xl border border-cyan-500/10 blur-xl group-hover:blur-2xl opacity-50"></div>
-            <pre class="text-green-400 text-sm overflow-auto max-h-[65vh] leading-relaxed font-mono whitespace-pre-wrap">
-${selectedChallenge.fixed_code}
-            </pre>
-            <div class="absolute top-2 right-3 text-cyan-400 text-xs opacity-70">Solution Preview</div>
-          </div>
-
-          <div class="mt-5 flex items-center justify-between text-xs text-gray-400 italic">
-            <span>💻 Language: ${displayLanguage(selectedChallenge.language)}</span>
-            <span>🎯 Difficulty: ${selectedChallenge.difficulty.toUpperCase()}</span>
-          </div>
-
-          <div class="mt-5 text-center">
-            <div class="inline-flex items-center gap-2 px-4 py-2 bg-green-600/20 rounded-lg border border-green-500/40">
-              <Sparkles class="w-4 h-4 text-green-400" />
-              <span class="text-sm text-green-300">Analyze and learn the perfect syntax!</span>
-            </div>
-          </div>
-        </div>
-      `,
-      background: 'linear-gradient(135deg, #111827 0%, #1e293b 100%)',
-      color: '#fff',
-      confirmButtonText: 'Got it!',
-      confirmButtonColor: '#10B981',
-      width: '700px',
-      customClass: {
-        popup: 'animate-fadeInUp shadow-2xl border border-cyan-600/30 rounded-2xl backdrop-blur-lg',
-      },
-      didOpen: () => {
-        const el = Swal.getHtmlContainer()?.querySelector('pre');
-        if (el) el.textContent = selectedChallenge.fixed_code!;
-      },
-    });
-  }
-};
-
+    const showCorrectAnswerHandler = () => {
+        if (selectedChallenge?.fixed_code) {
+            audio.play('click');
+            setShowCorrectAnswer(true);
+            showCodeModal('Correct Answer', selectedChallenge.fixed_code);
+            Swal.fire({
+                title: 'Correct Answer',
+                html: `
+                    <div class="correct-answer-modal">
+                        <p class="mb-4 text-gray-300">Here's the exact solution from the database (100% match required):</p>
+                        <div class="bg-gray-900 rounded-lg p-4 text-left">
+                            <pre class="text-green-400 text-sm overflow-auto max-h-64" style="font-family: 'Courier New', monospace; white-space: pre-wrap;">${selectedChallenge.fixed_code}</pre>
+                        </div>
+                        <p class="mt-4 text-sm text-gray-400">Your code must match this exactly to pass the challenge.</p>
+                    </div>
+                `,
+                didOpen: () => {
+                const el = document.getElementById('solo-solution');
+                if (el) el.textContent = selectedChallenge.fixed_code!; // <-- raw text, safe for C++
+                },
+                confirmButtonText: 'Got it!',
+                background: '#1f2937',
+                color: '#fff',
+                confirmButtonColor: '#10B981',
+                width: '600px'
+            });
+        }
+    };
 
     const getDifficultyColor = (difficulty: string) => {
         switch (difficulty) {
@@ -1032,33 +1003,46 @@ ${selectedChallenge.fixed_code}
     );
 const showCodeModal = (title: string, code: string) => {
   Swal.fire({
-    title,
+    title: `
+      <div class="flex flex-col items-center">
+        <div class="animate-bounce mb-2 text-5xl">💻</div>
+        <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 font-extrabold text-2xl">
+          ${title}
+        </span>
+      </div>
+    `,
     html: `
-      <div>
-        <p class="mb-3 text-gray-300">100% match required:</p>
-        <div class="bg-gray-900 rounded-lg p-4 text-left">
+      <div class="relative rounded-xl border border-cyan-500/40 bg-gradient-to-br from-gray-900/90 via-gray-800/90 to-gray-900/80 p-5 shadow-2xl backdrop-blur-md">
+        <div class="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 rounded-xl blur-md"></div>
+
+        <p class="mb-4 text-sm text-gray-300 relative z-10">🧠 This is the <span class="text-cyan-400 font-semibold">exact</span> solution from our database — your code must match it <strong>100%</strong>.</p>
+
+        <div class="relative z-10 bg-gray-950/70 border border-gray-700/60 rounded-lg p-4 overflow-auto max-h-[65vh]">
           <pre id="swal-code"
-               class="text-green-400 text-sm overflow-auto"
-               style="
-                 font-family:'Courier New',monospace;
-                 white-space: pre;      /* keep indentation and angle brackets */
-                 max-height: 70vh;      /* taller */
-                 max-width: 90vw;       /* responsive */
-               "></pre>
+               class="text-green-400 text-sm leading-relaxed font-mono whitespace-pre-wrap glow-text"
+               style="font-family:'Courier New', monospace;"></pre>
+        </div>
+
+        <div class="mt-5 text-xs text-gray-400 text-center italic relative z-10">
+          <span>Tip: Check indentation, spaces, and semicolons — they all matter!</span>
         </div>
       </div>
     `,
     width: 900,
-    background: '#1f2937',
+    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
     color: '#fff',
     confirmButtonText: 'Got it!',
     confirmButtonColor: '#10B981',
+    customClass: {
+      popup: 'shadow-2xl rounded-2xl border border-cyan-600/30 animate-fadeInUp',
+    },
     didOpen: () => {
       const el = Swal.getHtmlContainer()?.querySelector<HTMLElement>('#swal-code');
-      if (el) el.textContent = code; // <-- TEXT, not HTML
-    }
+      if (el) el.textContent = code; // show raw text, preserve indentation
+    },
   });
 };
+
 
     return (
         <div className="min-h-screen relative overflow-hidden">

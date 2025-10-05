@@ -429,14 +429,19 @@ const openHistory = async () => {
           )}
         </div>
         {/* History Modal */}
+{/* History Modal */}
 {historyOpen && (
   <div className="fixed inset-0 z-[999] flex items-center justify-center">
-    <div className="absolute inset-0 bg-black/60" onClick={() => setHistoryOpen(false)} />
+    <div
+      className="absolute inset-0 bg-black/60"
+      onClick={() => setHistoryOpen(false)}
+    />
     <div className="relative w-full max-w-3xl mx-4 rounded-2xl border border-slate-700/60 bg-slate-900/90 backdrop-blur p-4">
+      {/* Header */}
       <div className="flex items-center justify-between px-2">
         <div className="flex items-center gap-2">
           <History className="w-5 h-5 text-indigo-400" />
-          <h2 className="text-lg font-semibold">Recent 1v1 History</h2>
+          <h2 className="text-lg font-semibold text-zinc-100">Recent 1v1 History</h2>
         </div>
         <button
           onClick={() => setHistoryOpen(false)}
@@ -447,19 +452,25 @@ const openHistory = async () => {
         </button>
       </div>
 
-      <div className="mt-3 px-2">
+      {/* Scrollable List */}
+      <div className="mt-3 px-2 max-h-[70vh] overflow-y-auto">
         {historyLoading ? (
           <div className="flex items-center gap-2 text-zinc-400">
             <Loader2 className="w-4 h-4 animate-spin" /> Loading…
           </div>
         ) : historyErr ? (
-          <div className="text-red-300 bg-red-900/20 border border-red-900/40 px-3 py-2 rounded-lg">{historyErr}</div>
+          <div className="text-red-300 bg-red-900/20 border border-red-900/40 px-3 py-2 rounded-lg">
+            {historyErr}
+          </div>
         ) : history.length === 0 ? (
-          <div className="text-zinc-400">No recent matches yet.</div>
+          <div className="text-zinc-400 py-6 text-center">No recent matches yet.</div>
         ) : (
           <ul className="divide-y divide-slate-700/50">
             {history.map((h) => (
-              <li key={h.id} className="py-3 flex items-center justify-between gap-3">
+              <li
+                key={h.id}
+                className="py-3 flex items-center justify-between gap-3"
+              >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     {h.is_winner ? (
@@ -471,8 +482,11 @@ const openHistory = async () => {
                         <X className="w-4 h-4" /> Loss
                       </span>
                     )}
-                    <span className="text-zinc-300">vs <span className="font-medium">{h.opponent?.name}</span></span>
+                    <span className="text-zinc-300">
+                      vs <span className="font-medium">{h.opponent?.name}</span>
+                    </span>
                   </div>
+
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
                     <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700/60">
                       {displayLanguage(h.language || '')}
@@ -485,29 +499,29 @@ const openHistory = async () => {
                     <span className="inline-flex items-center gap-1">
                       <Clock className="w-3 h-3" /> {formatSecs(h.time_spent_sec)}
                     </span>
-                    {h.finished_at && <span>{new Date(h.finished_at).toLocaleString()}</span>}
+                    {h.finished_at && (
+                      <span>{new Date(h.finished_at).toLocaleString()}</span>
+                    )}
                   </div>
                 </div>
 
+                {/* View Button */}
                 <div className="flex items-center gap-2">
-                 {h.challenge ? (
-                <button
-                  onClick={() => openChallengeModal(h.challenge)}
-                  className="text-xs px-3 py-1 rounded-lg border border-slate-700/60 hover:bg-slate-800 text-zinc-200"
-                >
-                  View
-                </button>
-              ) : (
-                h.match_public_id && (
-                  <a
-                    href={`/play/m/${h.match_public_id}`}
-                    className="text-xs px-3 py-1 rounded-lg border border-slate-700/60 hover:bg-slate-800 text-zinc-200"
-                  >
-                    View
-                  </a>
-                )
-              )}
-
+                  {h.challenge ? (
+                    <button
+                      onClick={() => openChallengeModal(h.challenge)}
+                      className="text-xs px-3 py-1 rounded-lg border border-slate-700/60 hover:bg-slate-800 text-zinc-200"
+                    >
+                      View
+                    </button>
+                  ) : h.match_public_id ? (
+                    <a
+                      href={`/play/m/${h.match_public_id}`}
+                      className="text-xs px-3 py-1 rounded-lg border border-slate-700/60 hover:bg-slate-800 text-zinc-200"
+                    >
+                      View
+                    </a>
+                  ) : null}
                 </div>
               </li>
             ))}
@@ -515,7 +529,8 @@ const openHistory = async () => {
         )}
       </div>
 
-      <div className="mt-3 flex items-center justify-end gap-2 px-2">
+      {/* Footer */}
+      <div className="mt-3 flex items-center justify-end gap-2 px-2 border-t border-slate-700/60 pt-3">
         <button
           onClick={() => setHistoryOpen(false)}
           className="px-3 py-2 rounded-lg border border-slate-700/60 hover:bg-slate-800 text-zinc-200"
@@ -532,10 +547,15 @@ const openHistory = async () => {
     </div>
   </div>
 )}
+
+{/* Challenge Modal */}
 {showChallengeModal && selectedChallenge && (
   <div className="fixed inset-0 z-[1000] flex items-center justify-center">
-    <div className="absolute inset-0 bg-black/60" onClick={() => setShowChallengeModal(false)} />
-    <div className="relative w-full max-w-2xl mx-4 rounded-2xl border border-slate-700/60 bg-slate-900/90 backdrop-blur p-5">
+    <div
+      className="absolute inset-0 bg-black/60"
+      onClick={() => setShowChallengeModal(false)}
+    />
+    <div className="relative w-full max-w-2xl mx-4 rounded-2xl border border-slate-700/60 bg-slate-900/90 backdrop-blur p-5 max-h-[80vh] overflow-y-auto">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-indigo-400">
           {selectedChallenge.title || 'Challenge Info'}
@@ -547,27 +567,31 @@ const openHistory = async () => {
           <X className="w-4 h-4" />
         </button>
       </div>
-      <div className="mt-3 text-sm text-zinc-300 space-y-2">
+
+      <div className="mt-3 text-sm text-zinc-300 space-y-3">
         {selectedChallenge.description && (
           <p className="text-zinc-400">{selectedChallenge.description}</p>
         )}
+
         {selectedChallenge.buggy_code && (
           <>
             <h4 className="text-zinc-200 font-medium">Buggy Code:</h4>
-            <pre className="p-3 bg-slate-800 rounded-lg text-xs overflow-auto text-zinc-300 whitespace-pre-wrap">
+            <pre className="p-3 bg-slate-800 rounded-lg text-xs overflow-auto text-zinc-300 whitespace-pre-wrap max-h-[200px]">
               {selectedChallenge.buggy_code}
             </pre>
           </>
         )}
+
         {selectedChallenge.fixed_code && (
           <>
             <h4 className="text-zinc-200 font-medium mt-2">Fixed Code:</h4>
-            <pre className="p-3 bg-slate-800 rounded-lg text-xs overflow-auto text-zinc-300 whitespace-pre-wrap">
+            <pre className="p-3 bg-slate-800 rounded-lg text-xs overflow-auto text-zinc-300 whitespace-pre-wrap max-h-[200px]">
               {selectedChallenge.fixed_code}
             </pre>
           </>
         )}
       </div>
+
       <div className="mt-4 flex justify-end">
         <button
           onClick={() => setShowChallengeModal(false)}

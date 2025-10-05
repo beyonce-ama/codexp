@@ -193,7 +193,7 @@ class DuelController extends Controller
         return response()->json(['success'=>true, 'message'=>'User session started', 'data'=>$duel]);
     }
 
-   public function submit(Request $request, Duel $duel)
+ public function submit(Request $request, Duel $duel)
 {
     $this->authorizeUser($request->user()->id, $duel);
 
@@ -203,7 +203,7 @@ class DuelController extends Controller
         'time_spent_sec' => 'required|integer|min:0',
     ]);
 
-    // Record the submission
+    // Create the submission
     $submission = DuelSubmission::create([
         'duel_id'        => $duel->id,
         'user_id'        => $request->user()->id,
@@ -222,33 +222,33 @@ class DuelController extends Controller
 
     $duel->refresh();
 
-    $challengerSub = $this->latestSubmission($duel->id, $duel->challenger_id);
-    $opponentSub   = $this->latestSubmission($duel->id, $duel->opponent_id);
+    $ch = $this->latestSubmission($duel->id, $duel->challenger_id);
+    $op = $this->latestSubmission($duel->id, $duel->opponent_id);
 
-    $bothFinished = $duel->challenger_finished_at && $duel->opponent_finished_at;
-    $expired = $duel->started_at && now()->greaterThanOrEqualTo(
-        \Carbon\Carbon::parse($duel->started_at)->addMinutes($duel->session_duration_minutes)
-    );
+    $challengerFinished = $duel->challenger_finished_at !== null;
+    $opponentFinished   = $duel->opponent_finished_at !== null;
 
-    // --- Winner logic ---
-    if ($bothFinished) {
-        // Case 1: both correct → compare times immediately
-        if ($challengerSub->is_correct && $opponentSub->is_correct) {
+    // ✅ Decide only if BOTH submitted and BOTH are CORRECT
+    if ($challengerFinished && $opponentFinished) {
+        if ($ch->is_correct && $op->is_correct) {
             $this->determineWinner($duel);
-        }
-        // Case 2: one correct → winner now
-        elseif ($challengerSub->is_correct xor $opponentSub->is_correct) {
-            $this->determineWinner($duel);
-        }
-        // Case 3: both wrong → only finalize if expired
-        elseif ($expired) {
-            $this->determineWinner($duel);
+        } else {
+            // 🕒 Both finished but at least one is wrong, wait for time expiration
+            $expired = $duel->started_at && now()->greaterThanOrEqualTo(
+                \Carbon\Carbon::parse($duel->started_at)->addMinutes($duel->session_duration_minutes)
+            );
+
+            if ($expired) {
+                $this->determineWinner($duel); // finalize after timeout
+            }
         }
     }
 
     return response()->json(['success' => true, 'data' => $submission], 201);
 }
 
+
+ 
     public function surrender(Request $request, Duel $duel)
     {
         $this->authorizeUser($request->user()->id, $duel);
@@ -379,61 +379,51 @@ class DuelController extends Controller
     }
 
     private function determineWinner(Duel $duel): void
-    {
-        $ch = $this->latestSubmission($duel->id, $duel->challenger_id);
-        $op = $this->latestSubmission($duel->id, $duel->opponent_id);
+{
+    $ch = $this->latestSubmission($duel->id, $duel->challenger_id);
+    $op = $this->latestSubmission($duel->id, $duel->opponent_id);
 
-        // Should not happen because finalize() guards, but be safe:
-        if (!$ch || !$op) {
-            return;
-        }
+    if (!$ch || !$op) return;
 
-        // Winner selection
-        if ($ch->is_correct && $op->is_correct) {
-            $winnerId = $ch->time_spent_sec < $op->time_spent_sec ? $duel->challenger_id : $duel->opponent_id;
-        } elseif ($ch->is_correct) {
-            $winnerId = $duel->challenger_id;
-        } elseif ($op->is_correct) {
-            $winnerId = $duel->opponent_id;
-        } else {
-            // both incorrect
-            // only resolve if time limit has expired
-            $expired = $duel->started_at && now()->greaterThanOrEqualTo(
-                \Carbon\Carbon::parse($duel->started_at)->addMinutes($duel->session_duration_minutes)
-            );
+    $expired = $duel->started_at && now()->greaterThanOrEqualTo(
+        \Carbon\Carbon::parse($duel->started_at)->addMinutes($duel->session_duration_minutes)
+    );
 
-            if (!$expired) {
-                // Too early to decide
-                return;
-            }
-
-            // if expired, pick faster one as fallback
-            $winnerId = $ch->time_spent_sec <= $op->time_spent_sec ? $duel->challenger_id : $duel->opponent_id;
-        }
-
-        $duel->update([
-            'status'       => 'finished',
-            'winner_id'    => $winnerId,
-            'ended_at'     => now(),
-            'winner_xp'    => self::WIN_XP,
-            'winner_stars' => self::WIN_STARS,
-            'duration_sec' => $duel->started_at ? max(0, now()->diffInSeconds($duel->started_at)) : null,
-        ]);
-
-        $this->markDuelFinishedRows($duel);
-
-        // Language stats
-        $this->bumpWinLoss($duel->challenger_id, $duel->language, $winnerId === $duel->challenger_id);
-        $this->bumpWinLoss($duel->opponent_id,   $duel->language, $winnerId === $duel->opponent_id);
-
-        // Rewards & penalties
-        $this->awardWinnerRewardsToUser($duel);
-        $this->applyLoserPenalty($duel);
-
-        // PVP achievements
-        $this->checkPvpAchievementsFor($duel->challenger_id);
-        $this->checkPvpAchievementsFor($duel->opponent_id);
+    // ✅ Winner logic: decide only when both correct, or time expired
+    if ($ch->is_correct && $op->is_correct) {
+        // Both correct → fastest wins
+        $winnerId = $ch->time_spent_sec <= $op->time_spent_sec
+            ? $duel->challenger_id
+            : $duel->opponent_id;
+    } elseif (!$expired) {
+        // ⏳ Still waiting — one or both incorrect and time not expired
+        return;
+    } else {
+        // ⏰ Time expired → decide fallback (even if one or both wrong)
+        $winnerId = $ch->time_spent_sec <= $op->time_spent_sec
+            ? $duel->challenger_id
+            : $duel->opponent_id;
     }
+
+    // ✅ Finish and award
+    $duel->update([
+        'status'       => 'finished',
+        'winner_id'    => $winnerId,
+        'ended_at'     => now(),
+        'winner_xp'    => self::WIN_XP,
+        'winner_stars' => self::WIN_STARS,
+        'duration_sec' => $duel->started_at ? max(0, now()->diffInSeconds($duel->started_at)) : null,
+    ]);
+
+    $this->markDuelFinishedRows($duel);
+    $this->bumpWinLoss($duel->challenger_id, $duel->language, $winnerId === $duel->challenger_id);
+    $this->bumpWinLoss($duel->opponent_id,   $duel->language, $winnerId === $duel->opponent_id);
+    $this->awardWinnerRewardsToUser($duel);
+    $this->applyLoserPenalty($duel);
+    $this->checkPvpAchievementsFor($duel->challenger_id);
+    $this->checkPvpAchievementsFor($duel->opponent_id);
+}
+
 
     private function awardWinnerRewardsToUser(Duel $duel): void
     {

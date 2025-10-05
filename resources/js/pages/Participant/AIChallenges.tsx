@@ -701,6 +701,7 @@ useEffect(() => {
                             <li>Ensure your code is at least 20 characters long</li>
                             <li>Don't just copy the buggy version</li>
                             <li>Whitespace, symbols & punctuation matter</li>
+                             <li>⚠️ Don’t remove or add unnecessary comments — they are also compared in the database</li>
                             </ul>
                         </div>
                         </div>
