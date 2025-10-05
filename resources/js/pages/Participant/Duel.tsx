@@ -222,17 +222,24 @@ const exitFullscreen = () => {
         return d;
     };
 
-    useEffect(() => {
-        if (activeTab === 'browse') {
-            fetchChallenges();
-            fetchParticipants();
-        }
-        if (activeTab === 'my-duels') {
-            fetchMyDuels();
-        }
-        fetchDuelStats();
-    }, [activeTab, languageFilter, difficultyFilter, searchTerm]);
+// Fix this part
+useEffect(() => {
+  // Only fetch challenges if Browse tab is active OR modal needs them
+  if (activeTab === 'browse' || showCreateModal) {
+    fetchChallenges();
+  }
+}, [languageFilter, difficultyFilter, searchTerm, selectedOpponent, showCreateModal]);
 
+
+useEffect(() => {
+  if (activeTab === 'browse') {
+    fetchParticipants();
+  }
+  if (activeTab === 'my-duels') {
+    fetchMyDuels();
+  }
+  fetchDuelStats();
+}, [activeTab]);
 
     // Handle fullscreen when duel modal opens/closes
 useEffect(() => {
@@ -595,7 +602,8 @@ const buildComparisonForModal = (duel: Duel) => {
 
             const response = await apiClient.get('/api/challenges/1v1', { params });
             if (response.success) {
-                const challengeData = response.data.data || response.data || [];
+               const challengeData = Array.isArray(response.data) ? response.data : (response.data.data || []);
+
                 setChallenges(challengeData);
             }
         } catch (error) {
