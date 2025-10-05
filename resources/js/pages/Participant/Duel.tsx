@@ -222,24 +222,17 @@ const exitFullscreen = () => {
         return d;
     };
 
-// ✅ Fetch challenges whenever filters or opponent change
-useEffect(() => {
-  if (activeTab === 'browse' || showCreateModal) {
-    fetchChallenges();
-  }
-}, [languageFilter, difficultyFilter, searchTerm, selectedOpponent, showCreateModal]);
+    useEffect(() => {
+        if (activeTab === 'browse') {
+            fetchChallenges();
+            fetchParticipants();
+        }
+        if (activeTab === 'my-duels') {
+            fetchMyDuels();
+        }
+        fetchDuelStats();
+    }, [activeTab, languageFilter, difficultyFilter, searchTerm]);
 
-
-
-useEffect(() => {
-  if (activeTab === 'browse') {
-    fetchParticipants();
-  }
-  if (activeTab === 'my-duels') {
-    fetchMyDuels();
-  }
-  fetchDuelStats();
-}, [activeTab]);
 
     // Handle fullscreen when duel modal opens/closes
 useEffect(() => {
@@ -590,36 +583,28 @@ const buildComparisonForModal = (duel: Duel) => {
       }
     };
 
-   // 🧠 Fetch available 1v1 challenges (with working filters)
-const fetchChallenges = async () => {
-  try {
-    setLoading(true);
+    const fetchChallenges = async () => {
+        try {
+            setLoading(true);
+            const params: any = {};
+            if (languageFilter !== 'all') params.language = languageFilter;
+            if (difficultyFilter !== 'all') params.difficulty = difficultyFilter;
+            if (searchTerm.trim()) params.search = searchTerm.trim();
+            params.exclude_taken = true;
+            if (selectedOpponent?.id) params.opponent_id = selectedOpponent.id;
 
-    const params: any = {};
-    if (languageFilter && languageFilter !== 'all') params.language = languageFilter;
-    if (difficultyFilter && difficultyFilter !== 'all') params.difficulty = difficultyFilter;
-    if (searchTerm.trim()) params.search = searchTerm.trim();
-    params.exclude_taken = true;
-
-    if (selectedOpponent?.id) params.opponent_id = selectedOpponent.id;
-
-    console.log('Fetching challenges with params:', params); // ← debug
-
-    const response = await apiClient.get('/api/challenges/1v1', { params })
-    if (response.success) {
-      const challengeData = Array.isArray(response.data)
-        ? response.data
-        : response.data.data || [];
-      setChallenges(challengeData);
-    }
-  } catch (err) {
-    console.error('Error fetching challenges:', err);
-    setChallenges([]);
-  } finally {
-    setLoading(false);
-  }
-};
-
+            const response = await apiClient.get('/api/challenges/1v1', { params });
+            if (response.success) {
+                const challengeData = response.data.data || response.data || [];
+                setChallenges(challengeData);
+            }
+        } catch (error) {
+            console.error('Error fetching challenges:', error);
+            setChallenges([]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const fetchMyDuels = async (silent: boolean = false) => {
         try {
@@ -1237,48 +1222,31 @@ if (duel.status === 'finished') {
                 if (isCorrect) {
                     audio.play('success');
                     
-                 const { isConfirmed } = await Swal.fire({
-                   title: 'PERFECT SOLUTION!',
-                   html: `
-                     <div class="text-center">
-                       <div class="text-5xl mb-4">🏆</div>
-                       <p class="mb-3 text-lg font-semibold text-cyan-200">Outstanding! Your code is a perfect 100% match!</p>
-                 
-                       <div class="bg-blue-900/30 border border-blue-500/40 rounded-lg p-4 mb-4">
-                         <div class="text-2xl font-bold text-green-400">100% Perfect Match</div>
-                         <div class="text-sm text-gray-200 opacity-80">Exact Database Solution</div>
-                       </div>
-                 
-                       <div class="grid grid-cols-2 gap-4 mb-4">
-                         <div class="bg-gray-900/40 rounded-lg p-3">
-                           <div class="text-lg font-bold text-yellow-300">+${xpEarned ?? 3}</div>
-                           <div class="text-xs text-gray-300">XP Earned</div>
-                         </div>
-                         <div class="bg-gray-900/40 rounded-lg p-3">
-                           <div class="text-lg font-bold text-purple-300">Level ${newLevel ?? 1}</div>
-                           <div class="text-xs text-gray-300">Current Level</div>
-                         </div>
-                       </div>
-                 
-                       <div class="text-sm text-gray-300">⏱️ Completed in ${Math.floor(timeSpent / 60)}m ${timeSpent % 60}s</div>
-                       ${leveledUp ? `
-                         <div class="mt-4 text-center">
-                           <div class="text-lg font-bold text-pink-400 animate-pulse">✨ LEVEL UP! ✨</div>
-                           <p class="text-sm text-gray-200">You’ve reached Level ${newLevel}! Next: ${calculateXPToNextLevel(newTotalXP)} XP needed.</p>
-                         </div>
-                       ` : ''}
-                     </div>
-                   `,
-                   // IMPORTANT: no timer; force explicit confirm
-                   showConfirmButton: true,
-                   confirmButtonText: 'Continue Coding!',
-                   confirmButtonColor: '#10B981',
-                   background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
-                   color: '#fff',
-                   allowOutsideClick: false,
-                   allowEscapeKey: false,
-                 });
-
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Perfect Solution!',
+                        html: `
+                            <div class="text-center">
+                                <p class="mb-4 text-lg">Your solution is a perfect 100% match!</p>
+                                <div class="accuracy-display mb-4">
+                                    <div class="text-2xl font-bold text-green-400">100% Perfect Match</div>
+                                    <div class="text-gray-400">Exact Database Solution</div>
+                                </div>
+                                <div class="text-lg font-bold text-green-600 mb-2">
+                                    Time: ${Math.floor(timeSpent / 60)}m ${timeSpent % 60}s
+                                </div>
+                                <p class="text-sm text-gray-600">Waiting for opponent or final results...</p>
+                            </div>
+                        `,
+                          timer: 6000,
+                          timerProgressBar: true,
+                          showConfirmButton: true,
+                          confirmButtonText: 'Continue',
+                          background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
+                          color: '#fff',
+                          confirmButtonColor: '#10B981'
+                    });
+                    
                     stopAllTimers();
                     setShowDuelModal(false);
                     setWaitingForOpponent(true);
@@ -1292,36 +1260,33 @@ if (duel.status === 'finished') {
                       await Swal.fire({
                         title: 'Almost There!',
                         html: `
-                            <div class="text-center">
+                          <div class="text-center">
                             <div class="text-5xl mb-4">⚠️</div>
-                            <p class="mb-3 text-lg font-semibold text-red-200">
-                                Your solution must exactly match the database answer.
-                            </p>
-
+                            <p class="mb-3 text-lg font-semibold text-red-200">Your solution must exactly match the database answer.</p>
+                            
                             <div class="bg-red-900/30 border border-red-500/40 rounded-lg p-4 mb-4">
-                                <div class="text-lg font-bold text-yellow-300">${Math.round(similarity * 100)}% Match</div>
-                                <div class="text-sm text-gray-200 opacity-80">Need 100% for Success</div>
+                              <div class="text-lg font-bold text-yellow-300">${Math.round(similarity * 100)}% Match</div>
+                              <div class="text-sm text-gray-200 opacity-80">Need 100% for Success</div>
                             </div>
 
                             <div class="bg-gray-900/40 rounded-lg p-3 text-left text-sm text-gray-200">
-                                <div class="font-medium text-yellow-400 mb-1">💡 Tips:</div>
-                                <ul class="list-disc list-inside space-y-1">
+                              <div class="font-medium text-yellow-400 mb-1">💡 Tips:</div>
+                              <ul class="list-disc list-inside space-y-1">
                                 <li>Ensure your code is at least 20 characters long</li>
                                 <li>Don’t just copy the buggy version</li>
                                 <li>Whitespace, symbols & punctuation matter</li>
-                                <li>⚠️ Don’t remove or add unnecessary comments — they are also compared in the database</li>
-                                </ul>
+                                 <li>⚠️ Don’t remove or add unnecessary comments — they are also compared in the database</li>
+                              </ul>
                             </div>
-                            </div>
+                          </div>
                         `,
                         timer: 4500,
                         showConfirmButton: true,
                         confirmButtonText: 'Try Again',
-                        background: 'linear-gradient(160deg, #0f172a 0%, #1e293b 50%, #111827 100%)', 
-                        color: '#e5e7eb',
-                        confirmButtonColor: '#3B82F6',
-                        backdrop: 'rgba(0,0,0,0.6)', 
-                        });
+                        background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
+                        color: '#fff',
+                        confirmButtonColor: '#3B82F6'
+                      });
 
                     }
                 }
@@ -1347,49 +1312,33 @@ if (duel.status === 'finished') {
     };
 const showCodeModal = (title: string, code: string) => {
   Swal.fire({
-    title: `<span class="text-yellow-400 font-semibold text-lg">${title}</span>`,
+    title,
     html: `
-      <div class="rounded-2xl bg-slate-900/90 border border-yellow-700 shadow-2xl backdrop-blur-sm p-5 text-left">
-        <p class="mb-3 text-slate-300 text-sm">
-          ⚙️ <span class="text-yellow-400 font-medium">100% match required</span> — ensure your code logic matches exactly.
-        </p>
-        <div class="relative rounded-lg bg-slate-800/70 border border-yellow-700 p-4 overflow-hidden">
+      <div>
+        <p class="mb-3 text-gray-300">100% match required:</p>
+        <div class="bg-gray-900 rounded-lg p-4 text-left">
           <pre id="swal-code"
-               class="text-yellow-300 text-sm overflow-y-auto scrollbar-hide"
+               class="text-green-400 text-sm overflow-auto"
                style="
-                 font-family:'Courier New', monospace;
-                 white-space: pre;
-                 max-height: 65vh;
-                 max-width: 85vw;
-                 line-height: 1.5;
-                 padding-right: 10px;
+                 font-family:'Courier New',monospace;
+                 white-space: pre;      /* keep indentation and angle brackets */
+                 max-height: 70vh;      /* taller */
+                 max-width: 90vw;       /* responsive */
                "></pre>
         </div>
       </div>
     `,
     width: 900,
-    background: '#0f172a', // slate-900
-    color: '#f8fafc',
+    background: '#1f2937',
+    color: '#fff',
     confirmButtonText: 'Got it!',
-    customClass: {
-      confirmButton:
-        'px-5 py-2 bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-semibold rounded-lg shadow-lg transition-colors',
-      popup:
-        'border border-yellow-800 shadow-[0_0_25px_rgba(234,179,8,0.2)] rounded-2xl',
-    },
-    showClass: {
-      popup: 'animate__animated animate__fadeInDown animate__faster',
-    },
-    hideClass: {
-      popup: 'animate__animated animate__fadeOutUp animate__faster',
-    },
+    confirmButtonColor: '#10B981',
     didOpen: () => {
       const el = Swal.getHtmlContainer()?.querySelector<HTMLElement>('#swal-code');
-      if (el) el.textContent = code; // Keep code formatting intact
-    },
+      if (el) el.textContent = code; // <-- TEXT, not HTML
+    }
   });
 };
-
 
     const showCorrectAnswerHandler = () => {
         if (activeDuel?.challenge?.fixed_code) {
@@ -2075,28 +2024,28 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
-                                       <select
-                                                value={languageFilter}
-                                                onChange={(e) => setLanguageFilter(e.target.value)}
-                                                className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2"
-                                                >
-                                                <option value="all">All Languages</option>
-                                                <option value="python">Python</option>
-                                                <option value="java">Java</option>
-                                                <option value="cpp">C++</option>
-                                                </select>
-
-                                                <select
-                                                value={difficultyFilter}
-                                                onChange={(e) => setDifficultyFilter(e.target.value)}
-                                                className="bg-gray-900 border border-gray-700 text-white rounded-lg px-3 py-2"
-                                                >
-                                                <option value="all">All Difficulty</option>
-                                                <option value="easy">Easy</option>
-                                                <option value="medium">Medium</option>
-                                                <option value="hard">Hard</option>
-                                                </select>
-
+                                        <select
+                                            value={languageFilter}
+                                            onChange={(e) => setLanguageFilter(e.target.value)}
+                                            className="px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 text-gray-200 transition-all duration-300"
+                                            onMouseEnter={() => audio.play('hover')}
+                                        >
+                                            <option value="all">All Languages</option>
+                                            <option value="python">Python</option>
+                                            <option value="java">Java</option>
+                                             <option value="cpp">C++</option>
+                                        </select>
+                                        <select
+                                            value={difficultyFilter}
+                                            onChange={(e) => setDifficultyFilter(e.target.value)}
+                                            className="px-4 py-3 bg-gray-900/50 border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 text-gray-200 transition-all duration-300"
+                                            onMouseEnter={() => audio.play('hover')}
+                                        >
+                                            <option value="all">All Difficulties</option>
+                                            <option value="easy">Easy</option>
+                                            <option value="medium">Medium</option>
+                                            <option value="hard">Hard</option>
+                                        </select>
                                     </div>
                                 </div>
                             </div>
