@@ -47,7 +47,7 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
         Route::post('/matchmaking/join',   [MatchmakingController::class, 'join']);
         Route::post('/match/{match}/award', [MatchRuntimeController::class, 'award'])
             ->middleware('auth:sanctum');
-        
+        Route::post('/matchmaking/heartbeat',  [MatchmakingController::class, 'heartbeat']);
         Route::get('/matchmaking/history', [MatchmakingController::class, 'history']);
         Route::post('/match/{match}/surrender', [MatchRuntimeController::class, 'surrender']);
         Route::post('/matchmaking/poll',   [MatchmakingController::class, 'poll']);
