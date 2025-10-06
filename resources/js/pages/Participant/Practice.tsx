@@ -372,13 +372,9 @@ const filterQuestions = () => {
 
   setFilteredQuestions(filtered);
 
-  // decide where to place the pointer
+  // If current filter is empty, try to keep the flow going.
   if (filtered.length === 0) {
-    setCurrentQuestionIndex(0);
-    return;
-  }
-if (filtered.length === 0) {
-    // Count untaken per category
+    // Count untaken per category (ignoring search)
     const untakenByCat = new Map<string, number>();
     for (const q of questions) {
       if (!takenIds.has(q.id)) {
@@ -388,33 +384,43 @@ if (filtered.length === 0) {
     const totalUntaken = Array.from(untakenByCat.values()).reduce((a, b) => a + b, 0);
 
     if (totalUntaken > 0) {
-      // If we're filtered to a category/search that has none, try to move to the next category with items.
+      // 1) If a category is selected and it just got exhausted → move to next category with items
       if (selectedCategory !== 'all') {
         const allCats = Array.from(new Set(questions.map(q => q.category))).sort();
         const idx = Math.max(0, allCats.indexOf(selectedCategory));
-        // Try subsequent categories first, then wrap-around
         const ordered = [...allCats.slice(idx + 1), ...allCats.slice(0, idx)];
         const nextCat = ordered.find(c => (untakenByCat.get(c) ?? 0) > 0);
         if (nextCat) {
+          fireToast(`Finished "${selectedCategory}". Switching to "${nextCat}".`);
           setSelectedCategory(nextCat);
           setCurrentQuestionIndex(0);
           resetPerQuestionState();
           return; // let the next run re-filter
         }
-      }
-      // Otherwise, fall back to All if All still has items
-      if (selectedCategory !== 'all') {
+        // If no other category has items, fall back to All
+        fireToast(`Finished "${selectedCategory}". Showing remaining questions.`);
         setSelectedCategory('all');
         setCurrentQuestionIndex(0);
         resetPerQuestionState();
         return;
       }
+
+      // 2) If we're on "All" but a SEARCH made it empty → clear search to continue
+      if (selectedCategory === 'all' && needle) {
+        fireToast('No matches for this search. Clearing search to continue.');
+        setSearchTerm('');
+        setCurrentQuestionIndex(0);
+        resetPerQuestionState();
+        return;
+      }
     }
+
     // Truly no items anywhere → keep empty state
     setCurrentQuestionIndex(0);
     return;
   }
-  // If we have a last taken id, try to jump to the very next available question in the original order
+
+  // Place the pointer meaningfully
   if (resumeFromLastRef.current != null) {
     const lastId = resumeFromLastRef.current;
     // find the next un-taken question after lastId by original order
@@ -426,13 +432,16 @@ if (filtered.length === 0) {
     for (let i = lastIdxInAll + 1; i < questions.length; i++) {
       const q = questions[i];
       const matchesCat = selectedCategory === 'all' || q.category === selectedCategory;
-      const matchesSearch = !needle || q.question.toLowerCase().includes(needle) || q.category.toLowerCase().includes(needle);
+      const matchesSearch =
+        !needle ||
+        q.question.toLowerCase().includes(needle) ||
+        q.category.toLowerCase().includes(needle);
       if (!takenIds.has(q.id) && matchesCat && matchesSearch) {
         targetId = q.id;
         break;
       }
     }
-    if (targetId == null) targetId = filtered[0].id; // fallback: first available
+    if (targetId == null) targetId = filtered[0].id; // fallback
 
     const idxInFiltered = filtered.findIndex(q => q.id === targetId);
     setCurrentQuestionIndex(idxInFiltered >= 0 ? idxInFiltered : 0);
