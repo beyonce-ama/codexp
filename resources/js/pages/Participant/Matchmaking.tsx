@@ -649,6 +649,7 @@ const TipCard = ({ icon, title, text }: { icon: React.ReactNode; title: string; 
 );
 
 export default Matchmaking;
+const style = document.createElement('style');
 
 document.head.appendChild(style);
 if (typeof document !== 'undefined') {
