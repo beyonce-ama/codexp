@@ -96,7 +96,7 @@ export default function ParticipantPractice() {
   const resumeFromLastRef = useRef<number | null>(null);
  const shownErrorKeyRef = useRef<string | null>(null);
   const currentSetRef = useRef<{ id:number; filename:string; total_questions:number; set_index:number; language:string } | null>(null);
-
+ const [answeredQuestionId, setAnsweredQuestionId] = useState<number | null>(null);
   const csrfToken =
     (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ||
     (window as any).Laravel?.csrfToken ||
@@ -139,6 +139,7 @@ export default function ParticipantPractice() {
 
   useEffect(() => {
     filterQuestions();
+    resetPerQuestionState();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questions, selectedCategory, searchTerm, takenIds]);
 
@@ -376,7 +377,43 @@ const filterQuestions = () => {
     setCurrentQuestionIndex(0);
     return;
   }
+if (filtered.length === 0) {
+    // Count untaken per category
+    const untakenByCat = new Map<string, number>();
+    for (const q of questions) {
+      if (!takenIds.has(q.id)) {
+        untakenByCat.set(q.category, (untakenByCat.get(q.category) ?? 0) + 1);
+      }
+    }
+    const totalUntaken = Array.from(untakenByCat.values()).reduce((a, b) => a + b, 0);
 
+    if (totalUntaken > 0) {
+      // If we're filtered to a category/search that has none, try to move to the next category with items.
+      if (selectedCategory !== 'all') {
+        const allCats = Array.from(new Set(questions.map(q => q.category))).sort();
+        const idx = Math.max(0, allCats.indexOf(selectedCategory));
+        // Try subsequent categories first, then wrap-around
+        const ordered = [...allCats.slice(idx + 1), ...allCats.slice(0, idx)];
+        const nextCat = ordered.find(c => (untakenByCat.get(c) ?? 0) > 0);
+        if (nextCat) {
+          setSelectedCategory(nextCat);
+          setCurrentQuestionIndex(0);
+          resetPerQuestionState();
+          return; // let the next run re-filter
+        }
+      }
+      // Otherwise, fall back to All if All still has items
+      if (selectedCategory !== 'all') {
+        setSelectedCategory('all');
+        setCurrentQuestionIndex(0);
+        resetPerQuestionState();
+        return;
+      }
+    }
+    // Truly no items anywhere → keep empty state
+    setCurrentQuestionIndex(0);
+    return;
+  }
   // If we have a last taken id, try to jump to the very next available question in the original order
   if (resumeFromLastRef.current != null) {
     const lastId = resumeFromLastRef.current;
@@ -413,10 +450,15 @@ const filterQuestions = () => {
     setSelectedChoice(null);
     setIsAnswered(false);
     setShowAnswer(false);
+    setAnsweredQuestionId(null);
   };
 
 const currentQuestion = filteredQuestions[currentQuestionIndex];
-const isCorrect = isAnswered && selectedChoice === currentQuestion?.answer;
+ const isCorrect =
+   isAnswered &&
+   currentQuestion &&
+   answeredQuestionId === currentQuestion.id &&
+   selectedChoice === currentQuestion.answer;
 const isLastQuestion = filteredQuestions.length === 1 || currentQuestionIndex === filteredQuestions.length - 1; // NEW
 
 const nextQuestion = async () => {
@@ -470,6 +512,7 @@ const nextQuestion = async () => {
     setSelectedChoice(choice);
     setIsAnswered(true);
     setShowAnswer(true);
+    setAnsweredQuestionId(currentQuestion.id);
     if (choice === currentQuestion.answer) {
       playSfx('success');
     } else {

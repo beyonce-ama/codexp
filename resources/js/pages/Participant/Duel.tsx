@@ -1277,36 +1277,39 @@ if (duel.status === 'finished') {
                 } else {
                     if (!autoSubmit) {
                         audio.play('failure');
-                      await Swal.fire({
-                        title: 'Almost There!',
-                        html: `
-                          <div class="text-center">
-                            <div class="text-5xl mb-4">⚠️</div>
-                            <p class="mb-3 text-lg font-semibold text-red-200">Your solution must exactly match the database answer.</p>
-                            
-                            <div class="bg-red-900/30 border border-red-500/40 rounded-lg p-4 mb-4">
-                              <div class="text-lg font-bold text-yellow-300">${Math.round(similarity * 100)}% Match</div>
-                              <div class="text-sm text-gray-200 opacity-80">Need 100% for Success</div>
-                            </div>
-
-                            <div class="bg-gray-900/40 rounded-lg p-3 text-left text-sm text-gray-200">
-                              <div class="font-medium text-yellow-400 mb-1">💡 Tips:</div>
-                              <ul class="list-disc list-inside space-y-1">
-                                <li>Ensure your code is at least 20 characters long</li>
-                                <li>Don’t just copy the buggy version</li>
-                                <li>Whitespace, symbols & punctuation matter</li>
-                                 <li>⚠️ Don’t remove or add unnecessary comments — they are also compared in the database</li>
-                              </ul>
-                            </div>
-                          </div>
-                        `,
-                        timer: 4500,
-                        showConfirmButton: true,
-                        confirmButtonText: 'Try Again',
-                        background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
-                        color: '#fff',
-                        confirmButtonColor: '#3B82F6'
-                      });
+                        await Swal.fire({
+                                                                title: 'Almost There!',
+                                                                html: `
+                                                                    <div class="text-center">
+                                                                    <div class="text-5xl mb-4">⚠️</div>
+                                                                    <p class="mb-3 text-lg font-semibold text-red-200">
+                                                                        Your solution must exactly match the database answer.
+                                                                    </p>
+                                        
+                                                                    <div class="bg-red-900/30 border border-red-500/40 rounded-lg p-4 mb-4">
+                                                                        <div class="text-lg font-bold text-yellow-300">${Math.round(similarity * 100)}% Match</div>
+                                                                        <div class="text-sm text-gray-200 opacity-80">Need 100% for Success</div>
+                                                                    </div>
+                                        
+                                                                    <div class="bg-gray-900/40 rounded-lg p-3 text-left text-sm text-gray-200">
+                                                                        <div class="font-medium text-yellow-400 mb-1">💡 Tips:</div>
+                                                                        <ul class="list-disc list-inside space-y-1">
+                                                                        <li>Ensure your code is at least 20 characters long</li>
+                                                                        <li>Don’t just copy the buggy version</li>
+                                                                        <li>Whitespace, symbols & punctuation matter</li>
+                                                                        <li>⚠️ Don’t remove or add unnecessary comments — they are also compared in the database</li>
+                                                                        </ul>
+                                                                    </div>
+                                                                    </div>
+                                                                `,
+                                                                timer: 4500,
+                                                                showConfirmButton: true,
+                                                                confirmButtonText: 'Try Again',
+                                                                background: 'linear-gradient(160deg, #0f172a 0%, #1e293b 50%, #111827 100%)', 
+                                                                color: '#e5e7eb',
+                                                                confirmButtonColor: '#3B82F6',
+                                                                backdrop: 'rgba(0,0,0,0.6)', 
+                                                                });
 
                     }
                 }
@@ -2533,7 +2536,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                     onMouseEnter={() => audio.play('hover')}
                                                 >
                                                     <BookOpen className="h-4 w-4" />
-                                                    <span>Show Correct Answer</span>
+                                                    <span>FOR DEMO ONLY </span>
                                                 </button>
                                             )}
                                         </div>

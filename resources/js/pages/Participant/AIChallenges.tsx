@@ -1039,7 +1039,7 @@ const showCodeModal = (title: string, code: string) => {
                                                     onMouseEnter={() => audio.play('hover')}
                                                 >
                                                     <BookOpen className="h-4 w-4" />
-                                                    <span>Show AI Solution</span>
+                                                    <span>FOR DEMO ONLY</span>
                                                 </button>
                                             )}
                                             {hasSubmitted && lastSubmissionResult && (

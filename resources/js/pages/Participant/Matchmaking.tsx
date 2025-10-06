@@ -123,7 +123,28 @@ const openChallengeModal = (challenge: any) => {
     return () => clearInterval(id);
   }, [searching]);
 
- 
+ // while searching, ping heartbeat; also auto-cancel on close/refresh
+useEffect(() => {
+  if (!searching) return;
+
+  const hb = setInterval(() => {
+    apiClient.post('/api/matchmaking/heartbeat').catch(() => {});
+  }, 8000);
+
+  const onUnload = () => {
+    try { navigator.sendBeacon('/api/matchmaking/cancel'); } catch {}
+  };
+  window.addEventListener('beforeunload', onUnload);
+  window.addEventListener('pagehide', onUnload);
+
+  return () => {
+    clearInterval(hb);
+    window.removeEventListener('beforeunload', onUnload);
+    window.removeEventListener('pagehide', onUnload);
+    apiClient.post('/api/matchmaking/cancel').catch(() => {});
+  };
+}, [searching]);
+
   // Cancel queue
   const cancelQueue = async () => {
     setError(null);
@@ -169,7 +190,7 @@ const openHistory = async () => {
     Echo.join(queueChannelName)
       .here((members: any[]) => setQueueCount(members.length))
       .joining(() => setQueueCount((c: number) => c + 1))
-      .leaving(() => setQueueCount((c: number) => Math.max(1, c - 1)))
+      .leaving(() => setQueueCount((c: number) => Math.max(0, c - 1)))
       .listen('MatchFound', async () => {
         try {
           const data = await postJSON<PollResponse>('/api/matchmaking/poll', { language, difficulty });
@@ -628,10 +649,7 @@ const TipCard = ({ icon, title, text }: { icon: React.ReactNode; title: string; 
 );
 
 export default Matchmaking;
-const style = document.createElement('style');
-style.innerHTML = `
-  .scrollbar-hide::-webkit-scrollbar { display: none; }
-`;
+
 document.head.appendChild(style);
 if (typeof document !== 'undefined') {
   const style = document.createElement('style');
