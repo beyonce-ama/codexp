@@ -416,10 +416,6 @@ const handleEdit = (c: Challenge) => openEditModal(c, activeTab);
 
   const getModeIcon = (mode: string) => mode === 'fixbugs' ? AlertTriangle : mode === 'random' ? Zap : Code;
 
-  // ---- (Optional) server-triggered modals preserved ----
-  const { props }: any = usePage();
-  const serverActiveType: 'solo' | '1v1' | undefined = props?.activeType;
-// --- safe esc helper (you already have it; keep one copy) ---
 const esc = (s: any) =>
   String(s ?? '')
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')

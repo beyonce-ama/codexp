@@ -101,27 +101,35 @@ export default function ParticipantPractice() {
     (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ||
     (window as any).Laravel?.csrfToken ||
     '';
+const defaultAjaxHeaders = {
+  'Content-Type': 'application/json',
+  'X-CSRF-TOKEN': csrfToken,
+  'X-Requested-With': 'XMLHttpRequest',
+} as const;
 
+// if the backend doesn't implement /practice/position, disable further calls
+const positionSupportedRef = useRef(true);
 
-    const persistLastSeen = async (qid: number | null) => {
-  if (!qid || !currentSetRef.current) return;
+// single, clean helper to persist “last seen” question in DB
+const persistLastSeen = async (qid: number | null) => {
+  if (!qid || !currentSetRef.current || !positionSupportedRef.current) return;
   try {
-    await fetch('/practice/position', {
+    const resp = await fetch('/practice/position', {
       method: 'POST',
       credentials: 'same-origin',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken,
-      },
+      headers: defaultAjaxHeaders,
       body: JSON.stringify({
         question_set_id: currentSetRef.current.id,
         last_question_id: qid,
       }),
     });
+    // if your backend doesn’t have this route yet, stop calling it
+    if (resp.status === 404) positionSupportedRef.current = false;
   } catch {
-    // non-blocking: ignore network/endpoint errors
+    // non-blocking
   }
 };
+
 
   // audio
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -511,26 +519,31 @@ const nextQuestion = async () => {
       return next;
     });
 
-    // Persist to DB (send cookies + CSRF)
-    try {
-      await fetch('/practice/taken', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': csrfToken,
-        },
-        body: JSON.stringify({
-          question_set_id: currentSetRef.current.id,
-          question_id: currentQuestion.id,
-        }),
-      });
-      // Remember this as last taken so if the page reloads instantly, we still resume
-      resumeFromLastRef.current = currentQuestion.id;
-    } catch (e) {
-      console.error('Failed to mark taken', e);
-    }
+  try {
+  const resp = await fetch('/practice/taken', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: defaultAjaxHeaders,
+    body: JSON.stringify({
+      question_set_id: currentSetRef.current.id,
+      question_id: currentQuestion.id,
+    }),
+  });
+  if (resp.status === 419) {
+    await DarkModal.fire({
+      icon: 'info',
+      title: 'Session expired',
+      html: 'Please refresh the page and sign in again.',
+      confirmButtonText: 'Refresh',
+    });
+    window.location.reload();
+    return;
   }
+  // Remember this as last taken so if the page reloads instantly, we still resume
+  resumeFromLastRef.current = currentQuestion.id;
+} catch (e) {
+  console.error('Failed to mark taken', e);
+}
 
   // IMPORTANT: do NOT increment index here.
   // The filtered list shrinks by 1, so the next item slides into the same index.
@@ -851,4 +864,5 @@ const nextQuestion = async () => {
       </AppLayout>
     </div>
   );
+}
 }
