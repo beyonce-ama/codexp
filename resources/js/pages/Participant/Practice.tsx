@@ -101,6 +101,28 @@ export default function ParticipantPractice() {
     (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ||
     (window as any).Laravel?.csrfToken ||
     '';
+
+
+    const persistLastSeen = async (qid: number | null) => {
+  if (!qid || !currentSetRef.current) return;
+  try {
+    await fetch('/practice/position', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+      },
+      body: JSON.stringify({
+        question_set_id: currentSetRef.current.id,
+        last_question_id: qid,
+      }),
+    });
+  } catch {
+    // non-blocking: ignore network/endpoint errors
+  }
+};
+
   // audio
   const [soundEnabled, setSoundEnabled] = useState(true);
   const bgMusicRef = useRef<HTMLAudioElement | null>(null);
@@ -143,6 +165,16 @@ export default function ParticipantPractice() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questions, selectedCategory, searchTerm, takenIds]);
 
+useEffect(() => {
+  const id = filteredQuestions[currentQuestionIndex]?.id ?? null;
+  if (id) {
+    // keep local pointer in sync so resume logic still works
+    resumeFromLastRef.current = id;
+    // persist to DB so a full reload restores here
+    persistLastSeen(id);
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [currentQuestionIndex, filteredQuestions]);
 
 useEffect(() => {
   if (!currentSetRef.current) return;

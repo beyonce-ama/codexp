@@ -408,14 +408,14 @@ const surrenderAndShowAnswer = async () => {
     html: `
       <div class="text-center space-y-2">
         <div class="text-4xl text-red-400 font-bold">!</div>
-        <h2 class="text-xl font-bold text-red-400">Surrender & Show Answer?</h2>
+        <h2 class="text-xl font-bold text-red-400">Quit & Show Answer?</h2>
         <p class="text-gray-300 text-sm">You will NOT receive any rewards for this challenge.</p>
       </div>
     `,
     showCancelButton: true,
     confirmButtonText: 'Show Answer',
     cancelButtonText: 'Cancel',
-    background: '#0f172a',
+    background: '#1f2937',
     color: '#f8fafc',
     confirmButtonColor: '#ef4444',
     cancelButtonColor: '#6b7280',
@@ -453,7 +453,7 @@ const surrenderAndShowAnswer = async () => {
       </div>
     `,
     width: 700,
-    background: '#0f172a',
+    background: '#1f2937',
     color: '#f8fafc',
     confirmButtonText: 'Close',
     confirmButtonColor: '#10B981',
@@ -1244,33 +1244,35 @@ const showCodeModal = (title: string, code: string) => {
                 </div>
             </AppLayout>
               {/* Enhanced CSS Styles */}
-            <style>{`
-            /* Hide layout chrome when the Solo modal is open */
-            body.solo-open {
-            overflow: hidden !important;
-            }
-            body.solo-open header {
-            opacity: 0 !important;
-            pointer-events: none !important;
-            }
+          <style>{`
+  body.solo-open {
+    overflow: hidden !important;
+  }
+  body.solo-open header {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
 
-            /* Make the modal actually fill the screen in fullscreen */
-            :fullscreen .ai-modal,
-            :-webkit-full-screen .ai-modal {
-            width: 100vw !important;
-            height: 100vh !important;
-            max-width: none !important;
-            max-height: none !important;
-            border-radius: 0 !important;
-            }
+  /* 🧩 Remove fullscreen-stretch for modal — keep page fullscreen instead */
+  .ai-modal {
+    width: 95vw;
+    max-width: 1400px;
+    height: auto;
+    max-height: 95vh;
+    margin: auto;
+    border-radius: 1rem;
+  }
 
-            /* Ensure the overlay also stretches in fullscreen */
-            :fullscreen .ai-modal > *,
-            :-webkit-full-screen .ai-modal > * {
-            max-height: inherit;
-            }
+  /* Optional: better scroll behavior inside modal */
+  .ai-modal::-webkit-scrollbar {
+    width: 8px;
+  }
+  .ai-modal::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2);
+    border-radius: 4px;
+  }
+`}</style>
 
-            `}</style>
         </div>
     );
 }

@@ -138,6 +138,8 @@ const zeroTotals: BreakdownTotals = {
 
 /* ---------------- Component ---------------- */
 export default function AdminChallenges() {
+  const { props }: any = usePage();
+const serverActiveType: 'solo' | '1v1' | undefined = props?.activeType;
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [stats, setStats] = useState<ChallengeStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -630,8 +632,8 @@ const openEditModal = (c: any, type: 'solo' | '1v1') => {
       return payload;
     }
   })).then(r => {
-    if (r.isConfirmed) submitEdit(c.id, r.value, (/* prefer server value if present */ (usePage() as any)?.props?.activeType || type));
-  });
+  if (r.isConfirmed) submitEdit(c.id, r.value, serverActiveType || type);
+});
 };
 
 const openCreateModal = (type: 'solo' | '1v1') => {
@@ -737,7 +739,8 @@ const openCreateModal = (type: 'solo' | '1v1') => {
       if (!payload.title) { Swal.showValidationMessage('Title is required'); return false as any; }
       return payload;
     }
-  })).then(r => { if (r.isConfirmed) submitCreate(r.value, (usePage() as any)?.props?.activeType || type); });
+  })).then(r => { if (r.isConfirmed) submitCreate(r.value, serverActiveType || type); });
+
 };
 
 
@@ -748,7 +751,10 @@ const openCreateModal = (type: 'solo' | '1v1') => {
     else { Swal.fire('Error', res?.message || 'Update failed', 'error'); }
   };
   const submitCreate = async (payload: any, type: 'solo' | '1v1') => {
-    const base = type === 'solo' ? '/api/challenges/solo' : '/api/challenges/1v1';
+    const base = type === 'solo'
+  ? '/admin/challenges/api/challenges/solo'
+  : '/admin/challenges/api/challenges/1v1';
+
     const res = await apiClient.post(base, payload);
     if (res?.success) { Swal.fire('Created!', 'Challenge created.', 'success'); fetchChallenges();}
     else { Swal.fire('Error', res?.message || 'Create failed', 'error'); }
@@ -774,16 +780,6 @@ const openCreateModal = (type: 'solo' | '1v1') => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {/* {chip(`${visibleCount} visible`, 'slate')}
-                {stats && chip(`${stats.total_solo_challenges} Solo`, 'blue')}
-                {stats && chip(`${stats.total_1v1_challenges} 1v1`, 'purple')} */}
-                {/* <button
-                  onClick={() => fetchChallenges()}
-                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-500"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  <span>Refresh</span>
-                </button> */}
                 <button
                   onClick={() => setShowImportModal(true)}
                   className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-cyan-600 text-white hover:bg-cyan-500"
@@ -1133,25 +1129,40 @@ const openCreateModal = (type: 'solo' | '1v1') => {
                     <p className="text-xs text-gray-400 mt-1">Upload a JSON file containing an array of challenge objects</p>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Or Paste JSON</label>
-                    <textarea
-                      rows={8}
-                      value={importItems.length > 0 ? JSON.stringify(importItems, null, 2) : ''}
-                      onChange={(e) => {
-                        try {
-                          if (e.target.value.trim() === '') { setImportItems([]); return; }
-                          const parsed = JSON.parse(e.target.value);
-                          if (Array.isArray(parsed)) setImportItems(parsed);
-                        } catch { /* ignore until valid */ }
-                      }}
-                      placeholder={`Paste your challenge array here...`}
-                      className="w-full px-3 py-2 bg-gray-900 border border-gray-600 text-gray-200 rounded-lg font-mono text-sm focus:ring-2 focus:ring-cyan-500"
-                    />
-                    <p className="text-xs text-gray-400 mt-2">
-                      {importItems.length > 0 ? `${importItems.length} challenges ready to import` : 'Upload a JSON file or paste challenge data above'}
-                    </p>
-                  </div>
+                 {/* JSON format guide (replaces paste area) */}
+<div className="rounded-lg border border-gray-700 bg-gray-900/60 p-4">
+  <h4 className="text-sm font-semibold text-cyan-400 mb-2 flex items-center gap-2">
+    <Code className="h-4 w-4" /> Expected JSON Format
+  </h4>
+  <p className="text-xs text-gray-300 mb-3">
+    Each JSON file should contain an <strong>array of challenge objects</strong>.
+    Every object must include the following fields:
+  </p>
+  <pre className="text-xs bg-black/40 border border-gray-700 rounded-lg p-3 text-gray-200 font-mono overflow-x-auto">
+{`[
+  {
+    "difficulty": "easy",
+    "language": "python",
+    "title": "Sum of Two Numbers",
+    "description": "The program should take two integers as input and print their sum.",
+    "buggy_code": "a = 5\\nb = 7\\nprint('Sum is:', a + b",
+    "fixed_code": "a = 5\\nb = 7\\nprint('Sum is:', a + b)",
+    "hint": "Check the missing parenthesis in print statement"
+  }
+]`}
+  </pre>
+  <p className="text-xs text-gray-400 mt-2">
+    You can export an existing challenge to see the full structure.
+  </p>
+
+  {importItems.length > 0 && (
+    <div className="mt-3">
+      <p className="text-xs text-green-400">
+        ✅ Loaded <strong>{importItems.length}</strong> challenges from file.
+      </p>
+    </div>
+  )}
+</div>
 
                   <div className="flex justify-end gap-3">
                     <button

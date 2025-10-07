@@ -8,6 +8,7 @@ import {
 import { Volume2, VolumeX, Music } from 'lucide-react';
 import { audio } from '@/utils/sound';
 import { apiClient } from '@/utils/api';
+import Swal from 'sweetalert2'; 
 
 const safeCurrentPath = (pageUrl?: string) => {
   if (pageUrl) return pageUrl.split('?')[0];
@@ -159,8 +160,39 @@ const toggleMusic = async () => {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const handleLogout = () => router.post('/logout');
+ const handleLogout = async () => {
+  const confirm = await Swal.fire({
+    title: 'Sign Out?',
+    html: `<p class="text-gray-200 text-sm">Are you sure you want to log out of your account?</p>`,
+    icon: 'warning',
+    background: '#1f2937', // dark background
+    color: '#fff',
+    showCancelButton: true,
+    confirmButtonText: 'Yes, Sign Out',
+    cancelButtonText: 'Cancel',
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#6b7280',
+    reverseButtons: true,
+  });
 
+  if (confirm.isConfirmed) {
+    audio.play('click');
+    await Swal.fire({
+      title: 'Signing Out...',
+      html: `<p class="text-gray-300 text-sm">Please wait while we securely log you out.</p>`,
+      background: '#1f2937',
+      color: '#fff',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
+    router.post('/logout');
+  } else {
+    audio.play('click');
+  }
+};
   const navItems = useMemo(() => {
     if (user?.role === 'admin') {
       return [

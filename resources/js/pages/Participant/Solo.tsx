@@ -879,14 +879,14 @@ const surrenderAndShowAnswer = async () => {
     html: `
       <div class="text-center space-y-2">
         <div class="text-4xl text-red-400 font-bold">!</div>
-        <h2 class="text-xl font-bold text-red-400">Surrender & Show Answer?</h2>
+        <h2 class="text-xl font-bold text-red-400">Quit & Show Answer?</h2>
         <p class="text-gray-300 text-sm">You will NOT receive any rewards for this challenge.</p>
       </div>
     `,
     showCancelButton: true,
     confirmButtonText: 'Show Answer',
     cancelButtonText: 'Cancel',
-    background: '#0f172a',
+    background: '#1f2937',
     color: '#f8fafc',
     confirmButtonColor: '#ef4444',
     cancelButtonColor: '#6b7280',
@@ -927,7 +927,7 @@ const surrenderAndShowAnswer = async () => {
       </p>
     `,
     width: 700,
-    background: '#0f172a',
+    background: '#1f2937',
     color: '#f8fafc',
     confirmButtonText: 'Close',
     confirmButtonColor: '#10B981',
