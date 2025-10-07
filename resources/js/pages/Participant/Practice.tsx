@@ -101,36 +101,6 @@ export default function ParticipantPractice() {
     (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ||
     (window as any).Laravel?.csrfToken ||
     '';
-
-    const defaultAjaxHeaders = {
-  'Content-Type': 'application/json',
-  'X-CSRF-TOKEN': csrfToken,
-  'X-Requested-With': 'XMLHttpRequest',
-} as const;
-
-// if the backend doesn't implement /practice/position, disable further calls
-const positionSupportedRef = useRef(true);
-
-// single, clean helper to persist “last seen” question in DB
-const persistLastSeen = async (qid: number | null) => {
-  if (!qid || !currentSetRef.current || !positionSupportedRef.current) return;
-  try {
-    const resp = await fetch('/practice/position', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: defaultAjaxHeaders,
-      body: JSON.stringify({
-        question_set_id: currentSetRef.current.id,
-        last_question_id: qid,
-      }),
-    });
-    // if your backend doesn’t have this route yet, stop calling it
-    if (resp.status === 404) positionSupportedRef.current = false;
-  } catch {
-    // non-blocking
-  }
-};
-
   // audio
   const [soundEnabled, setSoundEnabled] = useState(true);
   const bgMusicRef = useRef<HTMLAudioElement | null>(null);
@@ -169,6 +139,7 @@ const persistLastSeen = async (qid: number | null) => {
 
   useEffect(() => {
     filterQuestions();
+    resetPerQuestionState();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questions, selectedCategory, searchTerm, takenIds]);
 
@@ -235,16 +206,6 @@ useEffect(() => {
   }
 }, [takenIds, totalInSet]); // eslint-disable-line react-hooks/exhaustive-deps
 
-useEffect(() => {
-  const id = filteredQuestions[currentQuestionIndex]?.id ?? null;
-  if (id) {
-    // keep the local pointer in sync for client resume
-    resumeFromLastRef.current = id;
-    // and persist to DB so a hard refresh returns here
-    persistLastSeen(id);
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [currentQuestionIndex, filteredQuestions]);
 
   const loadQuestions = async () => {
     const ac = new AbortController();
@@ -273,8 +234,12 @@ try {
 
   setTotalInSet(set.total_questions || 0);
 
-  // stash last taken so we can jump to the next one after filters apply
-  resumeFromLastRef.current = progress?.last_question_id ?? null;
+if (progress && progress.last_question_id) {
+  console.log('Resuming from last_question_id:', progress.last_question_id);
+  resumeFromLastRef.current = progress.last_question_id;
+} else {
+  resumeFromLastRef.current = null;
+}
 
   const response = await fetch(`/data/${set.filename}`, {
     signal: ac.signal,
@@ -401,15 +366,13 @@ if (uniqueIds.size !== data.length) {
 
   };
 const filterQuestions = () => {
+  // build filtered list
   const needle = searchTerm.trim().toLowerCase();
-
   let filtered = questions.filter(q => !takenIds.has(q.id));
   if (selectedCategory !== 'all') filtered = filtered.filter(q => q.category === selectedCategory);
-  if (needle) {
-    filtered = filtered.filter(
-      q => q.question.toLowerCase().includes(needle) || q.category.toLowerCase().includes(needle)
-    );
-  }
+  if (needle) filtered = filtered.filter(q =>
+    q.question.toLowerCase().includes(needle) || q.category.toLowerCase().includes(needle)
+  );
 
   setFilteredQuestions(filtered);
 
@@ -425,6 +388,7 @@ const filterQuestions = () => {
     const totalUntaken = Array.from(untakenByCat.values()).reduce((a, b) => a + b, 0);
 
     if (totalUntaken > 0) {
+      // 1) If a category is selected and it just got exhausted → move to next category with items
       if (selectedCategory !== 'all') {
         const allCats = Array.from(new Set(questions.map(q => q.category))).sort();
         const idx = Math.max(0, allCats.indexOf(selectedCategory));
@@ -435,9 +399,9 @@ const filterQuestions = () => {
           setSelectedCategory(nextCat);
           setCurrentQuestionIndex(0);
           resetPerQuestionState();
-          return; // will re-run and re-filter
+          return; // let the next run re-filter
         }
-        // fallback: show remaining across all
+        // If no other category has items, fall back to All
         fireToast(`Finished "${selectedCategory}". Showing remaining questions.`);
         setSelectedCategory('all');
         setCurrentQuestionIndex(0);
@@ -445,7 +409,7 @@ const filterQuestions = () => {
         return;
       }
 
-      // on "All" with a search that yields nothing → clear search to continue
+      // 2) If we're on "All" but a SEARCH made it empty → clear search to continue
       if (selectedCategory === 'all' && needle) {
         fireToast('No matches for this search. Clearing search to continue.');
         setSearchTerm('');
@@ -455,14 +419,15 @@ const filterQuestions = () => {
       }
     }
 
-    // truly nothing left in the set
+    // Truly no items anywhere → keep empty state
     setCurrentQuestionIndex(0);
     return;
   }
 
-  // Position the pointer meaningfully (respect resumeFromLastRef)
+  // Place the pointer meaningfully
   if (resumeFromLastRef.current != null) {
     const lastId = resumeFromLastRef.current;
+    // find the next un-taken question after lastId by original order
     let targetId: number | null = null;
     const idToIdx: Record<number, number> = {};
     questions.forEach((q, i) => (idToIdx[q.id] = i));
@@ -480,38 +445,26 @@ const filterQuestions = () => {
         break;
       }
     }
-
     if (targetId == null) targetId = filtered[0].id; // fallback
+
     const idxInFiltered = filtered.findIndex(q => q.id === targetId);
     setCurrentQuestionIndex(idxInFiltered >= 0 ? idxInFiltered : 0);
 
     // consume once
     resumeFromLastRef.current = null;
   } else {
-    // normal clamp when the list changes
+    // normal clamp on list changes
     setCurrentQuestionIndex(idx => Math.min(idx, Math.max(0, filtered.length - 1)));
   }
 };
 
 
-const resetPerQuestionState = () => {
-  setSelectedChoice(null);
-  setIsAnswered(false);
-  setShowAnswer(false);
-  setAnsweredQuestionId(null); 
-};
-
-
-const handleChoiceClick = (choice: string) => {
-  if (isAnswered || !currentQuestion) return;
-  playSfx('click');
-  setSelectedChoice(choice);
-  setIsAnswered(true);
-  setShowAnswer(true);
-  setAnsweredQuestionId?.(currentQuestion.id); // ← keep if you added the state
-  if (choice === currentQuestion.answer) playSfx('success');
-  else playSfx('failure');
-};
+  const resetPerQuestionState = () => {
+    setSelectedChoice(null);
+    setIsAnswered(false);
+    setShowAnswer(false);
+    setAnsweredQuestionId(null);
+  };
 
 const currentQuestion = filteredQuestions[currentQuestionIndex];
  const isCorrect =
@@ -530,34 +483,28 @@ const nextQuestion = async () => {
       return next;
     });
 
-   try {
-  const resp = await fetch('/practice/taken', {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: defaultAjaxHeaders,
-    body: JSON.stringify({
-      question_set_id: currentSetRef.current.id,
-      question_id: currentQuestion.id,
-    }),
-  });
-  if (resp.status === 419) {
-    await DarkModal.fire({
-      icon: 'info',
-      title: 'Session expired',
-      html: 'Please refresh the page and sign in again.',
-      confirmButtonText: 'Refresh',
-    });
-    window.location.reload();
-    return;
-  }
-  // Remember this as last taken so if the page reloads instantly, we still resume
-  resumeFromLastRef.current = currentQuestion.id;
-} catch (e) {
-  console.error('Failed to mark taken', e);
-}
+    // Persist to DB (send cookies + CSRF)
+    try {
+      await fetch('/practice/taken', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': csrfToken,
+        },
+        body: JSON.stringify({
+          question_set_id: currentSetRef.current.id,
+          question_id: currentQuestion.id,
+          last_question_id: currentQuestion.id,
+        }),
+      });
 
-  // IMPORTANT: do NOT increment index here.
-  // The filtered list shrinks by 1, so the next item slides into the same index.
+      resumeFromLastRef.current = currentQuestion.id;
+    } catch (e) {
+      console.error('Failed to mark taken', e);
+    }
+  }
+
   resetPerQuestionState();
 };
 
@@ -571,6 +518,19 @@ const nextQuestion = async () => {
 
   const toggleAnswer = () => setShowAnswer(prev => !prev);
 
+  const handleChoiceClick = (choice: string) => {
+    if (isAnswered || !currentQuestion) return; // guard
+    playSfx('click');
+    setSelectedChoice(choice);
+    setIsAnswered(true);
+    setShowAnswer(true);
+    setAnsweredQuestionId(currentQuestion.id);
+    if (choice === currentQuestion.answer) {
+      playSfx('success');
+    } else {
+      playSfx('failure');
+    }
+  };
 
   if (loading) {
     return (
@@ -863,4 +823,3 @@ const nextQuestion = async () => {
     </div>
   );
 }
- }
