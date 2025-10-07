@@ -107,7 +107,7 @@ export default function ParticipantPractice() {
 
 
   // tiny helper to respect toggle for SFX
-  const playSfx = (name: 'click' | 'hover' | 'success' | 'failure') => {
+  const playSfx = (name: 'click' | 'hover' | 'correct' | 'incorrect') => {
     if (!soundEnabled) return;
     try {
       audio.play(name);
@@ -518,19 +518,21 @@ const nextQuestion = async () => {
 
   const toggleAnswer = () => setShowAnswer(prev => !prev);
 
-  const handleChoiceClick = (choice: string) => {
-    if (isAnswered || !currentQuestion) return; // guard
-    playSfx('click');
-    setSelectedChoice(choice);
-    setIsAnswered(true);
-    setShowAnswer(true);
-    setAnsweredQuestionId(currentQuestion.id);
-    if (choice === currentQuestion.answer) {
-      playSfx('success');
-    } else {
-      playSfx('failure');
-    }
-  };
+    const handleChoiceClick = (choice: string) => {
+      if (isAnswered || !currentQuestion) return; // guard
+      setSelectedChoice(choice);
+      setIsAnswered(true);
+      setShowAnswer(true);
+      setAnsweredQuestionId(currentQuestion.id);
+
+      // ✅ Play correct or wrong SFX
+      if (choice === currentQuestion.answer) {
+        playSfx('correct');
+      } else {
+        playSfx('incorrect');
+      }
+    };
+
 
   if (loading) {
     return (
@@ -793,27 +795,35 @@ const nextQuestion = async () => {
                     </div>
                   )}
 
-                  {/* Navigation */}
-                  <div className="bg-gray-900/30 px-8 py-4 flex justify-between">
-                    <button
-                      onClick={() => { previousQuestion(); playSfx('click'); }}
-                      disabled={currentQuestionIndex === 0}
-                      className="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg disabled:opacity-50"
-                    >
-                      <ArrowLeft className="h-4 w-4 inline" /> Previous
-                    </button>
-                    <div className="text-gray-400 text-sm">
-                    Answered {takenIds.size} / {totalInSet}
-                    </div>
-                 <button
-                    onClick={() => { nextQuestion(); playSfx('click'); }}
-                    disabled={!currentQuestion} // allow pressing on the last question too
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
+                 {/* Navigation */}
+                <div className="bg-gray-900/30 px-8 py-4 flex justify-between">
+                  <button
+                    onClick={() => {
+                      previousQuestion();
+                      playSfx('click');
+                    }}
+                    disabled={currentQuestionIndex === 0}
+                    className="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg disabled:opacity-50"
                   >
-                    {isLastQuestion ? 'Finish Question' : 'Next'} <ArrowRight className="h-4 w-4 inline" />
+                    <ArrowLeft className="h-4 w-4 inline" /> Previous
                   </button>
 
+                  <div className="text-gray-400 text-sm">
+                    Answered {takenIds.size} / {totalInSet}
                   </div>
+
+                  <button
+                    onClick={() => {
+                      nextQuestion();
+                      playSfx('click');
+                    }}
+                    disabled={!isAnswered} // 🔒 disable Next until a choice is clicked
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
+                  >
+                    Next <ArrowRight className="h-4 w-4 inline" />
+                  </button>
+                </div>
+
                 </div>
               )}
             </div>
