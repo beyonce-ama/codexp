@@ -107,7 +107,7 @@ export default function ParticipantPractice() {
 
 
   // tiny helper to respect toggle for SFX
-  const playSfx = (name: 'click' | 'hover' | 'correct' | 'incorrect') => {
+  const playSfx = (name: 'click' | 'hover' | 'correct' | 'failure') => {
     if (!soundEnabled) return;
     try {
       audio.play(name);
@@ -529,7 +529,7 @@ const nextQuestion = async () => {
       if (choice === currentQuestion.answer) {
         playSfx('correct');
       } else {
-        playSfx('incorrect');
+        playSfx('failure');
       }
     };
 
