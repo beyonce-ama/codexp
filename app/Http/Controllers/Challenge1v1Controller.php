@@ -202,21 +202,6 @@ public function store(Request $request)
             'created_at','updated_at'
         ]));
     }
-    public function store(Request $request)
-    {
-        $data = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'language' => 'required|in:python,java',
-            'difficulty' => 'required|in:easy,medium,hard',
-            'buggy_code' => 'nullable|string',
-            'fixed_code' => 'nullable|string',
-        ]);
-
-        $challenge = \App\Models\Challenge1v1::create($data);
-
-        return response()->json(['success' => true, 'data' => $challenge]);
-    }
 
     public function update(Request $request, $id)
     {
