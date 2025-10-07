@@ -99,6 +99,36 @@ class Challenge1v1Controller extends Controller
         'data'    => $items,
     ]);
 }
+public function store(Request $request)
+{
+    try {
+        $data = $request->validate([
+            'language' => 'required|string',
+            'difficulty' => 'required|string',
+            'title' => 'required|string',
+            'description' => 'nullable|string',
+            'buggy_code' => 'nullable|string',
+            'fixed_code' => 'nullable|string',
+        ]);
+
+        $challenge = \App\Models\Challenge1v1::create([
+            ...$data,
+            'payload_json' => json_encode($data),
+            'source_file' => 'manual_create',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Challenge created successfully',
+            'data' => $challenge,
+        ]);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to create challenge: ' . $e->getMessage(),
+        ], 500);
+    }
+}
 
     public function import(Request $request)
     {

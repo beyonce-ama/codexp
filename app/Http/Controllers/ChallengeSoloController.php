@@ -64,22 +64,39 @@ class ChallengeSoloController extends Controller
 
 public function store(Request $request)
 {
-    $data = $request->validate([
-        'title' => 'required|string|max:255',
-        'description' => 'nullable|string',
-        'language' => 'required|in:python,java,cpp',
-        'difficulty' => 'required|in:easy,medium,hard',
-        'buggy_code' => 'nullable|string',
-        'fixed_code' => 'nullable|string',
-        'mode' => 'required|in:fixbugs',
-        'hint' => 'nullable|string',
-        'reward_xp' => 'nullable|numeric',
-    ]);
+    try {
+        $data = $request->validate([
+            'language' => 'required|string',
+            'difficulty' => 'required|string',
+            'title' => 'required|string',
+            'description' => 'nullable|string',
+            'buggy_code' => 'nullable|string',
+            'fixed_code' => 'nullable|string',
+            'hint' => 'nullable|string',
+            'mode' => 'nullable|string',
+            'reward_xp' => 'nullable|integer',
+        ]);
 
-    $challenge = \App\Models\ChallengeSolo::create($data);
+        $challenge = \App\Models\ChallengeSolo::create([
+            ...$data,
+            'reward_xp' => $data['reward_xp'] ?? 0,
+            'payload_json' => json_encode($data),
+            'source_file' => 'manual_create',
+        ]);
 
-    return response()->json(['success' => true, 'data' => $challenge]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Challenge created successfully',
+            'data' => $challenge,
+        ]);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to create challenge: ' . $e->getMessage(),
+        ], 500);
+    }
 }
+
 
 public function update(Request $request, $id)
 {
