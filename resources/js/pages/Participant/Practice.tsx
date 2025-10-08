@@ -106,8 +106,7 @@ export default function ParticipantPractice() {
   const bgMusicRef = useRef<HTMLAudioElement | null>(null);
 
 
-  // tiny helper to respect toggle for SFX
-  const playSfx = (name: 'click' | 'hover' | 'correct' | 'failure') => {
+ const playSfx = (name: 'click' | 'hover' | 'correct' | 'incorrect' | 'failure') => {
     if (!soundEnabled) return;
     try {
       audio.play(name);
@@ -525,15 +524,13 @@ const nextQuestion = async () => {
       setShowAnswer(true);
       setAnsweredQuestionId(currentQuestion.id);
 
-      // ✅ Play correct or wrong SFX
-      if (choice === currentQuestion.answer) {
-        playSfx('correct');
-      } else {
-        playSfx('failure');
-      }
-    };
+if (choice === currentQuestion.answer) {
+  playSfx('correct');
+} else {
+  playSfx('incorrect');
+}
 
-
+}; 
   if (loading) {
     return (
       <AppLayout breadcrumbs={breadcrumbs}>

@@ -873,26 +873,29 @@ if (isConfirmed) {
 const surrenderAndShowAnswer = async () => {
   if (!selectedChallenge?.fixed_code) return;
 
-  // Step 1: Confirm — render our own header (no SweetAlert title container)
   const result = await Swal.fire({
     title: '',
     html: `
-      <div class="text-center space-y-2">
-        <div class="text-4xl text-red-400 font-bold">!</div>
-        <h2 class="text-xl font-bold text-red-400">Quit & Show Answer?</h2>
-        <p class="text-gray-300 text-sm">You will NOT receive any rewards for this challenge.</p>
+      <div class="text-center space-y-3">
+        <div class="text-5xl text-red-400 font-bold mb-2">!</div>
+        <h2 class="text-2xl font-bold text-red-400">Quit & Show Answer?</h2>
+        <p class="text-gray-300 text-sm mt-2">
+          Are you sure you want to quit this challenge?<br/>
+          <span class="text-red-300 font-semibold">You will NOT receive any rewards.</span>
+        </p>
       </div>
     `,
     showCancelButton: true,
-    confirmButtonText: 'Show Answer',
+    confirmButtonText: 'Yes, Show Answer',
     cancelButtonText: 'Cancel',
     background: '#1f2937',
     color: '#f8fafc',
     confirmButtonColor: '#ef4444',
     cancelButtonColor: '#6b7280',
-    width: 600,
+    width: 450,
+    padding: '2rem 1.5rem',
     customClass: {
-      popup: 'rounded-xl border border-gray-700/50',
+      popup: 'rounded-xl border border-gray-700/50 shadow-xl',
       htmlContainer: 'p-0',
       confirmButton: 'px-5 py-2 rounded-lg font-semibold',
       cancelButton: 'px-5 py-2 rounded-lg font-semibold',
@@ -900,40 +903,31 @@ const surrenderAndShowAnswer = async () => {
   });
 
   if (!result.isConfirmed) return;
-
   audio.play('click');
 
-  // Step 2: Show the official solution (header also inside html)
   await Swal.fire({
     title: '',
     html: `
       <div class="text-center mb-4">
-        <h2 class="text-2xl font-bold text-red-400 mb-1">You Quit</h2>
+        <h2 class="text-xl font-bold text-red-400 mb-1">You Quit the Challenge</h2>
         <p class="text-gray-300 text-sm">Here’s the correct solution 💡</p>
       </div>
-
-      <div class="bg-slate-900 border border-slate-700 rounded-xl p-5 shadow-lg text-left">
-        <div class="mb-3 flex items-center justify-between border-b border-slate-700 pb-2">
-          <span class="text-yellow-400 font-semibold">🏆 ${selectedChallenge?.title ?? 'Correct Answer'}</span>
-          <span class="text-xs text-gray-400 italic">100% logic match required</span>
-        </div>
+      <div class="bg-gray-900 border border-gray-700 rounded-lg p-4 text-left">
         <pre id="solo-surrender-solution"
-             class="text-green-400 text-sm font-mono whitespace-pre-wrap break-words max-h-[55vh] overflow-y-auto"
+             class="text-green-400 text-sm font-mono whitespace-pre-wrap break-words max-h-[50vh] overflow-y-auto"
              style="margin:0;"></pre>
       </div>
-
       <p class="mt-4 text-xs text-gray-400 text-center">
-        Reminder: comments and punctuation are also compared.
+        Reminder: comments, spacing, and punctuation are compared.
       </p>
     `,
-    width: 700,
+    width: 600,
     background: '#1f2937',
     color: '#f8fafc',
     confirmButtonText: 'Close',
     confirmButtonColor: '#10B981',
     customClass: {
-      popup: 'rounded-xl border border-slate-700 shadow-2xl backdrop-blur-sm',
-      htmlContainer: 'p-0',
+      popup: 'rounded-xl border border-gray-700/50 shadow-xl backdrop-blur-sm',
       confirmButton: 'px-6 py-2 rounded-lg font-semibold',
     },
     didOpen: () => {
@@ -942,7 +936,6 @@ const surrenderAndShowAnswer = async () => {
     },
   });
 
-  // Step 3: Mark abandoned & reset modal/editor
   await markChallengeAsTaken('abandoned');
 };
 
