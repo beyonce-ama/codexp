@@ -160,6 +160,11 @@ export default function CodexpLandingPage() {
       >
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
+             <img
+                  src="/images/logo.png"
+                  alt="CODEXP AI Logo"
+                  className="w-7 h-7 sm:w-8 sm:h-8 drop-shadow-[0_0_4px_rgba(255,200,0,0.6)] transition-transform group-hover:scale-110"
+                />
             <span className="text-lg sm:text-xl font-extrabold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-300">
               CODEXP AI
             </span>
@@ -168,7 +173,7 @@ export default function CodexpLandingPage() {
          <nav className="hidden md:flex items-center gap-5">
   <a href="#features" className="neo-pill hover:ring-1 hover:ring-slate-600">Features</a>
   <a href="#how" className="neo-pill hover:ring-1 hover:ring-slate-600">How it Works</a>
-  <a href="#leaderboard" className="neo-pill hover:ring-1 hover:ring-slate-600">Leaderboard</a>
+  {/* <a href="#leaderboard" className="neo-pill hover:ring-1 hover:ring-slate-600">Leaderboard</a> */}
   <a href="#faq" className="neo-pill hover:ring-1 hover:ring-slate-600">FAQ</a>
 
  <div className="flex items-center gap-2 pr-2">
@@ -225,7 +230,7 @@ export default function CodexpLandingPage() {
         >
           Train with AI-crafted challenges, duel in real time, and level up your code skills.
           <span className="ml-1 text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-300 to-violet-300">
-            Python &amp; Java supported.
+            Python, Java &amp; C++ supported.
           </span>
         </motion.p>
 
