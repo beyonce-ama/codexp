@@ -186,8 +186,7 @@ const sessionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 const displayLanguage = (s: string) => (s === 'cpp' ? 'C++' : (s ?? '').toUpperCase());
 
-const prevDuelsRef = useRef<Record<number, string>>({});
-
+const prevDuelsListRef = useRef<Duel[]>([]);
 const stopAllTimers = () => {
   if (sessionTimerRef.current) clearInterval(sessionTimerRef.current);
   if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
@@ -269,58 +268,69 @@ const exitFullscreen = () => {
 }, [activeTab, languageFilter, difficultyFilter, debouncedSearch]); 
 
 useEffect(() => {
-  if (!duels || duels.length === 0) return;
+  if (!duels || duels.length === 0) {
+    // Remember to reset when nothing is loaded (prevents stale triggers)
+    prevDuelsListRef.current = [];
+    return;
+  }
 
-  duels.forEach((d) => {
-    const prevStatus = prevDuelsRef.current[d.id];
+  const prev = prevDuelsListRef.current || [];
+  const prevStatusMap = new Map(prev.map(d => [d.id, d.status]));
+
+  duels.forEach(d => {
+    const prevStatus = prevStatusMap.get(d.id);
     const currStatus = d.status;
 
-    // --- 1ï¸âƒ£ New Duel Detected ---
+    // 1) New duel detected
     if (!prevStatus) {
-      if (d.status === 'pending' && d.opponent?.id === user.id) {
-        fireToast(`ðŸŽ¯ New duel invite from ${d.challenger.name}!`);
+      if (currStatus === 'pending' && d.opponent?.id === user.id) {
+        fireToast(`New duel invite from ${d.challenger.name}!`);
       }
-      if (d.status === 'pending' && d.challenger?.id === user.id) {
-        fireToast(`ðŸ—¡ï¸ Duel invite sent to ${d.opponent.name}!`);
+      if (currStatus === 'pending' && d.challenger?.id === user.id) {
+        fireToast(`Duel invite sent to ${d.opponent.name}!`);
       }
+      return;
     }
 
-    // --- 2ï¸âƒ£ Status Change ---
-    if (prevStatus && prevStatus !== currStatus) {
+    // 2) Status change
+    if (prevStatus !== currStatus) {
       const opponentName =
         d.challenger?.id === user.id ? d.opponent?.name : d.challenger?.name;
 
       switch (currStatus) {
         case 'active':
-          if (d.challenger?.id === user.id)
-            fireToast(`âš”ï¸ ${opponentName} accepted your duel!`);
-          else
-            fireToast(`âš”ï¸ Duel with ${opponentName} is now active!`);
+          if (d.challenger?.id === user.id) {
+            fireToast(`${opponentName} accepted your duel!`);
+          } else {
+            fireToast(`Duel with ${opponentName} is now active!`);
+          }
           audio.play('success');
           break;
 
         case 'declined':
-          if (d.challenger?.id === user.id)
-            fireToast(`âŒ ${opponentName} declined your duel.`);
-          else fireToast(`You declined the duel with ${opponentName}.`);
+          if (d.challenger?.id === user.id) {
+            fireToast(`${opponentName} declined your duel.`);
+          } else {
+            fireToast(`You declined the duel with ${opponentName}.`);
+          }
           audio.play('failure');
           break;
 
         case 'finished':
-          fireToast(`ðŸ Duel with ${opponentName} finished.`);
+          fireToast(`Duel with ${opponentName} has finished.`);
           break;
 
         case 'surrendered':
-          fireToast(`âš ï¸ ${opponentName} surrendered the duel.`);
+          fireToast(`${opponentName} surrendered the duel.`);
           break;
       }
     }
-
-    prevDuelsRef.current[d.id] = currStatus;
   });
+
+  // snapshot for next diff
+  prevDuelsListRef.current = duels;
 }, [duels]);
-
-
+..
     // Handle fullscreen when duel modal opens/closes
 useEffect(() => {
   if (showDuelModal) {

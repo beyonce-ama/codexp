@@ -1,0 +1,227 @@
+[
+  {
+    "category": "Enums",
+    "question": "Fill in the blank to declare an enum with constants:\n\n____ Day { MONDAY, TUESDAY, WEDNESDAY }",
+    "choices": ["enum", "class", "final", "static"],
+    "answer": "enum",
+    "explanation_correct": "✅ Correct! Use 'enum' to declare enumeration types.",
+    "explanation_wrong": "❌ Incorrect. The keyword is 'enum'.",
+    "id": 1
+  },
+  {
+    "category": "Threads",
+    "question": "Fill in the blank to start a thread:\n\nThread t = new Thread(runnable);\nt.____();",
+    "choices": ["run", "start", "execute", "launch"],
+    "answer": "start",
+    "explanation_correct": "✅ Correct! 'start()' begins execution of a thread.",
+    "explanation_wrong": "❌ Incorrect. Use 'start()' instead of 'run()'.",
+    "id": 2
+  },
+  {
+    "category": "Synchronization",
+    "question": "Fill in the blank to create a synchronized method:\n\npublic ____ synchronized void increment() {\n   count++;\n}",
+    "choices": ["static", "final", "private", "protected"],
+    "answer": "static",
+    "explanation_correct": "✅ Correct! 'static synchronized' can be used for class-level locks.",
+    "explanation_wrong": "❌ Incorrect. The correct modifier here is 'static' for class locking.",
+    "id": 3
+  },
+  {
+    "category": "Packages",
+    "question": "Fill in the blank to declare a package at the top of a file:\n\n____ com.example.myapp;",
+    "choices": ["package", "import", "namespace", "module"],
+    "answer": "package",
+    "explanation_correct": "✅ Correct! 'package' defines the namespace of a Java class.",
+    "explanation_wrong": "❌ Incorrect. The keyword is 'package'.",
+    "id": 4
+  },
+  {
+    "category": "Imports",
+    "question": "Fill in the blank to import all classes from java.util:\n\n____ java.util.*;",
+    "choices": ["import", "package", "include", "use"],
+    "answer": "import",
+    "explanation_correct": "✅ Correct! 'import' is used to bring in classes or packages.",
+    "explanation_wrong": "❌ Incorrect. Use 'import' for external packages.",
+    "id": 5
+  },
+  {
+    "category": "Inner Classes",
+    "question": "Fill in the blank to declare a static nested class:\n\nclass Outer {\n   ____ class Nested {\n   }\n}",
+    "choices": ["static", "inner", "nested", "final"],
+    "answer": "static",
+    "explanation_correct": "✅ Correct! 'static' creates a static nested class inside another class.",
+    "explanation_wrong": "❌ Incorrect. Use 'static' to declare a nested class.",
+    "id": 6
+  },
+  {
+    "category": "Static Blocks",
+    "question": "Fill in the blank to initialize a static block:\n\nclass Config {\n   ____ {\n      System.out.println(\"Loaded\");\n   }\n}",
+    "choices": ["static", "final", "public", "class"],
+    "answer": "static",
+    "explanation_correct": "✅ Correct! 'static' blocks are executed once when the class is loaded.",
+    "explanation_wrong": "❌ Incorrect. The correct keyword is 'static'.",
+    "id": 7
+  },
+  {
+    "category": "Annotations",
+    "question": "Fill in the blank to mark a method as deprecated:\n\n@____\npublic void oldMethod() { }",
+    "choices": ["Deprecated", "Override", "SuppressWarnings", "Annotation"],
+    "answer": "Deprecated",
+    "explanation_correct": "✅ Correct! Use '@Deprecated' to indicate obsolete methods.",
+    "explanation_wrong": "❌ Incorrect. The correct annotation is '@Deprecated'.",
+    "id": 8
+  },
+  {
+    "category": "Switch Expressions",
+    "question": "Fill in the blank to use the new switch expression syntax:\n\nString day = switch(x) {\n   case 1 -> \"Monday\";\n   ____;\n};",
+    "choices": ["default -> \"Other\"", "case default", "else ->", "fallback ->"],
+    "answer": "default -> \"Other\"",
+    "explanation_correct": "✅ Correct! Switch expressions use 'default ->'.",
+    "explanation_wrong": "❌ Incorrect. Use 'default ->' for the default case.",
+    "id": 9
+  },
+  {
+    "category": "Local Variables",
+    "question": "Fill in the blank to declare a local variable with inferred type:\n\n____ message = \"Hello\";",
+    "choices": ["var", "let", "auto", "val"],
+    "answer": "var",
+    "explanation_correct": "✅ Correct! Since Java 10, 'var' allows local variable type inference.",
+    "explanation_wrong": "❌ Incorrect. The correct keyword is 'var'.",
+    "id": 10
+  },
+  {
+    "category": "Records",
+    "question": "Fill in the blank to declare a record in Java:\n\n____ Point(int x, int y) { }",
+    "choices": ["record", "struct", "data", "tuple"],
+    "answer": "record",
+    "explanation_correct": "✅ Correct! 'record' defines immutable data carrier classes.",
+    "explanation_wrong": "❌ Incorrect. Use 'record' for data classes in Java.",
+    "id": 11
+  },
+  {
+    "category": "Sealed Classes",
+    "question": "Fill in the blank to declare a sealed class:\n\n____ abstract sealed class Shape permits Circle, Square { }",
+    "choices": ["public", "final", "sealed", "default"],
+    "answer": "sealed",
+    "explanation_correct": "✅ Correct! 'sealed' restricts which classes can extend a type.",
+    "explanation_wrong": "❌ Incorrect. The keyword is 'sealed'.",
+    "id": 12
+  },
+  {
+    "category": "Pattern Matching",
+    "question": "Fill in the blank to use pattern matching for instanceof:\n\nif(obj ____ String s) {\n   System.out.println(s.toUpperCase());\n}",
+    "choices": ["instanceof", "is", "as", "typeof"],
+    "answer": "instanceof",
+    "explanation_correct": "✅ Correct! 'instanceof' with pattern matching binds a variable.",
+    "explanation_wrong": "❌ Incorrect. The syntax is 'instanceof Type variable'.",
+    "id": 13
+  },
+  {
+    "category": "Varargs",
+    "question": "Fill in the blank to declare a method with variable arguments:\n\npublic void printAll(String____ args) {\n   for(String s: args) System.out.println(s);\n}",
+    "choices": ["...", "[]", "var", "*"],
+    "answer": "...",
+    "explanation_correct": "✅ Correct! Varargs use '...'.",
+    "explanation_wrong": "❌ Incorrect. The syntax is 'String... args'.",
+    "id": 14
+  },
+  {
+    "category": "Final Variables",
+    "question": "Fill in the blank to declare a constant reference:\n\n____ String APP_NAME = \"MyApp\";",
+    "choices": ["final", "const", "static", "var"],
+    "answer": "final",
+    "explanation_correct": "✅ Correct! 'final' prevents reassignment of variables.",
+    "explanation_wrong": "❌ Incorrect. Use 'final' for constants.",
+    "id": 15
+  },
+  {
+    "category": "Generics",
+    "question": "Fill in the blank to declare a method with a bounded type parameter:\n\npublic <T ____ Number> void print(T value) {\n   System.out.println(value);\n}",
+    "choices": ["extends", "implements", "super", "is"],
+    "answer": "extends",
+    "explanation_correct": "✅ Correct! Use 'extends' to declare upper bounds for generic types.",
+    "explanation_wrong": "❌ Incorrect. The correct syntax is '<T extends Number>'.",
+    "id": 16
+  },
+  {
+    "category": "Wildcards",
+    "question": "Fill in the blank to accept any type of list:\n\npublic void process(List<? ____> list) { }",
+    "choices": ["extends Object", "super Object", "extends", "super"],
+    "answer": "extends Object",
+    "explanation_correct": "✅ Correct! '? extends Object' matches any list type.",
+    "explanation_wrong": "❌ Incorrect. The safe wildcard is '? extends Object'.",
+    "id": 17
+  },
+  {
+    "category": "Reflection",
+    "question": "Fill in the blank to get the class of an object:\n\nClass<?> clazz = obj.____();",
+    "choices": ["class", "getClass", "type", "getType"],
+    "answer": "getClass",
+    "explanation_correct": "✅ Correct! Use 'getClass()' to retrieve the runtime class.",
+    "explanation_wrong": "❌ Incorrect. The method is 'getClass()'.",
+    "id": 18
+  },
+  {
+    "category": "Reflection",
+    "question": "Fill in the blank to get a method by name:\n\nMethod m = clazz.____(\"toString\");",
+    "choices": ["getMethod", "method", "findMethod", "getDeclared"],
+    "answer": "getMethod",
+    "explanation_correct": "✅ Correct! 'getMethod' retrieves a public method by name.",
+    "explanation_wrong": "❌ Incorrect. Use 'getMethod(\"name\")'.",
+    "id": 19
+  },
+  {
+    "category": "Annotations",
+    "question": "Fill in the blank to define an annotation with parameters:\n\npublic @____ interface Author {\n   String name();\n   int year();\n}",
+    "choices": ["interface", "annotation", "Author", "interface annotation"],
+    "answer": "interface",
+    "explanation_correct": "✅ Correct! Annotations are defined as '@interface'.",
+    "explanation_wrong": "❌ Incorrect. Use '@interface' for annotations.",
+    "id": 20
+  },
+  {
+    "category": "Interfaces",
+    "question": "Fill in the blank to define a default method in an interface:\n\ninterface Vehicle {\n   ____ void start() {\n      System.out.println(\"Starting\");\n   }\n}",
+    "choices": ["default", "static", "final", "abstract"],
+    "answer": "default",
+    "explanation_correct": "✅ Correct! 'default' allows method bodies inside interfaces.",
+    "explanation_wrong": "❌ Incorrect. Use 'default' keyword here.",
+    "id": 21
+  },
+  {
+    "category": "Static Imports",
+    "question": "Fill in the blank to statically import Math.PI:\n\nimport ____ java.lang.Math.PI;",
+    "choices": ["static", "final", "public", "const"],
+    "answer": "static",
+    "explanation_correct": "✅ Correct! 'static import' lets you access static members directly.",
+    "explanation_wrong": "❌ Incorrect. The correct syntax is 'import static ...'.",
+    "id": 22
+  },
+  {
+    "category": "Nested Generics",
+    "question": "Fill in the blank for a Map of lists:\n\nMap<String, List<____>> map = new HashMap<>();",
+    "choices": ["String", "Object", "T", "Any"],
+    "answer": "String",
+    "explanation_correct": "✅ Correct! This is a Map from String to List<String>.",
+    "explanation_wrong": "❌ Incorrect. The generic should be 'String'.",
+    "id": 23
+  },
+  {
+    "category": "Records",
+    "question": "Fill in the blank to create a compact constructor in a record:\n\nrecord User(String name, int age) {\n   ____ {\n      if(age < 0) throw new IllegalArgumentException();\n   }\n}",
+    "choices": ["this", "User", "constructor", "init"],
+    "answer": "this",
+    "explanation_correct": "✅ Correct! Records allow compact constructors using 'this'.",
+    "explanation_wrong": "❌ Incorrect. The correct keyword is 'this'.",
+    "id": 24
+  },
+  {
+    "category": "Modules",
+    "question": "Fill in the blank to declare a module in module-info.java:\n\n____ my.module { }",
+    "choices": ["module", "package", "namespace", "import"],
+    "answer": "module",
+    "explanation_correct": "✅ Correct! Use 'module' to declare a module in Java 9+.",
+    "explanation_wrong": "❌ Incorrect. The keyword is 'module'.",
+    "id": 25
+  }
+]

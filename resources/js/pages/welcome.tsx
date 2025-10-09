@@ -36,7 +36,7 @@ const faqs = [
   },
   { 
     q: 'What languages are supported?', 
-    a: 'Python and Java to start—more coming soon.' 
+    a: 'Python, Java and C++ .' 
   },
   { 
     q: 'How are battles scored?', 
