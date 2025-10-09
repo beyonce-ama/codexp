@@ -160,12 +160,12 @@ const toggleMusic = async () => {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
- const handleLogout = async () => {
+const handleLogout = async () => {
   const confirm = await Swal.fire({
     title: 'Sign Out?',
     html: `<p class="text-gray-200 text-sm">Are you sure you want to log out of your account?</p>`,
     icon: 'warning',
-    background: '#1f2937', // dark background
+    background: '#1f2937',
     color: '#fff',
     showCancelButton: true,
     confirmButtonText: 'Yes, Sign Out',
@@ -177,22 +177,13 @@ const toggleMusic = async () => {
 
   if (confirm.isConfirmed) {
     audio.play('click');
-    await Swal.fire({
-      title: 'Signing Out...',
-      html: `<p class="text-gray-300 text-sm">Please wait while we securely log you out.</p>`,
-      background: '#1f2937',
-      color: '#fff',
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      },
-    });
-
+    // 🚀 Immediately log out, no loading modal
     router.post('/logout');
   } else {
     audio.play('click');
   }
 };
+
   const navItems = useMemo(() => {
     if (user?.role === 'admin') {
       return [
