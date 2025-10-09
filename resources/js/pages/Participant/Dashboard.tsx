@@ -980,7 +980,7 @@ const handleClaim = async (achievementId: number) => {
 
     {/* Full list */}
     <div className="divide-y divide-slate-700/70 overflow-y-visible no-scrollbar">
-        {leaderboard.slice(3, 12).map((p) => (
+        {leaderboard.slice(3, 15).map((p) => (
         <div key={p.id} className="py-3 flex items-center gap-3">
           <div className="w-8 text-center">
             <span className={`text-sm font-bold ${p.rank <= 3 ? 'text-yellow-400' : 'text-slate-300'}`}>#{p.rank}</span>
@@ -1011,7 +1011,7 @@ const handleClaim = async (achievementId: number) => {
     </div>
 
     {/* If user is not in top 15, show a pinned row for them */}
-    {myRank != null && myRank > 12 && (
+    {myRank != null && myRank > 15 && (
       <div className="mt-3 rounded-xl border border-cyan-800 bg-cyan-900/20 p-3">
         <div className="text-xs text-slate-400 mb-1">Your Position</div>
         <div className="flex items-center gap-3">

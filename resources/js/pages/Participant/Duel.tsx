@@ -181,7 +181,15 @@ export default function ParticipantDuel() {
     // Add near other useStates
     const [waitingForOpponent, setWaitingForOpponent] = useState(false);
     const [finalizing, setFinalizing] = useState(false);
-const [waitingDuels, setWaitingDuels] = useState<number[]>([]);
+const [waitingDuels, setWaitingDuels] = useState<number[]>(() => {
+  try {
+    const saved = localStorage.getItem('waiting_duels');
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+});
+
 const sessionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 const displayLanguage = (s: string) => (s === 'cpp' ? 'C++' : (s ?? '').toUpperCase());
@@ -374,6 +382,9 @@ useEffect(() => {
         }
     }, [showDuelModal, activeDuel, duelEnded, startTime]);
 
+useEffect(() => {
+  localStorage.setItem('waiting_duels', JSON.stringify(waitingDuels));
+}, [waitingDuels]);
 
     // Auto-refresh active duels with conflict resolution
     useEffect(() => {
@@ -794,7 +805,7 @@ const fetchParticipants = async () => {
         });
 
       setParticipants(participantData);
-      console.log('ðŸ‘¥ Participants loaded:', participantData.length);
+      console.log('👥 Participants loaded:', participantData.length);
     }
   } catch (error) {
     console.error('Error fetching participants:', error);
@@ -922,14 +933,14 @@ const cmpHtml = cmp ? `
         <tr>
           <td class="py-2 pr-2">${cmp.challenger.name}</td>
           <td class="py-2 pr-2 ${cmp.challenger.isCorrect ? 'text-green-400' : 'text-red-400'}">
-            ${cmp.challenger.isCorrect ? 'âœ”' : 'âœ˜'}
+            ${cmp.challenger.isCorrect ? '✅' : '❌'}
           </td>
           <td class="py-2">${Math.floor(cmp.challenger.time/60)}m ${cmp.challenger.time%60}s</td>
         </tr>
         <tr>
           <td class="py-2 pr-2">${cmp.opponent.name}</td>
           <td class="py-2 pr-2 ${cmp.opponent.isCorrect ? 'text-green-400' : 'text-red-400'}">
-            ${cmp.opponent.isCorrect ? 'âœ”' : 'âœ˜'}
+            ${cmp.opponent.isCorrect ? '✅' : '❌'}
           </td>
           <td class="py-2">${Math.floor(cmp.opponent.time/60)}m ${cmp.opponent.time%60}s</td>
         </tr>
@@ -950,16 +961,16 @@ const cmpHtml = cmp ? `
   title: isWinner ? 'Victory!' : 'Duel Complete',
   html: `
     <div class="text-center">
-      <div class="text-4xl mb-4">${isWinner ? 'ðŸ†' : 'ðŸ¤'}</div>
+      <div class="text-4xl mb-4">${isWinner ? '🏆' : '🤝'}</div>
       <p class="mb-4 text-lg">
         ${isWinner ? 'Congratulations! You won the duel!' : `The duel has ended. Winner: ${winnerName}`}
       </p>
       ${isWinner ? `
         <div class="flex justify-center space-x-4 mt-4">
           <div class="font-bold text-xl">+${xp} XP</div>
-          <div class="font-bold text-xl">+${stars} â­</div>
+          <div class="font-bold text-xl">+${stars} ⭐</div>
         </div>
-      ` : ' <div class="mt-2 font-semibold text-rose-300">-1 â­</div>'}
+      ` : ' <div class="mt-2 font-semibold text-rose-300">-1 ⭐</div>'}
       <p class="text-sm text-gray-400 mt-4">
         Your time: ${Math.floor(timeSpent/60)}m ${timeSpent%60}s
       </p>
@@ -1261,7 +1272,7 @@ if (duel.status === 'finished') {
       setOpponentSubmission(opponentSub);
     }
 
-    // ðŸ”¹ NEW: Build a comparison object
+    // ⏳ NEW: Build a comparison object
     const challengerSub = duel.submissions.find(
       (s: DuelSubmission) => s.user_id === duel.challenger.id
     );
@@ -1505,7 +1516,7 @@ const showCodeModal = (title: string, code: string) => {
                 title: 'Surrendered',
                 text: 'You have surrendered the duel.',
                 html: `<div class="text-zinc-300 text-sm">
-                       <div class="mt-2 font-semibold text-rose-300">-1 â­</div>
+                       <div class="mt-2 font-semibold text-rose-300">-1 ⭐</div>
                      </div>`,
                 background: '#1f2937',
                 color: '#fff'
@@ -1845,14 +1856,14 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                     if ((myCorrect || locallyWaiting) && !opponentHasSubmitted) {
                                                         return (
                                                         <span className="text-xs text-blue-400 font-medium ml-2">
-                                                            â³ Waiting for opponent to submit.
+                                                            ⏳ Waiting for opponent to submit.
                                                         </span>
                                                         );
                                                     }
                                                     if ((myCorrect || locallyWaiting) && opponentHasSubmitted && !opponentCorrect) {
                                                         return (
                                                         <span className="text-xs text-blue-400 font-medium ml-2">
-                                                            â³ Opponent submitted but not correct yet.
+                                                            ⏳ Opponent submitted but not correct yet.
                                                         </span>
                                                         );
                                                     }
@@ -2068,7 +2079,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
         <tr>
           <td className="py-2 pr-2">{comparison.challenger.name}</td>
           <td className={`text-center ${comparison.challenger.isCorrect ? 'text-green-400' : 'text-red-400'}`}>
-            {comparison.challenger.isCorrect ? 'âœ”' : 'âœ˜'}
+            {comparison.challenger.isCorrect ? '✅' : '❌'}
           </td>
           <td className="text-center">
             {Math.floor(comparison.challenger.time / 60)}m {comparison.challenger.time % 60}s
@@ -2077,7 +2088,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
         <tr>
           <td className="py-2 pr-2">{comparison.opponent.name}</td>
           <td className={`text-center ${comparison.opponent.isCorrect ? 'text-green-400' : 'text-red-400'}`}>
-            {comparison.opponent.isCorrect ? 'âœ”' : 'âœ˜'}
+            {comparison.opponent.isCorrect ? '✅' : '❌'}
           </td>
           <td className="text-center">
             {Math.floor(comparison.opponent.time / 60)}m {comparison.opponent.time % 60}s
