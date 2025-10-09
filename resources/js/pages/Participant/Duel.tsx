@@ -4,13 +4,12 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, usePage } from '@inertiajs/react';
 import { useState, useEffect, useRef } from 'react';
 import {
-  Swords, Users, Play, Clock, Trophy, Star,
-  RefreshCw, Plus, Search, Send, X, Flag,
-  CheckCircle, XCircle, Timer, Award,
-  User as UserIcon, Crown, Target, Code, AlertTriangle, ArrowRight,
-  Lightbulb, Eye, Zap, Volume2, VolumeX, UserCheck, BookOpen
+    Swords, Users, Play, Clock, Trophy, Star,
+    RefreshCw, Plus, Search, Send, X, Flag,
+    CheckCircle, XCircle, Timer, Award,
+    User, Crown, Target, Code, AlertTriangle, ArrowRight,
+    Lightbulb, Eye, Zap, Volume2, VolumeX, UserCheck, BookOpen
 } from 'lucide-react';
-
 import { apiClient } from '@/utils/api';
 import Swal from 'sweetalert2';
 import AnimatedBackground from '@/components/AnimatedBackground';
@@ -86,7 +85,7 @@ interface Duel {
     opponent: User;
     challenge: Challenge1v1 | null;
     language: string;
-    status: 'pending' | 'active' | 'finished' | 'surrendered' | 'declined';
+    status: 'pending' | 'active' | 'finished' | 'surrendered';
     started_at: string | null;
     ended_at: string | null;
     winner: User | null;
@@ -110,35 +109,6 @@ interface DuelStats {
     duels_as_opponent: number;
     duels_today: number;
 }
-
-const fireToast = (text: string, ms = 2500) => {
-  audio.play('notification');
-  Swal.fire({
-    toast: true,
-    position: 'top-end',
-    showConfirmButton: false,
-    timer: ms,
-    timerProgressBar: true,
-    background: 'transparent',
-    customClass: {
-      popup: '!p-0 !bg-transparent !shadow-none !border-0',
-      timerProgressBar: 'bg-yellow-500/50',
-    },
-    html: `
-      <div class="flex items-center gap-3 rounded-xl border border-yellow-700 bg-slate-900/90 backdrop-blur px-4 py-3 shadow-2xl">
-        <div class="p-2 rounded-lg border border-yellow-700 bg-yellow-500/10">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="16" x2="12" y2="12"></line>
-            <line x1="12" y1="8"  x2="12" y2="8"></line>
-          </svg>
-        </div>
-        <p class="text-sm text-white font-semibold">${text}</p>
-      </div>
-    `,
-  });
-};
-
 
 export default function ParticipantDuel() {
     const { auth } = usePage().props as any;
@@ -194,7 +164,8 @@ const sessionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 const displayLanguage = (s: string) => (s === 'cpp' ? 'C++' : (s ?? '').toUpperCase());
 
-const prevDuelsListRef = useRef<Duel[]>([]);
+// New, independent review modal state
+
 const stopAllTimers = () => {
   if (sessionTimerRef.current) clearInterval(sessionTimerRef.current);
   if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
@@ -210,7 +181,12 @@ const [comparison, setComparison] = useState<{
 
 
     const resultShownRef = useRef(false);
-   
+ 
+ useEffect(() => {
+  localStorage.setItem('waiting_duels', JSON.stringify(waitingDuels));
+}, [waitingDuels]);   
+
+    
 // One switch to control global UI when ANY duel modal is open
 useEffect(() => {
   const isOpen = showDuelModal || showCreateModal || showReviewModal;
@@ -275,71 +251,9 @@ const exitFullscreen = () => {
   fetchDuelStats();
 }, [activeTab, languageFilter, difficultyFilter, debouncedSearch]); 
 
-useEffect(() => {
-  if (!duels || duels.length === 0) {
-    // Remember to reset when nothing is loaded (prevents stale triggers)
-    prevDuelsListRef.current = [];
-    return;
-  }
-
-  const prev = prevDuelsListRef.current || [];
-  const prevStatusMap = new Map(prev.map(d => [d.id, d.status]));
-
-  duels.forEach(d => {
-    const prevStatus = prevStatusMap.get(d.id);
-    const currStatus = d.status;
-
-    // 1) New duel detected
-    if (!prevStatus) {
-      if (currStatus === 'pending' && d.opponent?.id === user.id) {
-        fireToast(`New duel invite from ${d.challenger.name}!`);
-      }
-      if (currStatus === 'pending' && d.challenger?.id === user.id) {
-        fireToast(`Duel invite sent to ${d.opponent.name}!`);
-      }
-      return;
-    }
-
-    // 2) Status change
-    if (prevStatus !== currStatus) {
-      const opponentName =
-        d.challenger?.id === user.id ? d.opponent?.name : d.challenger?.name;
-
-      switch (currStatus) {
-        case 'active':
-          if (d.challenger?.id === user.id) {
-            fireToast(`${opponentName} accepted your duel!`);
-          } else {
-            fireToast(`Duel with ${opponentName} is now active!`);
-          }
-          audio.play('success');
-          break;
-
-        case 'declined':
-          if (d.challenger?.id === user.id) {
-            fireToast(`${opponentName} declined your duel.`);
-          } else {
-            fireToast(`You declined the duel with ${opponentName}.`);
-          }
-          audio.play('failure');
-          break;
-
-        case 'finished':
-          fireToast(`Duel with ${opponentName} has finished.`);
-          break;
-
-        case 'surrendered':
-          fireToast(`${opponentName} surrendered the duel.`);
-          break;
-      }
-    }
-  });
-
-  // snapshot for next diff
-  prevDuelsListRef.current = duels;
-}, [duels]);
 
 
+    // Handle fullscreen when duel modal opens/closes
 useEffect(() => {
   if (showDuelModal) {
     enterFullscreen();
@@ -382,9 +296,6 @@ useEffect(() => {
         }
     }, [showDuelModal, activeDuel, duelEnded, startTime]);
 
-useEffect(() => {
-  localStorage.setItem('waiting_duels', JSON.stringify(waitingDuels));
-}, [waitingDuels]);
 
     // Auto-refresh active duels with conflict resolution
     useEffect(() => {
@@ -540,7 +451,7 @@ useEffect(() => {
         return { winner_id: null, loser_id: null, reason: 'insufficient_data' };
       }
 
-      // Use the latest submission per player (or earliestâ€”choose latest here)
+      // Use the latest submission per player (or earliest—choose latest here)
       const byUser: Record<number, DuelSubmission[]> = {};
       for (const s of duel.submissions) {
         if (!byUser[s.user_id]) byUser[s.user_id] = [];
@@ -589,7 +500,7 @@ useEffect(() => {
 // util you can keep locally if you want to keep the html string approach:
 const putCodeIntoSwal = (preId: string, code: string) => {
   const el = Swal.getHtmlContainer()?.querySelector<HTMLElement>(`#${preId}`);
-  if (el) el.textContent = code; // â† TEXT, not HTML
+  if (el) el.textContent = code; // ← TEXT, not HTML
 };
 
   // At component level
@@ -617,8 +528,8 @@ const buildComparisonForModal = (duel: Duel) => {
   return {
     challenger: {
       name: duel.challenger.name,
-      isCorrect: !!ch.is_correct,          // âœ… normalized
-      time: Number(ch.time_spent_sec ?? 0) // âœ… normalized
+      isCorrect: !!ch.is_correct,          // ✅ normalized
+      time: Number(ch.time_spent_sec ?? 0) // ✅ normalized
     },
     opponent: {
       name: duel.opponent.name,
@@ -639,7 +550,7 @@ const buildComparisonForModal = (duel: Duel) => {
         return;
       }
 
-      // We have a winner â€” try to persist to backend
+      // We have a winner — try to persist to backend
       try {
         setFinalizing(true);
         const payload = {
@@ -725,7 +636,7 @@ const matchesSearch = (c: Challenge1v1, q: string) => {
 const displayedChallenges = challenges.filter(c =>
   (languageFilter === 'all' || c.language === languageFilter) &&
   (difficultyFilter === 'all' || c.difficulty === difficultyFilter) &&
-  matchesSearch(c, debouncedSearch) // ðŸ‘ˆ client-side guard
+  matchesSearch(c, debouncedSearch) // 👈 client-side guard
 );
 
     const fetchMyDuels = async (silent: boolean = false) => {
@@ -753,8 +664,8 @@ const displayedChallenges = challenges.filter(c =>
                 // >>> UPDATED: hydrate winner for each duel
                 const hydrated = sortedDuels.map(hydrateWinner);
                 setDuels(hydrated);
-        
-                console.log('ðŸ“Š Duels loaded:', sortedDuels.length);
+                // <<<
+                console.log('📊 Duels loaded:', sortedDuels.length);
             } else {
                 throw new Error(response.message || 'Failed to fetch duels');
             }
@@ -933,14 +844,14 @@ const cmpHtml = cmp ? `
         <tr>
           <td class="py-2 pr-2">${cmp.challenger.name}</td>
           <td class="py-2 pr-2 ${cmp.challenger.isCorrect ? 'text-green-400' : 'text-red-400'}">
-            ${cmp.challenger.isCorrect ? '✅' : '❌'}
+            ${cmp.challenger.isCorrect ? '✔' : '✘'}
           </td>
           <td class="py-2">${Math.floor(cmp.challenger.time/60)}m ${cmp.challenger.time%60}s</td>
         </tr>
         <tr>
           <td class="py-2 pr-2">${cmp.opponent.name}</td>
           <td class="py-2 pr-2 ${cmp.opponent.isCorrect ? 'text-green-400' : 'text-red-400'}">
-            ${cmp.opponent.isCorrect ? '✅' : '❌'}
+            ${cmp.opponent.isCorrect ? '✔' : '✘'}
           </td>
           <td class="py-2">${Math.floor(cmp.opponent.time/60)}m ${cmp.opponent.time%60}s</td>
         </tr>
@@ -1063,7 +974,6 @@ const cmpHtml = cmp ? `
             
             if (response.success) {
                 audio.play('success');
-                fireToast(`You declined the duel.`);
                 await Swal.fire({
                     icon: 'info',
                     title: 'Duel Declined',
@@ -1125,9 +1035,8 @@ const cmpHtml = cmp ? `
             const response = await apiClient.post('/api/duels', duelData);
             if (!response.success) throw new Error(response.message || 'Failed');
 
-            // âœ… success path
+            // ✅ success path
             audio.play('success');
-            fireToast(`Duel invite sent to ${selectedOpponent.name}!`);
             setShowCreateModal(false);
             setSelectedChallenge(null);
             setSelectedOpponent(null);
@@ -1146,7 +1055,7 @@ const cmpHtml = cmp ? `
             fetchMyDuels();
 
             } catch (err: any) {
-            // ðŸ”’ server-side rule: either player already took the challenge
+            // 🔒 server-side rule: either player already took the challenge
             if (String(err?.response?.status) === '422') {
                 await Swal.fire({
                 icon: 'warning',
@@ -1188,62 +1097,67 @@ const cmpHtml = cmp ? `
             return;
         }
         
-       if (duel.status === 'active') {
-            let current: Duel = duel;
-
+        // If duel is active, start the user's individual timer
+        if (duel.status === 'active') {
             try {
+                // Call the start API to begin the user's individual session
                 const response = await apiClient.post(`/api/duels/${duel.id}/start-user-session`);
                 if (response.success) {
-                current = response.data as Duel; // ← use a local variable, not the param
+                    // Update duel with individual start time
+                    duel = response.data;
                 }
             } catch (error) {
                 console.warn('Could not start user session on backend, continuing locally:', error);
             }
-
+            
             audio.play('start');
-            setActiveDuel(current);
-
-            if (current.submissions?.some((s: DuelSubmission) => s.user_id !== user.id)) {
-                setWaitingForOpponent(false);
+            setActiveDuel(duel);
+            if (duel.submissions?.some((s: DuelSubmission) => s.user_id !== user.id)) {
+              setWaitingForOpponent(false);
             } else {
-                setWaitingForOpponent(false);
+              // you haven't submitted yet, so no waiting banner yet
+              setWaitingForOpponent(false);
             }
 
-            setUserCode(current.challenge!.buggy_code || '');
-
-            if (waitingDuels.includes(current.id)) {
+            setUserCode(duel.challenge.buggy_code || '');
+            if (waitingDuels.includes(duel.id)) {
                 Swal.fire({
-                icon: 'info',
-                title: 'Waiting for Opponent',
-                text: 'You’ve already submitted your correct solution. Please wait for your opponent to finish.',
-                timer: 3000,
-                background: '#1f2937',
-                color: '#fff',
+                    icon: 'info',
+                    title: 'Waiting for Opponent',
+                    text: 'You’ve already submitted your correct solution. Please wait for your opponent to finish.',
+                    timer: 3000,
+                    background: '#1f2937',
+                    color: '#fff',
                 });
                 return;
-            }
+                }
 
             setShowDuelModal(true);
-            resultShownRef.current = false;
+            resultShownRef.current = false; 
             setTimeSpent(0);
-
-            const userStartTime =
-                user?.id === current.challenger.id
-                ? current.challenger_started_at
-                : current.opponent_started_at;
-
-            const sessionDuration = (current.session_duration_minutes || 15) * 60;
+            
+            // >>> UPDATED: fix challenger check (no challenger_id in type)
+            const userStartTime = user?.id === duel.challenger.id 
+                ? duel.challenger_started_at 
+                : duel.opponent_started_at;
+            // <<<
+                
+            const sessionDuration = (duel.session_duration_minutes || 15) * 60;
             setSessionTimeLeft(sessionDuration);
             setDuelEnded(false);
             setOpponentSubmission(null);
             setHasSubmitted(false);
             setLastSubmissionResult(null);
             setShowCorrectAnswer(false);
-
-            if (userStartTime) setStartTime(new Date(userStartTime));
-            else setStartTime(new Date());
+            
+            // Use individual start time if available, otherwise current time
+            if (userStartTime) {
+                setStartTime(new Date(userStartTime));
+            } else {
+                setStartTime(new Date());
             }
-
+        }
+        
         // If duel is finished, just show review
        // If duel is finished, just show review
 if (duel.status === 'finished') {
@@ -1272,7 +1186,7 @@ if (duel.status === 'finished') {
       setOpponentSubmission(opponentSub);
     }
 
-    // ⏳ NEW: Build a comparison object
+    // 🔹 NEW: Build a comparison object
     const challengerSub = duel.submissions.find(
       (s: DuelSubmission) => s.user_id === duel.challenger.id
     );
@@ -1380,7 +1294,7 @@ if (duel.status === 'finished') {
                                                                 title: 'Almost There!',
                                                                 html: `
                                                                     <div class="text-center">
-                                                                    <div class="text-5xl mb-4">âš ï¸</div>
+                                                                    <div class="text-5xl mb-4">⚠️</div>
                                                                     <p class="mb-3 text-lg font-semibold text-red-200">
                                                                         Your solution must exactly match the database answer.
                                                                     </p>
@@ -1391,12 +1305,12 @@ if (duel.status === 'finished') {
                                                                     </div>
                                         
                                                                     <div class="bg-gray-900/40 rounded-lg p-3 text-left text-sm text-gray-200">
-                                                                        <div class="font-medium text-yellow-400 mb-1">ðŸ’¡ Tips:</div>
+                                                                        <div class="font-medium text-yellow-400 mb-1">💡 Tips:</div>
                                                                         <ul class="list-disc list-inside space-y-1">
                                                                         <li>Ensure your code is at least 20 characters long</li>
-                                                                        <li>Donâ€™t just copy the buggy version</li>
+                                                                        <li>Don’t just copy the buggy version</li>
                                                                         <li>Whitespace, symbols & punctuation matter</li>
-                                                                        <li>âš ï¸ Donâ€™t remove or add unnecessary comments â€” they are also compared in the database</li>
+                                                                        <li>⚠️ Don’t remove or add unnecessary comments — they are also compared in the database</li>
                                                                         </ul>
                                                                     </div>
                                                                     </div>
@@ -1535,7 +1449,6 @@ const showCodeModal = (title: string, code: string) => {
             
             if (response.success) {
                 audio.play('success');
-                fireToast(`You accepted the duel!`);
                 await Swal.fire({
                     icon: 'success',
                     title: 'Duel Accepted!',
@@ -1738,7 +1651,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                             
                             <StatCard title="Victories" value={duelStats.duels_won} icon={Crown} color="bg-yellow-500" />
                             <StatCard title="As Challenger" value={duelStats.duels_as_challenger} icon={Target} color="bg-red-500" />
-                            <StatCard title="As Opponent" value={duelStats.duels_as_opponent} icon={UserIcon} color="bg-green-500" />
+                            <StatCard title="As Opponent" value={duelStats.duels_as_opponent} icon={User} color="bg-green-500" />
                             <StatCard title="Today" value={duelStats.duels_today} icon={Clock} color="bg-purple-500" />
                             <StatCard title="Duels Played" value={duelStats.duels_played} icon={Swords} color="bg-blue-500" />
                         </div>
@@ -1833,8 +1746,8 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                 <div className="flex items-start justify-between mb-4">
                                                     <div>
                                                         <h3 className="text-lg font-bold text-white mb-1">{duel.challenge.title}</h3>
-                                                        <p className="text-sm text-gray-400">{duel.challenge.language} â€¢ {duel.challenge.difficulty}</p>
-                                                        <p className="text-xs text-cyan-400 mt-1">â±ï¸ {sessionMinutes} min session</p>
+                                                        <p className="text-sm text-gray-400">{duel.challenge.language} • {duel.challenge.difficulty}</p>
+                                                        <p className="text-xs text-cyan-400 mt-1">⏱️ {sessionMinutes} min session</p>
                                                     </div>
                                                     <span className={`px-3 py-1 text-xs font-bold rounded-full ${getStatusColor(duel.status)}`}>
                                                         {duel.status.toUpperCase()}
@@ -1850,7 +1763,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                         (s) => s.user_id !== user.id && s.is_correct
                                                     );
 
-                                                    // âœ… also use local waitingDuels array (duel you just submitted)
+                                                    // ✅ also use local waitingDuels array (duel you just submitted)
                                                     const locallyWaiting = waitingDuels.includes(duel.id);
 
                                                     if ((myCorrect || locallyWaiting) && !opponentHasSubmitted) {
@@ -1979,10 +1892,10 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                          onClick={async () => {
                                                         try {
                                                           const res = await apiClient.get(`/api/duels/${duel.id}`);
-                                                          if (res.success) {                      // âœ… use res.success (not res.data.success)
+                                                          if (res.success) {                      // ✅ use res.success (not res.data.success)
                                                             const fresh: Duel = res.data;
                                                             setReviewDuel(fresh);
-                                                            setComparison(buildComparisonForModal(fresh)); // âœ… normalized shape
+                                                            setComparison(buildComparisonForModal(fresh)); // ✅ normalized shape
                                                             setShowReviewModal(true);
                                                           }
                                                         } catch (err) {
@@ -2023,7 +1936,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
     <div className="relative z-[101] w-full max-w-3xl rounded-2xl bg-gray-900 text-white shadow-xl border border-white/10">
       <div className="flex items-center justify-between p-4 rounded-t-2xl bg-blue-800 text-white">
         <div className="font-semibold">
-          Duel Review â€” {reviewDuel.challenge?.title ?? `#${reviewDuel.id}`} â€¢ {displayLanguage(reviewDuel.language as string) ?? ''}
+          Duel Review — {reviewDuel.challenge?.title ?? `#${reviewDuel.id}`} • {displayLanguage(reviewDuel.language as string) ?? ''}
 
         </div>
         <button
@@ -2050,7 +1963,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
         <div className="text-lg">
           {surrendered ? (
             reviewDuel.winner?.id === user.id
-              ? 'Opponent surrendered â€” you win!'
+              ? 'Opponent surrendered — you win!'
               : 'You surrendered this duel.'
           ) : reviewDuel.winner ? (
             <>Winner: <span className="font-semibold">{reviewDuel.winner.name}</span></>
@@ -2079,7 +1992,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
         <tr>
           <td className="py-2 pr-2">{comparison.challenger.name}</td>
           <td className={`text-center ${comparison.challenger.isCorrect ? 'text-green-400' : 'text-red-400'}`}>
-            {comparison.challenger.isCorrect ? '✅' : '❌'}
+            {comparison.challenger.isCorrect ? '✔' : '✘'}
           </td>
           <td className="text-center">
             {Math.floor(comparison.challenger.time / 60)}m {comparison.challenger.time % 60}s
@@ -2088,7 +2001,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
         <tr>
           <td className="py-2 pr-2">{comparison.opponent.name}</td>
           <td className={`text-center ${comparison.opponent.isCorrect ? 'text-green-400' : 'text-red-400'}`}>
-            {comparison.opponent.isCorrect ? '✅' : '❌'}
+            {comparison.opponent.isCorrect ? '✔' : '✘'}
           </td>
           <td className="text-center">
             {Math.floor(comparison.opponent.time / 60)}m {comparison.opponent.time % 60}s
@@ -2300,7 +2213,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                     >
                                                         <div>
                                                             <p className="text-white font-medium">{challenge.title}</p>
-                                                            <p className="text-sm text-gray-400">{displayLanguage(challenge.language)}â€¢ {challenge.difficulty}</p>
+                                                            <p className="text-sm text-gray-400">{displayLanguage(challenge.language)}• {challenge.difficulty}</p>
                                                         </div>
                                                         <ArrowRight className="h-4 w-4 text-gray-400" />
                                                     </div>
@@ -2326,7 +2239,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                             </div>
                                             <div>
                                                 <p className="text-white font-medium">{selectedChallenge.title}</p>
-                                                <p className="text-sm text-gray-400">{selectedChallenge.language} â€¢ {selectedChallenge.difficulty}</p>
+                                                <p className="text-sm text-gray-400">{selectedChallenge.language} • {selectedChallenge.difficulty}</p>
                                                 {selectedChallenge.description && (
                                                     <p className="text-sm text-gray-400 mt-2">{selectedChallenge.description}</p>
                                                 )}
@@ -2371,7 +2284,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
   <div className="text-sm">
   <div className="text-white font-medium">{selectedOpponent.name}</div>
   <div className="text-gray-400 flex items-center gap-2">
-    <span>Lv { (selectedOpponent?.level ?? xpToLevel(selectedOpponent?.total_xp)) ?? 'â€”' }</span>
+    <span>Lv { (selectedOpponent?.level ?? xpToLevel(selectedOpponent?.total_xp)) ?? '—' }</span>
     <span className="inline-flex items-center gap-1">
       <Star className="h-3 w-3 text-yellow-400" />
       {selectedOpponent.stars ?? selectedOpponent.profile?.stars ?? 0}
@@ -2390,7 +2303,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
   </div>
 )}
 
-{/* Opponent results â€” only when searching */}
+{/* Opponent results — only when searching */}
 {showOpponentList && (
   <div className="mt-3 grid grid-cols-1 gap-3 max-h-64 overflow-y-auto">
     {sortedParticipants.length === 0 ? (
@@ -2424,7 +2337,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
             <div>
                 <div className="font-medium">{p.name}</div>
                 <div className="text-xs text-gray-400 flex items-center gap-2">
-                    <span>Lv { (p.level ?? xpToLevel(p.total_xp)) ?? 'â€”' }</span>
+                    <span>Lv { (p.level ?? xpToLevel(p.total_xp)) ?? '—' }</span>
                     <span className="inline-flex items-center gap-1">
                     <Star className="h-3 w-3 text-yellow-400" />
                     {p.stars ?? p.profile?.stars ?? 0}
@@ -2587,7 +2500,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
     <div className="flex items-center space-x-2">
       <RefreshCw className="h-4 w-4 text-purple-400 animate-spin" />
       <span className="text-purple-300 font-medium">
-        Finalizing results and rewardsâ€¦
+        Finalizing results and rewards…
       </span>
     </div>
   </div>
@@ -2646,11 +2559,11 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                 <div className="text-sm text-gray-400">
                                                     {lastSubmissionResult.isCorrect ? (
                                                         <span className="text-green-400 font-medium">
-                                                            âœ… Perfect 100% match!
+                                                            ✅ Perfect 100% match!
                                                         </span>
                                                     ) : (
                                                         <span className="text-yellow-400 font-medium">
-                                                            ðŸ“Š {Math.round(lastSubmissionResult.similarity! * 100)}% similarity (need 100%)
+                                                            📊 {Math.round(lastSubmissionResult.similarity! * 100)}% similarity (need 100%)
                                                         </span>
                                                     )}
                                                 </div>
