@@ -330,8 +330,8 @@ useEffect(() => {
   // snapshot for next diff
   prevDuelsListRef.current = duels;
 }, [duels]);
-..
-    // Handle fullscreen when duel modal opens/closes
+
+
 useEffect(() => {
   if (showDuelModal) {
     enterFullscreen();
