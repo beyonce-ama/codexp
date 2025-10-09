@@ -4,12 +4,13 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, usePage } from '@inertiajs/react';
 import { useState, useEffect, useRef } from 'react';
 import {
-    Swords, Users, Play, Clock, Trophy, Star,
-    RefreshCw, Plus, Search, Send, X, Flag,
-    CheckCircle, XCircle, Timer, Award,
-    User, Crown, Target, Code, AlertTriangle, ArrowRight,
-    Lightbulb, Eye, Zap, Volume2, VolumeX, UserCheck, BookOpen
+  Swords, Users, Play, Clock, Trophy, Star,
+  RefreshCw, Plus, Search, Send, X, Flag,
+  CheckCircle, XCircle, Timer, Award,
+  User as UserIcon, Crown, Target, Code, AlertTriangle, ArrowRight,
+  Lightbulb, Eye, Zap, Volume2, VolumeX, UserCheck, BookOpen
 } from 'lucide-react';
+
 import { apiClient } from '@/utils/api';
 import Swal from 'sweetalert2';
 import AnimatedBackground from '@/components/AnimatedBackground';
@@ -185,7 +186,7 @@ const sessionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 const displayLanguage = (s: string) => (s === 'cpp' ? 'C++' : (s ?? '').toUpperCase());
 
-// New, independent review modal state
+const prevDuelsRef = useRef<Record<number, string>>({});
 
 const stopAllTimers = () => {
   if (sessionTimerRef.current) clearInterval(sessionTimerRef.current);
@@ -1166,67 +1167,62 @@ const cmpHtml = cmp ? `
             return;
         }
         
-        // If duel is active, start the user's individual timer
-        if (duel.status === 'active') {
+       if (duel.status === 'active') {
+            let current: Duel = duel;
+
             try {
-                // Call the start API to begin the user's individual session
                 const response = await apiClient.post(`/api/duels/${duel.id}/start-user-session`);
                 if (response.success) {
-                    // Update duel with individual start time
-                    duel = response.data;
+                current = response.data as Duel; // ← use a local variable, not the param
                 }
             } catch (error) {
                 console.warn('Could not start user session on backend, continuing locally:', error);
             }
-            
+
             audio.play('start');
-            setActiveDuel(duel);
-            if (duel.submissions?.some((s: DuelSubmission) => s.user_id !== user.id)) {
-              setWaitingForOpponent(false);
+            setActiveDuel(current);
+
+            if (current.submissions?.some((s: DuelSubmission) => s.user_id !== user.id)) {
+                setWaitingForOpponent(false);
             } else {
-              // you haven't submitted yet, so no waiting banner yet
-              setWaitingForOpponent(false);
+                setWaitingForOpponent(false);
             }
 
-            setUserCode(duel.challenge.buggy_code || '');
-            if (waitingDuels.includes(duel.id)) {
+            setUserCode(current.challenge!.buggy_code || '');
+
+            if (waitingDuels.includes(current.id)) {
                 Swal.fire({
-                    icon: 'info',
-                    title: 'Waiting for Opponent',
-                    text: 'Youâ€™ve already submitted your correct solution. Please wait for your opponent to finish.',
-                    timer: 3000,
-                    background: '#1f2937',
-                    color: '#fff',
+                icon: 'info',
+                title: 'Waiting for Opponent',
+                text: 'You’ve already submitted your correct solution. Please wait for your opponent to finish.',
+                timer: 3000,
+                background: '#1f2937',
+                color: '#fff',
                 });
                 return;
-                }
+            }
 
             setShowDuelModal(true);
-            resultShownRef.current = false; 
+            resultShownRef.current = false;
             setTimeSpent(0);
-            
-            // >>> UPDATED: fix challenger check (no challenger_id in type)
-            const userStartTime = user?.id === duel.challenger.id 
-                ? duel.challenger_started_at 
-                : duel.opponent_started_at;
-            // <<<
-                
-            const sessionDuration = (duel.session_duration_minutes || 15) * 60;
+
+            const userStartTime =
+                user?.id === current.challenger.id
+                ? current.challenger_started_at
+                : current.opponent_started_at;
+
+            const sessionDuration = (current.session_duration_minutes || 15) * 60;
             setSessionTimeLeft(sessionDuration);
             setDuelEnded(false);
             setOpponentSubmission(null);
             setHasSubmitted(false);
             setLastSubmissionResult(null);
             setShowCorrectAnswer(false);
-            
-            // Use individual start time if available, otherwise current time
-            if (userStartTime) {
-                setStartTime(new Date(userStartTime));
-            } else {
-                setStartTime(new Date());
+
+            if (userStartTime) setStartTime(new Date(userStartTime));
+            else setStartTime(new Date());
             }
-        }
-        
+
         // If duel is finished, just show review
        // If duel is finished, just show review
 if (duel.status === 'finished') {
@@ -1721,7 +1717,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                             
                             <StatCard title="Victories" value={duelStats.duels_won} icon={Crown} color="bg-yellow-500" />
                             <StatCard title="As Challenger" value={duelStats.duels_as_challenger} icon={Target} color="bg-red-500" />
-                            <StatCard title="As Opponent" value={duelStats.duels_as_opponent} icon={User} color="bg-green-500" />
+                            <StatCard title="As Opponent" value={duelStats.duels_as_opponent} icon={UserIcon} color="bg-green-500" />
                             <StatCard title="Today" value={duelStats.duels_today} icon={Clock} color="bg-purple-500" />
                             <StatCard title="Duels Played" value={duelStats.duels_played} icon={Swords} color="bg-blue-500" />
                         </div>
