@@ -110,7 +110,7 @@ export default function Login({ status, canResetPassword = false }: { status?: s
                   value={data.email}
                   onChange={(e) => setData('email', e.target.value)}
                   required
-                  placeholder="admin@example.com"
+                  placeholder="you@example.com"
                   className="peer w-full rounded-xl px-4 py-3 bg-slate-50 text-slate-900 border-2 border-transparent focus:border-cyan-500/70 outline-none transition"
                 />
                 <Star className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 peer-focus:text-cyan-500 transition" />

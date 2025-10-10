@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\SoloAttempt;
+use App\Models\SoloTaken;
 use App\Models\UserLanguageStat;
 use App\Models\Duel; // <-- make sure this model exists / adjust namespace
 use Illuminate\Http\Request;
@@ -17,56 +17,84 @@ class StatsController extends Controller
         // If other parts of the app just updated totals/stars on this request, refresh:
         $user->refresh();
 
+         // -------------------------
+        // SOLO TAKEN (from solo_taken table)
         // -------------------------
-        // SOLO AGGREGATES (counts only; NOT used for totals.xp/stars)
-        // -------------------------
-        $soloAttemptsQ = SoloAttempt::where('user_id', $user->id);
+        $soloTakenQ   = SoloTaken::where('user_id', $user->id);
 
-        $soloAttemptsAll = $soloAttemptsQ->clone()->get();
+        // Per-status counts (viewed, started, abandoned, submitted, completed, …)
+        $statusCounts = $soloTakenQ->clone()
+            ->select('status', DB::raw('COUNT(*) as cnt'))
+            ->groupBy('status')
+            ->pluck('cnt', 'status'); // ['completed' => n, 'abandoned' => n, 'viewed' => n, …]
 
-        $completedChallengeIds = $soloAttemptsAll
-            ->where('is_correct', true)
+        // Overall & today
+        $totalSolo    = (int) $soloTakenQ->clone()->count();
+        $todayCount   = (int) $soloTakenQ->clone()
+                            ->where('created_at', '>=', now()->startOfDay())
+                            ->count();
+
+        // “Successful” := completed
+        $completedCount = (int) ($statusCounts['completed'] ?? 0);
+
+        // Completed challenge IDs (distinct)
+        $completedChallengeIds = $soloTakenQ->clone()
+            ->where('status', 'completed')
             ->pluck('challenge_id')
             ->unique()
             ->values()
             ->toArray();
 
         $soloStats = [
-            'total_attempts'          => $soloAttemptsAll->count(),
-            'successful_attempts'     => $soloAttemptsAll->where('is_correct', true)->count(),
-            'attempts_today'          => $soloAttemptsAll->where('created_at', '>=', now()->startOfDay())->count(),
+            'total_attempts'          => $totalSolo,
+            'attempts_today'          => $todayCount,
+            'status_breakdown'        => [
+                'viewed'    => (int) ($statusCounts['viewed'] ?? 0),
+                'started'   => (int) ($statusCounts['started'] ?? 0),
+                'abandoned' => (int) ($statusCounts['abandoned'] ?? 0),
+                'submitted' => (int) ($statusCounts['submitted'] ?? 0),
+                'completed' => (int) ($statusCounts['completed'] ?? 0),
+            ],
+            'successful_attempts'     => $completedCount, // kept for backward compatibility
             'completed_challenge_ids' => $completedChallengeIds,
         ];
 
-        // AI stats (as stored on users table)
-        $aiAttempts            = (int) ($user->ai_attempts ?? 0);
-        $aiSuccessfulAttempts  = (int) ($user->ai_successful_attempts ?? 0);
+
+        // AI stats derived from solo_taken (mode='aigenerated')
+        $aiQ = $soloTakenQ->clone()->where('mode', 'aigenerated');
+        $aiAttempts           = (int) $aiQ->clone()->count();
+        $aiSuccessfulAttempts = (int) $aiQ->clone()->where('status', 'completed')->count();
+
 
         // -------------------------
         // RECENT SOLO ATTEMPTS (for dashboard cards)
         // -------------------------
-        $recentSoloAttempts = SoloAttempt::with(['challenge:id,title,mode,difficulty'])
-            ->where('user_id', $user->id)
-            ->latest('created_at')
-            ->limit(10)
-            ->get()
-            ->map(function ($a) {
-                return [
-                    'id'             => (int) $a->id,
-                    'is_correct'     => (bool) $a->is_correct,
-                    'time_spent_sec' => (int) ($a->time_spent_sec ?? 0),
-                    'xp_earned'      => (int) ($a->xp_earned ?? 0),
-                    'stars_earned'   => (int) ($a->stars_earned ?? 0),
-                    'created_at'     => (string) $a->created_at,
-                    'challenge'      => [
-                        'title'      => (string) optional($a->challenge)->title ?? 'Untitled',
-                        'mode'       => (string) optional($a->challenge)->mode ?? 'solo',
-                        'difficulty' => (string) optional($a->challenge)->difficulty ?? 'unknown',
-                    ],
-                ];
-            })
-            ->values()
-            ->toArray();
+        $recentSoloAttempts = SoloTaken::with(['challenge:id,title,mode,difficulty'])
+        ->where('user_id', $user->id)
+        ->latest('created_at')
+        ->limit(10)
+        ->get()
+        ->map(function ($a) {
+            return [
+                'id'             => (int) $a->id,
+                'status'         => (string) ($a->status ?? 'viewed'),
+                'language'       => (string) ($a->language ?? 'unknown'),
+                'mode'           => (string) ($a->mode ?? 'random'),
+                'difficulty'     => (string) ($a->difficulty ?? 'easy'),
+                'time_spent_sec' => (int) ($a->time_spent_sec ?? 0),
+                'earned_xp'      => (int) ($a->earned_xp ?? 0),
+                'submit_count'   => (int) ($a->submit_count ?? 0),
+                'created_at'     => (string) $a->created_at,
+                'challenge'      => [
+                    'title'      => (string) (optional($a->challenge)->title ?? 'Untitled'),
+                    'mode'       => (string) (optional($a->challenge)->mode ?? ($a->mode ?? 'solo')),
+                    'difficulty' => (string) (optional($a->challenge)->difficulty ?? ($a->difficulty ?? 'unknown')),
+                ],
+            ];
+        })
+        ->values()
+        ->toArray();
+
 
         // -------------------------
         // CLASSIC DUEL AGGREGATES (counts only; NOT used for totals.xp/stars)
@@ -219,11 +247,12 @@ class StatsController extends Controller
             ->keyBy(function($r){ return $r->language ?? 'unknown'; });
 
         // Derive solo completed per language
-        $soloLangAgg = SoloAttempt::select('language', DB::raw('SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as solo_completed'))
-            ->where('user_id', $user->id)
-            ->groupBy('language')
-            ->get()
-            ->keyBy(function($r){ return $r->language ?? 'unknown'; });
+       $soloLangAgg = SoloTaken::select('language', DB::raw('SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END) as solo_completed'))
+        ->where('user_id', $user->id)
+        ->groupBy('language')
+        ->get()
+        ->keyBy(function($r){ return $r->language ?? 'unknown'; });
+
 
         // OPTIONALLY blend live matches into language wins/losses
         $matchFinishedStatuses = ['finished','completed','resolved','won','lost','timeout'];
