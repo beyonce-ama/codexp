@@ -1276,57 +1276,59 @@ const openCreateModal = (type: 'solo' | '1v1') => {
           </Section>
 
           {/* Import Modal */}
-          {showImportModal && (
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-              <div className="bg-gray-800/90 border border-gray-700/50 rounded-xl w-full max-w-2xl">
-                <div className="bg-gradient-to-r from-cyan-600 to-blue-600 px-6 py-4 flex justify-between items-center">
-                  <h3 className="text-lg font-bold text-white flex items-center">
-                    <Upload className="h-5 w-5 mr-2" />
-                    Import {activeTab === 'solo' ? 'Solo' : '1v1'} Challenges
-                  </h3>
-                  <button onClick={() => { setShowImportModal(false); setImportItems([]); }} className="text-white hover:text-gray-200">
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-                <form onSubmit={handleImportSubmit} className="p-6 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {activeTab === 'solo' && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">Mode</label>
-                        <select
-                          value={importMode}
-                          onChange={(e) => setImportMode(e.target.value as any)}
-                          className="w-full px-3 py-2 bg-gray-900 border border-gray-600 text-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500"
-                        >
-                          <option value="fixbugs">Fix Bugs</option>
-                        </select>
-                      </div>
-                    )}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Language</label>
-                      <select
-                        value={importLanguage}
-                        onChange={(e) => setImportLanguage(e.target.value as any)}
-                        className="w-full px-3 py-2 bg-gray-900 border border-gray-600 text-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500"
-                      >
-                        <option value="python">Python</option>
-                        <option value="java">Java</option>
-                        <option value="cpp">C++</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Difficulty</label>
-                      <select
-                        value={importDifficulty}
-                        onChange={(e) => setImportDifficulty(e.target.value as any)}
-                        className="w-full px-3 py-2 bg-gray-900 border border-gray-600 text-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500"
-                      >
-                        <option value="easy">Easy</option>
-                        <option value="medium">Medium</option>
-                        <option value="hard">Hard</option>
-                      </select>
-                    </div>
-                  </div>
+{/* Import Modal (visible for both Solo and 1v1) */}
+{showImportModal && (
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div className="bg-gray-800/90 border border-gray-700/50 rounded-xl w-full max-w-2xl">
+      <div className="bg-gradient-to-r from-cyan-600 to-blue-600 px-6 py-4 flex justify-between items-center">
+        <h3 className="text-lg font-bold text-white flex items-center">
+          <Upload className="h-5 w-5 mr-2" />
+          Import {activeTab === 'solo' ? 'Solo' : '1v1'} Challenges
+        </h3>
+        <button onClick={() => { setShowImportModal(false); setImportItems([]); }} className="text-white hover:text-gray-200">
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      <form onSubmit={handleImportSubmit} className="p-6 space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {activeTab === 'solo' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Mode</label>
+              <select
+                value={importMode}
+                onChange={(e) => setImportMode(e.target.value as any)}
+                className="w-full px-3 py-2 bg-gray-900 border border-gray-600 text-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500"
+              >
+                <option value="fixbugs">Fix Bugs</option>
+              </select>
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Language</label>
+            <select
+              value={importLanguage}
+              onChange={(e) => setImportLanguage(e.target.value as any)}
+              className="w-full px-3 py-2 bg-gray-900 border border-gray-600 text-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500"
+            >
+              <option value="python">Python</option>
+              <option value="java">Java</option>
+              <option value="cpp">C++</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Difficulty</label>
+            <select
+              value={importDifficulty}
+              onChange={(e) => setImportDifficulty(e.target.value as any)}
+              className="w-full px-3 py-2 bg-gray-900 border border-gray-600 text-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500"
+            >
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </div>
+        </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">Upload JSON File</label>
@@ -1339,16 +1341,19 @@ const openCreateModal = (type: 'solo' | '1v1') => {
                     <p className="text-xs text-gray-400 mt-1">Upload a JSON file containing an array of challenge objects</p>
                   </div>
 
-                 {/* JSON format guide (replaces paste area) */}
+{/* JSON format guide (dynamic for Solo vs 1v1) */}
 <div className="rounded-lg border border-gray-700 bg-gray-900/60 p-4">
   <h4 className="text-sm font-semibold text-cyan-400 mb-2 flex items-center gap-2">
     <Code className="h-4 w-4" /> Expected JSON Format
   </h4>
+
   <p className="text-xs text-gray-300 mb-3">
     Each JSON file should contain an <strong>array of challenge objects</strong>.
     Every object must include the following fields:
   </p>
-  <pre className="text-xs bg-black/40 border border-gray-700 rounded-lg p-3 text-gray-200 font-mono overflow-x-auto">
+
+  {activeTab === 'solo' ? (
+    <pre className="text-xs bg-black/40 border border-gray-700 rounded-lg p-3 text-gray-200 font-mono overflow-x-auto">
 {`[
   {
     "difficulty": "easy",
@@ -1360,7 +1365,21 @@ const openCreateModal = (type: 'solo' | '1v1') => {
     "hint": "Check the missing parenthesis in print statement"
   }
 ]`}
-  </pre>
+    </pre>
+  ) : (
+    <pre className="text-xs bg-black/40 border border-gray-700 rounded-lg p-3 text-gray-200 font-mono overflow-x-auto">
+{`[
+  {
+    "title": "Find Max of Two Numbers",
+    "description": "Compare two numbers and print the larger one.",
+    "language": "java",
+    "buggy_code": "if(a > b)\\n  System.out.println(a);\\nelse\\n  System.out.println(b)",
+    "fixed_code": "if(a > b) {\\n  System.out.println(a);\\n} else {\\n  System.out.println(b);\\n}"
+  }
+]`}
+    </pre>
+  )}
+
   <p className="text-xs text-gray-400 mt-2">
     You can export an existing challenge to see the full structure.
   </p>
@@ -1373,6 +1392,7 @@ const openCreateModal = (type: 'solo' | '1v1') => {
     </div>
   )}
 </div>
+
 
                   <div className="flex justify-end gap-3">
                     <button
