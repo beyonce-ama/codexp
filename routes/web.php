@@ -331,7 +331,6 @@ Route::get('/dashboard/stats', function () {
             Route::post('/generate', [AIChallengeController::class, 'generate']);
             Route::post('/generate-multiple', [AIChallengeController::class, 'generateMultiple']);
             Route::post('/api/ai-challenges/submit-attempt', [AIChallengeController::class, 'submitAttempt']);
-            Route::post('/api/ai-challenges/surrender',       [AIChallengeController::class, 'surrenderAttempt']);
             Route::get('/topics', [AIChallengeController::class, 'getTopics']);
         });
     });
@@ -360,6 +359,7 @@ Route::get('/api/test-challenges', [\App\Http\Controllers\Challenge1v1Controller
     ->name('me.preferences.update');
 
     Route::post('/api/ai-challenges/submit-attempt', [AIChallengeController::class, 'submitAttempt']);
+    Route::post('/api/ai-challenges/surrender',       [AIChallengeController::class, 'surrenderAttempt']);
     // Get participants for duels (accessible to all authenticated users)
    Route::get('/api/users/participants', function () {
     try {
