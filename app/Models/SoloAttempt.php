@@ -6,8 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class SoloAttempt extends Model
 {
-        protected $table = 'solo_taken';
-
+    
     protected $fillable = [
         'user_id','challenge_id','language','mode','time_spent_sec','is_correct',
         'code_submitted','judge_feedback','xp_earned','stars_earned'

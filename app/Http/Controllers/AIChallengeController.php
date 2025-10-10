@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\SoloAttempt;
 use Illuminate\Support\Arr;
-
+use App\Models\SoloTaken;
 class AIChallengeController extends Controller
 {
     private $openAIService;
@@ -91,7 +91,7 @@ class AIChallengeController extends Controller
         $user->refresh();
 
         // --- Persist the AI attempt to solo_taken ---
-            SoloAttempt::create([
+            SoloTaken::create([
                 'user_id'        => $user->id,
                 'challenge_id'   => null,                        // AI challenges aren’t seeded
                 'language'       => $data['language'],
@@ -281,7 +281,7 @@ class AIChallengeController extends Controller
         $user->increment('ai_attempts', 1);
     });
 
-    SoloAttempt::create([
+    SoloTaken::create([
         'user_id'        => $user->id,
         'challenge_id'   => null,
         'language'       => $data['language'],
