@@ -98,7 +98,7 @@ class AIChallengeController extends Controller
                 'difficulty'     => $data['difficulty'],
                 'mode'           => 'aigenerated',
                 // Treat “correct” as a finished attempt. If you prefer 'submitted', change it here.
-                'status'         => $data['is_correct'] ? 'completed' : 'submitted',
+                'status'         => $data['is_correct'] ? 'completed' : 'submitted_incorrect',
                 'time_spent_sec' => (int)($data['time_spent_sec'] ?? 0),
                 'submit_count'   => 1,
                 'last_similarity'=> null,                        // not used for AI (set if you compute it)
@@ -287,7 +287,7 @@ class AIChallengeController extends Controller
         'language'       => $data['language'],
         'difficulty'     => $data['difficulty'],
         'mode'           => 'aigenerated',
-        'status'         => 'surrendered',
+        'status'         => 'abandoned',
         'time_spent_sec' => (int)($data['time_spent_sec'] ?? 0),
         'submit_count'   => 0,
         'last_similarity'=> null,
