@@ -13,7 +13,14 @@ class SoloTaken extends Model
         'time_spent_sec','submit_count','last_similarity','earned_xp',
         'code_submitted','started_at','ended_at'
     ];
+   // If you have created_at/updated_at (your screenshot shows them)
+    public $timestamps = true;
 
+    // Optional: relation to challenge if you have it
+    public function challenge()
+    {
+        return $this->belongsTo(\App\Models\ChallengeSolo::class, 'challenge_id');
+    }
     protected $casts = [
         'started_at' => 'datetime',
         'ended_at'   => 'datetime',
