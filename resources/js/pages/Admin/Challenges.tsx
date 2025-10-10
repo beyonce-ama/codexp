@@ -1081,7 +1081,12 @@ const openCreateModal = (type: 'solo' | '1v1') => {
 
     {/* 1v1 STATS */}
     <Section
-      title={<><BarChart3 className="h-5 w-5 text-purple-300" /><span className="text-white font-semibold">1v1 Stats</span></>}
+      title={
+        <>
+          <BarChart3 className="h-5 w-5 text-purple-300" />
+          <span className="text-white font-semibold">1v1 Stats</span>
+        </>
+      }
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <StatTile icon={Swords} label="Python" value={totals.v1.python} tone="purple" />
@@ -1094,7 +1099,6 @@ const openCreateModal = (type: 'solo' | '1v1') => {
         <StatTile icon={Zap} label="Hard" value={totals.v1Diff.hard} tone="red" />
       </div>
     </Section>
-
           {/* Filters */}
           <Section
             title={<><Filter className="h-5 w-5 text-cyan-300" /><span className="text-white font-semibold">Filters</span></>}
@@ -1236,17 +1240,17 @@ const openCreateModal = (type: 'solo' | '1v1') => {
                             <td className="px-6 py-4">
                               <div className="flex justify-end gap-1">
                                <button
-  onClick={() => handleView(challenge)}
-  className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 rounded-lg transition"
-  title="View"
->
-                                  <Eye className="h-4 w-4" />
-                                </button>
-                              <button
-  onClick={() => handleEdit(challenge)}
-  className="p-2 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-900/20 rounded-lg transition"
-  title="Edit"
->
+                                    onClick={() => handleView(challenge)}
+                                    className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 rounded-lg transition"
+                                    title="View"
+                                  >
+                                                                    <Eye className="h-4 w-4" />
+                                                                  </button>
+                                                                <button
+                                    onClick={() => handleEdit(challenge)}
+                                    className="p-2 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-900/20 rounded-lg transition"
+                                    title="Edit"
+                                  >
                                   <Edit className="h-4 w-4" />
                                 </button>
                                 <button
@@ -1274,23 +1278,24 @@ const openCreateModal = (type: 'solo' | '1v1') => {
               </div>
             )}
           </Section>
-
+ </div>
+)} 
           {/* Import Modal */}
-{/* Import Modal (visible for both Solo and 1v1) */}
-{showImportModal && (
-  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div className="bg-gray-800/90 border border-gray-700/50 rounded-xl w-full max-w-2xl">
-      <div className="bg-gradient-to-r from-cyan-600 to-blue-600 px-6 py-4 flex justify-between items-center">
-        <h3 className="text-lg font-bold text-white flex items-center">
-          <Upload className="h-5 w-5 mr-2" />
-          Import {activeTab === 'solo' ? 'Solo' : '1v1'} Challenges
-        </h3>
-        <button onClick={() => { setShowImportModal(false); setImportItems([]); }} className="text-white hover:text-gray-200">
-          <X className="h-5 w-5" />
-        </button>
-      </div>
+          {/* Import Modal (visible for both Solo and 1v1) */}
+        {showImportModal && (
+         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-800/90 border border-gray-700/50 rounded-xl w-full max-w-2xl">
+            <div className="bg-gradient-to-r from-cyan-600 to-blue-600 px-6 py-4 flex justify-between items-center">
+              <h3 className="text-lg font-bold text-white flex items-center">
+                <Upload className="h-5 w-5 mr-2" />
+                Import {activeTab === 'solo' ? 'Solo' : '1v1'} Challenges
+              </h3>
+              <button onClick={() => { setShowImportModal(false); setImportItems([]); }} className="text-white hover:text-gray-200">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
-      <form onSubmit={handleImportSubmit} className="p-6 space-y-6">
+              <form onSubmit={handleImportSubmit} className="p-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {activeTab === 'solo' && (
             <div>
@@ -1341,57 +1346,57 @@ const openCreateModal = (type: 'solo' | '1v1') => {
                     <p className="text-xs text-gray-400 mt-1">Upload a JSON file containing an array of challenge objects</p>
                   </div>
 
-{/* JSON format guide (dynamic for Solo vs 1v1) */}
-<div className="rounded-lg border border-gray-700 bg-gray-900/60 p-4">
-  <h4 className="text-sm font-semibold text-cyan-400 mb-2 flex items-center gap-2">
-    <Code className="h-4 w-4" /> Expected JSON Format
-  </h4>
+                      {/* JSON format guide (dynamic for Solo vs 1v1) */}
+                      <div className="rounded-lg border border-gray-700 bg-gray-900/60 p-4">
+                        <h4 className="text-sm font-semibold text-cyan-400 mb-2 flex items-center gap-2">
+                          <Code className="h-4 w-4" /> Expected JSON Format
+                        </h4>
 
-  <p className="text-xs text-gray-300 mb-3">
-    Each JSON file should contain an <strong>array of challenge objects</strong>.
-    Every object must include the following fields:
-  </p>
+                        <p className="text-xs text-gray-300 mb-3">
+                          Each JSON file should contain an <strong>array of challenge objects</strong>.
+                          Every object must include the following fields:
+                        </p>
 
-  {activeTab === 'solo' ? (
-    <pre className="text-xs bg-black/40 border border-gray-700 rounded-lg p-3 text-gray-200 font-mono overflow-x-auto">
-{`[
-  {
-    "difficulty": "easy",
-    "language": "python",
-    "title": "Sum of Two Numbers",
-    "description": "The program should take two integers as input and print their sum.",
-    "buggy_code": "a = 5\\nb = 7\\nprint('Sum is:', a + b",
-    "fixed_code": "a = 5\\nb = 7\\nprint('Sum is:', a + b)",
-    "hint": "Check the missing parenthesis in print statement"
-  }
-]`}
-    </pre>
-  ) : (
-    <pre className="text-xs bg-black/40 border border-gray-700 rounded-lg p-3 text-gray-200 font-mono overflow-x-auto">
-{`[
-  {
-    "title": "Find Max of Two Numbers",
-    "description": "Compare two numbers and print the larger one.",
-    "language": "java",
-    "buggy_code": "if(a > b)\\n  System.out.println(a);\\nelse\\n  System.out.println(b)",
-    "fixed_code": "if(a > b) {\\n  System.out.println(a);\\n} else {\\n  System.out.println(b);\\n}"
-  }
-]`}
-    </pre>
-  )}
+                        {activeTab === 'solo' ? (
+                          <pre className="text-xs bg-black/40 border border-gray-700 rounded-lg p-3 text-gray-200 font-mono overflow-x-auto">
+                      {`[
+                        {
+                          "difficulty": "easy",
+                          "language": "python",
+                          "title": "Sum of Two Numbers",
+                          "description": "The program should take two integers as input and print their sum.",
+                          "buggy_code": "a = 5\\nb = 7\\nprint('Sum is:', a + b",
+                          "fixed_code": "a = 5\\nb = 7\\nprint('Sum is:', a + b)",
+                          "hint": "Check the missing parenthesis in print statement"
+                        }
+                      ]`}
+                          </pre>
+                        ) : (
+                          <pre className="text-xs bg-black/40 border border-gray-700 rounded-lg p-3 text-gray-200 font-mono overflow-x-auto">
+                      {`[
+                        {
+                          "title": "Find Max of Two Numbers",
+                          "description": "Compare two numbers and print the larger one.",
+                          "language": "java",
+                          "buggy_code": "if(a > b)\\n  System.out.println(a);\\nelse\\n  System.out.println(b)",
+                          "fixed_code": "if(a > b) {\\n  System.out.println(a);\\n} else {\\n  System.out.println(b);\\n}"
+                        }
+                      ]`}
+                          </pre>
+                        )}
 
-  <p className="text-xs text-gray-400 mt-2">
-    You can export an existing challenge to see the full structure.
-  </p>
+                        <p className="text-xs text-gray-400 mt-2">
+                          You can export an existing challenge to see the full structure.
+                        </p>
 
-  {importItems.length > 0 && (
-    <div className="mt-3">
-      <p className="text-xs text-green-400">
-        ✅ Loaded <strong>{importItems.length}</strong> challenges from file.
-      </p>
-    </div>
-  )}
-</div>
+                        {importItems.length > 0 && (
+                          <div className="mt-3">
+                            <p className="text-xs text-green-400">
+                              ✅ Loaded <strong>{importItems.length}</strong> challenges from file.
+                            </p>
+                          </div>
+                        )}
+                      </div>
 
 
                   <div className="flex justify-end gap-3">
@@ -1409,17 +1414,13 @@ const openCreateModal = (type: 'solo' | '1v1') => {
                     >
                       {importLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                       <span>{importLoading ? 'Importing…' : 'Import Challenges'}</span>
-                    </button>
+                        </button>
                   </div>
                 </form>
-              </div>
-            </div>
-          )}
 
-
-</div>
+    </div>
+  </div>
 )}
-        </div>
       </AppLayout>
     </div>
   );

@@ -90,6 +90,26 @@ class AIChallengeController extends Controller
 
         $user->refresh();
 
+        // --- Persist the AI attempt to solo_taken ---
+            SoloAttempt::create([
+                'user_id'        => $user->id,
+                'challenge_id'   => null,                        // AI challenges aren’t seeded
+                'language'       => $data['language'],
+                'difficulty'     => $data['difficulty'],
+                'mode'           => 'aigenerated',
+                // Treat “correct” as a finished attempt. If you prefer 'submitted', change it here.
+                'status'         => $data['is_correct'] ? 'completed' : 'submitted',
+                'time_spent_sec' => (int)($data['time_spent_sec'] ?? 0),
+                'submit_count'   => 1,
+                'last_similarity'=> null,                        // not used for AI (set if you compute it)
+                'earned_xp'      => (int)$xp,
+                'code_submitted' => $data['code_submitted'] ?? null,
+                // If you track a real start on the client, pass it and use it here
+                'started_at'     => now(),
+                'ended_at'       => now(),
+            ]);
+
+
         return response()->json([
             'success' => true,
             'message' => $data['is_correct'] ? 'Rewards applied!' : 'Attempt recorded (no reward).',
@@ -241,4 +261,46 @@ class AIChallengeController extends Controller
 
         return $hintUsed ? $base - 0.5 : $base;
     }
+
+    public function surrenderAttempt(Request $request)
+{
+    $data = $request->validate([
+        'language'       => 'required|in:python,java,cpp',
+        'difficulty'     => 'required|in:easy,medium,hard',
+        'time_spent_sec' => 'sometimes|integer|min:0',
+        'code_submitted' => 'sometimes|string',
+    ]);
+
+    $user = $request->user();
+    if (!$user) {
+        return response()->json(['success' => false, 'message' => 'Unauthenticated'], 401);
+    }
+
+    // optional: bump attempts but no XP
+    DB::transaction(function () use ($user) {
+        $user->increment('ai_attempts', 1);
+    });
+
+    SoloAttempt::create([
+        'user_id'        => $user->id,
+        'challenge_id'   => null,
+        'language'       => $data['language'],
+        'difficulty'     => $data['difficulty'],
+        'mode'           => 'aigenerated',
+        'status'         => 'surrendered',
+        'time_spent_sec' => (int)($data['time_spent_sec'] ?? 0),
+        'submit_count'   => 0,
+        'last_similarity'=> null,
+        'earned_xp'      => 0,
+        'code_submitted' => $data['code_submitted'] ?? null,
+        'started_at'     => now(),
+        'ended_at'       => now(),
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Attempt marked as surrendered.',
+    ]);
+}
+
 }

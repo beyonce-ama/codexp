@@ -398,7 +398,7 @@ useEffect(() => {
   setHasForfeited(false);
    }, 0);
  };
- 
+
 const surrenderAndShowAnswer = async () => {
   if (!currentChallenge?.fixed_code) return;
 
@@ -436,6 +436,21 @@ const surrenderAndShowAnswer = async () => {
 
   setHasForfeited(true);
   audio.play('click');
+// Log surrendered attempt (mode=aigenerated) to backend
+try {
+  const payload = {
+    language,                         // 'python' | 'java' | 'cpp'
+    difficulty,                       // 'easy' | 'medium' | 'hard'
+    time_spent_sec: Math.max(0, parseInt(String(timeSpent), 10) || 0),
+    code_submitted: userCode || undefined,
+  };
+  await apiClient.post('/api/ai-challenges/surrender', payload);
+  // reflect updated counters (ai_attempts, etc.)
+  await fetchUserStats();
+} catch (e) {
+  console.error('Failed to record surrender:', e);
+  // don’t block the UX; just warn
+}
 
   // Step 2: Compact answer reveal
   await Swal.fire({
