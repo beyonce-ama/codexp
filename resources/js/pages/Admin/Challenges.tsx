@@ -776,7 +776,7 @@ const openCreateModal = (type: 'solo' | '1v1') => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button
+                {/* <button
                   onClick={() => setShowImportModal(true)}
                   className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-cyan-600 text-white hover:bg-cyan-500"
                 >
@@ -789,7 +789,7 @@ const openCreateModal = (type: 'solo' | '1v1') => {
                 >
                   <Plus className="h-4 w-4" />
                   <span>Create</span>
-                </button>
+                </button> */}
               </div>
             </div>
           </div>
@@ -869,9 +869,185 @@ const openCreateModal = (type: 'solo' | '1v1') => {
         <StatTile icon={Zap} label="Hard" value={totals.soloDiff.hard} tone="red" />
       </div>
     </Section>
+        {/* Filters */}
+          <Section
+            title={<><Filter className="h-5 w-5 text-cyan-300" /><span className="text-white font-semibold">Filters</span></>}
+            right={
+              <button
+                onClick={() => setShowFilters(s => !s)}
+                className="text-xs inline-flex items-center gap-2 px-2 py-1 rounded-lg border border-white/10 text-slate-200 hover:bg-white/5"
+              >
+                {showFilters ? 'Hide' : 'Show'}
+              </button>
+            }
+          >
+            {showFilters && (
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-sm">
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search challenges by title or description…"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-10 py-3 bg-slate-950/60 border border-white/10 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-gray-200 placeholder-gray-400"
+                      />
+                      {searchTerm && (
+                        <button
+                          onClick={() => setSearchTerm('')}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200"
+                          aria-label="Clear search"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <select
+                      value={languageFilter}
+                      onChange={(e) => setLanguageFilter(e.target.value)}
+                      className="px-4 py-3 bg-slate-950/60 border border-white/10 rounded-lg focus:ring-2 focus:ring-cyan-500 text-gray-200"
+                    >
+                      <option value="all">All Languages</option>
+                      <option value="python">Python</option>
+                      <option value="java">Java</option>
+                      <option value="cpp">C++</option>
+                    </select>
+                    <select
+                      value={difficultyFilter}
+                      onChange={(e) => setDifficultyFilter(e.target.value)}
+                      className="px-4 py-3 bg-slate-950/60 border border-white/10 rounded-lg focus:ring-2 focus:ring-cyan-500 text-gray-200"
+                    >
+                      <option value="all">All Difficulties</option>
+                      <option value="easy">Easy</option>
+                      <option value="medium">Medium</option>
+                      <option value="hard">Hard</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+          </Section>
 
-    {/* SOLO FILTERS + TABLE */}
-    {/** Keep existing filters + challenge list here — unchanged */}
+          {/* List/Table */}
+          <Section
+            title={<><Code className="h-5 w-5 text-pink-300" /><span className="text-white font-semibold">Challenges</span></>}
+            right={
+              <button
+                onClick={() => setShowList(s => !s)}
+                className="text-xs inline-flex items-center gap-2 px-2 py-1 rounded-lg border border-white/10 text-slate-200 hover:bg-white/5"
+              >
+                {showList ? 'Hide' : 'Show'}
+              </button>
+            }
+          >
+            {showList && (
+              <div className="overflow-x-auto bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm">
+                <table className="w-full">
+                  <thead className="bg-slate-950/50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-cyan-400 uppercase">Challenge</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-cyan-400 uppercase">Language</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-cyan-400 uppercase">Difficulty</th>
+                      {activeTab === 'solo' && <th className="px-6 py-3 text-left text-xs font-bold text-cyan-400 uppercase">Mode</th>}
+                      <th className="px-6 py-3 text-left text-xs font-bold text-cyan-400 uppercase">Created</th>
+                      <th className="px-6 py-3 text-right text-xs font-bold text-cyan-400 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/10">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                          <div className="flex items-center justify-center">
+                            <RefreshCw className="h-5 w-5 animate-spin mr-2 text-cyan-400" />
+                            Loading challenges…
+                          </div>
+                        </td>
+                      </tr>
+                    ) : challenges.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                          {searchTerm ? `No challenges found matching “${searchTerm}”` : 'No challenges found'}
+                        </td>
+                      </tr>
+                    ) : (
+                      challenges.map((challenge) => {
+                        const ModeIcon = getModeIcon(challenge.mode || '');
+                        return (
+                          <tr key={challenge.id} className="hover:bg-white/5 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="max-w-xl">
+                                <div className="text-sm font-semibold text-white">{challenge.title}</div>
+                                {challenge.description && (
+                                  <div className="text-xs text-gray-400 truncate">{challenge.description}</div>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="px-2 py-1 text-xs font-semibold rounded-full border bg-blue-500/10 text-blue-300 border-blue-500/30">
+                                {displayLanguage(challenge.language)}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${getDifficultyColor(challenge.difficulty)}`}>
+                                {challenge.difficulty.toUpperCase()}
+                              </span>
+                            </td>
+                            {activeTab === 'solo' && (
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-1 text-sm text-gray-300">
+                                  <ModeIcon className="h-4 w-4 text-gray-400" />
+                                  <span className="capitalize">{challenge.mode}</span>
+                                </div>
+                              </td>
+                            )}
+                            <td className="px-6 py-4 text-sm text-gray-400">
+                              {new Date(challenge.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex justify-end gap-1">
+                               <button
+  onClick={() => handleView(challenge)}
+  className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 rounded-lg transition"
+  title="View"
+>
+                                  <Eye className="h-4 w-4" />
+                                </button>
+                              <button
+  onClick={() => handleEdit(challenge)}
+  className="p-2 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-900/20 rounded-lg transition"
+  title="Edit"
+>
+                                  <Edit className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDownload(challenge.id)}
+                                  className="p-2 text-gray-300 hover:text-gray-100 hover:bg-gray-900/30 rounded-lg transition"
+                                  title="Download"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteChallenge(challenge.id)}
+                                  className="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Section>
   </div>
 ) : (
   <div className="space-y-6">
