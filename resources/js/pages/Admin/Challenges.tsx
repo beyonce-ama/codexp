@@ -794,34 +794,33 @@ const openCreateModal = (type: 'solo' | '1v1') => {
             </div>
           </div>
 
-          {/* Tabs */}
-       {/* Tabs */}
-<div className="bg-white/5 border border-white/10 rounded-xl p-2 backdrop-blur-sm">
-  <div className="flex gap-2">
-    {[
-      { key: 'solo', icon: Target, label: 'Solo', total: stats?.total_solo_challenges },
-      { key: '1v1', icon: Swords, label: '1v1', total: stats?.total_1v1_challenges },
-    ].map((tab) => {
-      const ActiveIcon = tab.icon;
-      const isActive = activeTab === tab.key;
-      return (
-        <button
-          key={tab.key}
-          onClick={() => setActiveTab(tab.key as 'solo' | '1v1')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
-            isActive
-              ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg'
-              : 'bg-white/5 text-gray-200 hover:bg-white/10'
-          }`}
-        >
-          <ActiveIcon className="h-5 w-5" />
-          <span className="font-medium">{tab.label}</span>
-          <span className="bg-black/20 px-2 py-0.5 rounded-full text-xs">{tab.total ?? 0}</span>
-        </button>
-      );
-    })}
-  </div>
-</div>
+              {/* Tabs */}
+        <div className="bg-white/5 border border-white/10 rounded-xl p-2 backdrop-blur-sm">
+          <div className="flex gap-2">
+            {[
+              { key: 'solo', icon: Target, label: 'Solo', total: stats?.total_solo_challenges },
+              { key: '1v1', icon: Swords, label: '1v1', total: stats?.total_1v1_challenges },
+            ].map((tab) => {
+              const ActiveIcon = tab.icon;
+              const isActive = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key as 'solo' | '1v1')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+                    isActive
+                      ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg'
+                      : 'bg-white/5 text-gray-200 hover:bg-white/10'
+                  }`}
+                >
+                  <ActiveIcon className="h-5 w-5" />
+                  <span className="font-medium">{tab.label}</span>
+                  <span className="bg-black/20 px-2 py-0.5 rounded-full text-xs">{tab.total ?? 0}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
 {/* Active Tab Content */}
 {activeTab === 'solo' ? (
@@ -1421,6 +1420,7 @@ const openCreateModal = (type: 'solo' | '1v1') => {
     </div>
   </div>
 )}
+ </div>
       </AppLayout>
     </div>
   );
