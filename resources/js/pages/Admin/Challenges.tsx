@@ -795,91 +795,129 @@ const openCreateModal = (type: 'solo' | '1v1') => {
           </div>
 
           {/* Tabs */}
-          <div className="bg-white/5 border border-white/10 rounded-xl p-2 backdrop-blur-sm">
-            <div className="flex gap-2">
-              <button
-                onClick={() => setActiveTab('solo')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
-                  activeTab === 'solo'
-                    ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg'
-                    : 'bg-white/5 text-gray-200 hover:bg-white/10'
-                }`}
-              >
-                <Target className="h-5 w-5" />
-                <span className="font-medium">Solo</span>
-                {stats && <span className="bg-black/20 px-2 py-0.5 rounded-full text-xs">{stats.total_solo_challenges}</span>}
-              </button>
-              <button
-                onClick={() => setActiveTab('1v1')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
-                  activeTab === '1v1'
-                    ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg'
-                    : 'bg-white/5 text-gray-200 hover:bg-white/10'
-                }`}
-              >
-                <Swords className="h-5 w-5" />
-                <span className="font-medium">1v1</span>
-                {stats && <span className="bg-black/20 px-2 py-0.5 rounded-full text-xs">{stats.total_1v1_challenges}</span>}
-              </button>
-            </div>
-          </div>
+       {/* Tabs */}
+<div className="bg-white/5 border border-white/10 rounded-xl p-2 backdrop-blur-sm">
+  <div className="flex gap-2">
+    {[
+      { key: 'solo', icon: Target, label: 'Solo', total: stats?.total_solo_challenges },
+      { key: '1v1', icon: Swords, label: '1v1', total: stats?.total_1v1_challenges },
+    ].map((tab) => {
+      const ActiveIcon = tab.icon;
+      const isActive = activeTab === tab.key;
+      return (
+        <button
+          key={tab.key}
+          onClick={() => setActiveTab(tab.key as 'solo' | '1v1')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+            isActive
+              ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg'
+              : 'bg-white/5 text-gray-200 hover:bg-white/10'
+          }`}
+        >
+          <ActiveIcon className="h-5 w-5" />
+          <span className="font-medium">{tab.label}</span>
+          <span className="bg-black/20 px-2 py-0.5 rounded-full text-xs">{tab.total ?? 0}</span>
+        </button>
+      );
+    })}
+  </div>
+</div>
 
-          {/* Stats Section */}
-          <Section
-            title={<><BarChart3 className="h-5 w-5 text-green-300" /><span className="text-white font-semibold">Overview</span></>}
-            right={
-              <button
-                onClick={() => setShowStats(s => !s)}
-                className="text-xs inline-flex items-center gap-2 px-2 py-1 rounded-lg border border-white/10 text-slate-200 hover:bg-white/5"
-              >
-                {showStats ? 'Hide' : 'Show'}
-              </button>
-            }
+{/* Active Tab Content */}
+{activeTab === 'solo' ? (
+  <div className="space-y-6">
+    {/* SOLO HEADER */}
+    <Section
+      title={
+        <>
+          <Target className="h-5 w-5 text-blue-400" />
+          <span className="text-white font-semibold">Solo Challenges</span>
+        </>
+      }
+      right={
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-cyan-600 text-white hover:bg-cyan-500"
           >
-            {showStats && (
-  <>
-    {/* existing high-level tiles */}
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-3">
-      <StatTile icon={Target} label="Solo" value={stats?.total_solo_challenges ?? 0} tone="blue" hint="All time" />
-      <StatTile icon={Swords} label="1v1" value={stats?.total_1v1_challenges ?? 0} tone="purple" hint="All time" />
-  
-    </div>
+            <Upload className="h-4 w-4" />
+            <span>Import Solo</span>
+          </button>
+          <button
+            onClick={() => handleCreate()}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Create Solo</span>
+          </button>
+        </div>
+      }
+    />
 
-    {/* NEW: mode × language breakdown */}
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3 mt-3">
-      <StatTile icon={Target} label="Solo • Python" value={totals.solo.python} tone="blue" />
-      <StatTile icon={Target} label="Solo • Java"   value={totals.solo.java}   tone="blue" />
-      <StatTile icon={Target} label="Solo • C++"    value={totals.solo.cpp}    tone="blue" />
-      <StatTile icon={Swords} label="1v1 • Python"  value={totals.v1.python}   tone="purple" />
-      <StatTile icon={Swords} label="1v1 • Java"    value={totals.v1.java}     tone="purple" />
-        <StatTile icon={Swords} label="1v1 • C++"     value={totals.v1.cpp}      tone="purple" />
-    </div>
+    {/* SOLO STATS */}
+    <Section
+      title={<><BarChart3 className="h-5 w-5 text-cyan-300" /><span className="text-white font-semibold">Solo Stats</span></>}
+    >
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <StatTile icon={Target} label="Python" value={totals.solo.python} tone="blue" />
+        <StatTile icon={Target} label="Java" value={totals.solo.java} tone="blue" />
+        <StatTile icon={Target} label="C++" value={totals.solo.cpp} tone="blue" />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+        <StatTile icon={Zap} label="Easy" value={totals.soloDiff.easy} tone="green" />
+        <StatTile icon={Zap} label="Medium" value={totals.soloDiff.medium} tone="yellow" />
+        <StatTile icon={Zap} label="Hard" value={totals.soloDiff.hard} tone="red" />
+      </div>
+    </Section>
 
-    {/* NEW: difficulty breakdown (all challenges) */}
-{/* SOLO difficulty breakdown */}
-<div className="mt-4">
-  <div className="text-xs uppercase tracking-wide text-white/60 mb-2">Solo difficulty</div>
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-    <StatTile icon={Zap} label="Solo • Easy"   value={totals.soloDiff.easy}   tone="green" />
-    <StatTile icon={Zap} label="Solo • Medium" value={totals.soloDiff.medium} tone="yellow" />
-    <StatTile icon={Zap} label="Solo • Hard"   value={totals.soloDiff.hard}   tone="red" />
+    {/* SOLO FILTERS + TABLE */}
+    {/** Keep existing filters + challenge list here — unchanged */}
   </div>
-</div>
+) : (
+  <div className="space-y-6">
+    {/* 1v1 HEADER */}
+    <Section
+      title={
+        <>
+          <Swords className="h-5 w-5 text-purple-400" />
+          <span className="text-white font-semibold">1v1 Challenges</span>
+        </>
+      }
+      right={
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-cyan-600 text-white hover:bg-cyan-500"
+          >
+            <Upload className="h-4 w-4" />
+            <span>Import 1v1</span>
+          </button>
+          <button
+            onClick={() => handleCreate()}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Create 1v1</span>
+          </button>
+        </div>
+      }
+    />
 
-{/* 1v1 difficulty breakdown */}
-<div className="mt-4">
-  <div className="text-xs uppercase tracking-wide text-white/60 mb-2">1v1 difficulty</div>
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-    <StatTile icon={Zap} label="1v1 • Easy"   value={totals.v1Diff.easy}   tone="green" />
-    <StatTile icon={Zap} label="1v1 • Medium" value={totals.v1Diff.medium} tone="yellow" />
-    <StatTile icon={Zap} label="1v1 • Hard"   value={totals.v1Diff.hard}   tone="red" />
-  </div>
-</div>
-
-  </>
-)}
-
-          </Section>
+    {/* 1v1 STATS */}
+    <Section
+      title={<><BarChart3 className="h-5 w-5 text-purple-300" /><span className="text-white font-semibold">1v1 Stats</span></>}
+    >
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <StatTile icon={Swords} label="Python" value={totals.v1.python} tone="purple" />
+        <StatTile icon={Swords} label="Java" value={totals.v1.java} tone="purple" />
+        <StatTile icon={Swords} label="C++" value={totals.v1.cpp} tone="purple" />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+        <StatTile icon={Zap} label="Easy" value={totals.v1Diff.easy} tone="green" />
+        <StatTile icon={Zap} label="Medium" value={totals.v1Diff.medium} tone="yellow" />
+        <StatTile icon={Zap} label="Hard" value={totals.v1Diff.hard} tone="red" />
+      </div>
+    </Section>
 
           {/* Filters */}
           <Section
@@ -1181,14 +1219,12 @@ const openCreateModal = (type: 'solo' | '1v1') => {
               </div>
             </div>
           )}
+
+
+</div>
+)}
         </div>
       </AppLayout>
     </div>
   );
 }
-
-/* --- tiny swal css tokens (optional; use your global css if you already have) ---
-.neo-card{background:rgba(2,6,23,.7);border:1px solid rgba(34,211,238,.3);border-radius:.75rem;padding:.75rem}
-.neo-pill{display:inline-flex;gap:.35rem;align-items:center;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#cbd5e1;border-radius:.5rem;padding:.15rem .5rem}
-.swal2-html-container .neo-card pre{white-space:pre-wrap}
-*/
