@@ -133,7 +133,7 @@ public function store(Request $request)
     public function import(Request $request)
     {
         $data = $request->validate([
-            'language'    => 'required|in:python,java',
+            'language'    => 'required|in:python,java,cpp',
             'difficulty'  => 'required|in:easy,medium,hard',
             'source_file' => 'nullable|string',
             'items'       => 'required|array'
