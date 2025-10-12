@@ -439,7 +439,7 @@ const codeBlock = (label: string, code: string) => {
           Copy
         </button>
       </div>
-      <pre id="${id}" class="text-[12px] overflow-auto max-h-72 leading-[1.35]"><code>${esc(code)}</code></pre>
+     <pre id="${id}" class="text-[12px] overflow-auto max-h-72 leading-[1.35] text-left whitespace-pre-wrap font-mono"><code>${esc(code)}</code></pre>
     </div>`;
 };
 
@@ -566,12 +566,13 @@ const openEditModal = (c: any, type: 'solo' | '1v1') => {
       <div class="md:col-span-5 space-y-3">
         <div class="rounded-lg border border-white/10 bg-white/5 p-3">
           <label for="f_bug" class="block text-[10px] uppercase tracking-wide opacity-70 mb-1">Buggy Code</label>
-          <textarea id="f_bug" rows="7" class="w-full bg-slate-950/70 border border-white/15 rounded-lg text-slate-100 px-3 py-2 font-mono text-[12px] leading-[1.35]">${esc(c.buggy_code ?? '')}</textarea>
+         <textarea id="f_bug" rows="7" class="w-full bg-slate-950/70 border border-white/15 rounded-lg text-slate-100 px-3 py-2 font-mono text-[12px] leading-[1.35] text-left">${esc(c.buggy_code ?? '')}</textarea>
+
         </div>
 
         <div class="rounded-lg border border-white/10 bg-white/5 p-3">
           <label for="f_fix" class="block text-[10px] uppercase tracking-wide opacity-70 mb-1">Fixed Code</label>
-          <textarea id="f_fix" rows="7" class="w-full bg-slate-950/70 border border-white/15 rounded-lg text-slate-100 px-3 py-2 font-mono text-[12px] leading-[1.35]">${esc(c.fixed_code ?? '')}</textarea>
+         <textarea id="f_fix" rows="7" class="w-full bg-slate-950/70 border border-white/15 rounded-lg text-slate-100 px-3 py-2 font-mono text-[12px] leading-[1.35] text-left">${esc(c.fixed_code ?? '')}</textarea>
         </div>
       </div>
     </div>
@@ -711,7 +712,7 @@ const openCreateModal = (type: 'solo' | '1v1') => {
 
 };
 // --- AI Generate Solo ---
-const openGenerateModal = () => {
+const openGenerateModal = (type: 'solo' | '1v1' = 'solo') => {
   const body = `
     <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
       <div class="md:col-span-12 space-y-3">
@@ -747,7 +748,7 @@ const openGenerateModal = () => {
     width: 720,
     html: modalShell({
       icon: '🤖',
-      title: 'Generate Solo Challenge',
+       title: `Generate ${type === 'solo' ? 'Solo' : '1v1'} Challenge`,
       subtitle: 'Pick parameters, then preview before saving',
       bodyHTML: body,
     }),
@@ -773,14 +774,18 @@ const openGenerateModal = () => {
     if (!r.isConfirmed) return;
     const { language, difficulty, topic } = r.value;
 
-    // Call backend to generate
-    const genRes = await apiClient.post('/admin/api/challenges/solo/generate', { language, difficulty, topic });
+      const genEndpoint = type === 'solo'
+      ? '/admin/api/challenges/solo/generate'
+      : '/admin/api/challenges/1v1/generate';
+
+    const genRes = await apiClient.post(genEndpoint, { language, difficulty, topic });
 
     if (!genRes?.success) {
       Swal.fire('Error', genRes?.message || 'Failed to generate challenge', 'error');
       return;
     }
     const g = genRes.data || {};
+
 
     // Preview modal (note: we do NOT save "hint"; we’ll store null)
     const preview = `
@@ -813,7 +818,7 @@ const openGenerateModal = () => {
         bodyHTML: preview,
       }),
       showCancelButton: true,
-      confirmButtonText: 'Save to Solo',
+      confirmButtonText: `Save to ${type === 'solo' ? 'Solo' : '1v1'}`,
       customClass: {
         popup: 'rounded-2xl !p-0 backdrop-blur-sm',
         confirmButton: 'swal2-confirm !bg-emerald-600 hover:!bg-emerald-500 !rounded-lg !px-4 !py-2',
@@ -823,21 +828,27 @@ const openGenerateModal = () => {
     })).then(async rr => {
       if (!rr.isConfirmed) return;
 
-      // Save using existing create endpoint
-      const payload = {
+      // Save using existing create endpoint for each type
+      const saveEndpoint = type === 'solo'
+        ? '/admin/challenges/api/challenges/solo'
+        : '/admin/challenges/api/challenges/1v1';
+
+      const payload: any = {
         title: g.title ?? '',
         description: g.description ?? '',
         language,
         difficulty,
         buggy_code: g.buggy_code ?? '',
         fixed_code: g.fixed_code ?? '',
-        mode: 'fixbugs',
-        hint: null, // per your rule: always null
+        hint: null, // your rule: always null
       };
 
-      const saveRes = await apiClient.post('/admin/challenges/api/challenges/solo', payload);
+      // For solo we also include mode, but for 1v1 keep it out (create() handles mode for solo)
+      if (type === 'solo') payload.mode = 'fixbugs';
+
+      const saveRes = await apiClient.post(saveEndpoint, payload);
       if (saveRes?.success) {
-        Swal.fire('Saved!', 'AI-generated challenge added.', 'success');
+        Swal.fire('Saved!', `AI-generated challenge added to ${type === 'solo' ? 'Solo' : '1v1'}.`, 'success');
         fetchChallenges();
       } else {
         Swal.fire('Error', saveRes?.message || 'Failed to save challenge', 'error');
@@ -1181,6 +1192,13 @@ const openGenerateModal = () => {
           >
             <Upload className="h-4 w-4" />
             <span>Import 1v1</span>
+          </button>
+          <button
+            onClick={() => openGenerateModal(activeTab)}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"
+          >
+            <Zap className="h-4 w-4" />
+            <span>Generate 1v1</span>
           </button>
           <button
             onClick={() => handleCreate()}

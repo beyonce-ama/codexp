@@ -221,5 +221,33 @@ public function store(Request $request)
         return response()->json(['success' => true, 'data' => $challenge]);
     }
 
+public function generateAI(Request $request)
+{
+    $data = $request->validate([
+        'language'   => 'required|in:python,java,cpp',
+        'difficulty' => 'required|in:easy,medium,hard',
+        'topic'      => 'nullable|string|max:120',
+    ]);
+
+    $svc = app(\App\Services\AzureOpenAIService::class);
+
+    try {
+        // choose which AI method you prefer (long vs short). I've used generateShortChallenge in examples.
+        $challenge = $svc->generateShortChallenge($data['language'], $data['difficulty'], $data['topic'] ?? null);
+
+        $out = [
+            'title'       => (string)($challenge['title'] ?? ''),
+            'description' => (string)($challenge['description'] ?? ''),
+            'buggy_code'  => (string)($challenge['buggy_code'] ?? ''),
+            'fixed_code'  => (string)($challenge['fixed_code'] ?? ''),
+            // include hint optionally (UI ignores on save)
+            'hint'        => isset($challenge['hint']) ? (string)$challenge['hint'] : null,
+        ];
+
+        return response()->json(['success' => true, 'data' => $out]);
+    } catch (\Throwable $e) {
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+    }
+}
 
 }

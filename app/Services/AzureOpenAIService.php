@@ -280,5 +280,159 @@ Make sure:
         }
         return $topics[array_rand($topics)];
     }
+    /**
+ * Generate a short / bite-sized challenge suitable for 1 XP.
+ * Produces compact description (1-2 sentences), 1 intentional bug (or a very small bug),
+ * and short runnable code snippets. Returns the same keys as generateChallenge but
+ * with shorter description and possibly no 'hint' (or hint that can be ignored).
+ */
+public function generateShortChallenge(string $language, string $difficulty, string $topic = null): array
+{
+    // reuse the "avoid last topic" behavior
+    $avoid = [];
+    try {
+        $recent = cache()->get("ai:last_short_topic:$language");
+        if (is_string($recent) && $recent !== '') {
+            $avoid[] = $recent;
+        }
+    } catch (\Throwable $e) { /* ignore cache errors */ }
+
+    if ($topic === null) {
+        $topic = $this->pickRandomTopic($language, $avoid);
+    }
+
+    try {
+        cache()->put("ai:last_short_topic:$language", $topic, now()->addMinutes(30));
+    } catch (\Throwable $e) { /* ignore */ }
+
+    // Build a compact prompt for short challenges
+    $prompt = $this->buildShortChallengePrompt($language, $difficulty, $topic);
+
+    // small salt for variety
+    try {
+        $salt = bin2hex(random_bytes(3)); // 6 hex chars
+        $prompt .= "\n\n#VAR_SALT={$salt}";
+    } catch (\Throwable $e) { /* non-fatal */ }
+
+    try {
+        $response = Http::withHeaders([
+            'api-key'      => $this->apiKey,
+            'Content-Type' => 'application/json',
+        ])->post(
+            "{$this->endpoint}/openai/deployments/{$this->deploymentName}/chat/completions?api-version={$this->apiVersion}",
+            [
+                'messages' => [
+                    [
+                        'role'    => 'system',
+                        'content' => 'You are an expert programming instructor who creates short bite-sized coding exercises. Always respond with valid JSON.'
+                    ],
+                    [
+                        'role'    => 'user',
+                        'content' => $prompt
+                    ]
+                ],
+                'max_tokens'        => min(400, $this->maxTokens), // smaller responses
+                'temperature'       => $this->temperature,
+                'top_p'             => 0.9,
+                'frequency_penalty' => 0,
+                'presence_penalty'  => 0,
+            ]
+        );
+
+        if (!$response->successful()) {
+            Log::error('Azure OpenAI API Error (short)', [
+                'status' => $response->status(),
+                'body'   => $response->body(),
+            ]);
+            throw new \Exception('Failed to generate short challenge: API request failed');
+        }
+
+        $data = $response->json();
+
+        if (!isset($data['choices'][0]['message']['content'])) {
+            throw new \Exception('Invalid response format from Azure OpenAI (short)');
+        }
+
+        $content = trim($data['choices'][0]['message']['content']);
+
+        // Extract JSON if extra text exists
+        $jsonStart = strpos($content, '{');
+        $jsonEnd   = strrpos($content, '}');
+
+        if ($jsonStart !== false && $jsonEnd !== false) {
+            $content = substr($content, $jsonStart, $jsonEnd - $jsonStart + 1);
+        }
+
+        $challengeData = json_decode($content, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            Log::error('Failed to parse JSON from OpenAI response (short)', [
+                'content'    => $content,
+                'json_error' => json_last_error_msg(),
+            ]);
+            throw new \Exception('Invalid JSON response from AI service (short)');
+        }
+
+        // Minimal required fields for short challenge: title, description, buggy_code, fixed_code
+        $required = ['title', 'description', 'buggy_code', 'fixed_code'];
+        foreach ($required as $f) {
+            if (!isset($challengeData[$f])) {
+                throw new \Exception("Missing required field for short challenge: {$f}");
+            }
+        }
+
+        // Return the parsed object (may include hint, but caller will ignore it)
+        return $challengeData;
+
+    } catch (\Exception $e) {
+        Log::error('Error generating short challenge with Azure OpenAI', [
+            'error'      => $e->getMessage(),
+            'language'   => $language,
+            'difficulty' => $difficulty,
+            'topic'      => $topic,
+        ]);
+        throw $e;
+    }
+}
+
+/**
+ * Build compact prompt used by generateShortChallenge.
+ */
+private function buildShortChallengePrompt(string $language, string $difficulty, string $topic = null): string
+{
+    $topicText = $topic
+        ? "STRICTLY focus on the topic: {$topic}."
+        : "on a concise programming concept (keep it bite-sized).";
+
+    $difficultyGuide = [
+        'easy'   => 'Very short: basic syntax or one-line logical bug',
+        'medium' => 'Short: small logic or off-by-one / boundary bug',
+        'hard'   => 'Short but trickier: small algorithmic edge-case or performance note',
+    ];
+
+    $guide = $difficultyGuide[$difficulty] ?? 'Short micro exercise';
+
+    $langLabel = $this->languageLabel($language);
+
+    return "Generate a SHORT ({$langLabel}) programming exercise suitable for a 1-XP micro-task. {$topicText}
+
+Guidelines (SHORT):
+- Keep the description to 1-2 sentences.
+- Provide a tiny snippet (5-20 lines) with 1 intentional bug (or very small set of issues).
+- Provide the corrected snippet (fixed_code).
+- Do NOT include long explanations or multiple lengthy examples.
+- Responses must be VALID JSON ONLY in this format:
+
+{
+  \"title\": \"Short title (max 60 chars)\",
+  \"description\": \"One- or two-sentence description of the task\",
+  \"buggy_code\": \"Short code snippet (runnable if possible) containing 1 bug\",
+  \"fixed_code\": \"Corrected snippet\",
+  \"hint\": \"OPTIONAL short hint (one line)\"  // hint can be omitted
+}
+
+Make sure strings are properly escaped. Keep answers concise and focused.";
+}
+
 
 }

@@ -478,7 +478,8 @@ Route::get('/api/users/participants', function (Request $request) {
             Route::get('/settings', fn () => Inertia::render('Admin/Settings'))->name('settings');
              // Admin > Challenges subroutes used by your TSX buttons
                         // Subroutes used by the Admin/Challenges.tsx buttons
-          Route::post('/api/challenges/solo/generate', [ChallengeSoloController::class, 'generateAI']);               
+          Route::post('/api/challenges/solo/generate', [ChallengeSoloController::class, 'generateShortAI']);    
+          Route::post('/api/challenges/1v1/generate', [Challenge1v1Controller::class, 'generateAI']);            
         Route::prefix('challenges')->name('challenges.')->group(function () {
 // Solo
         Route::post('/api/challenges/solo', [ChallengeSoloController::class, 'store']);
