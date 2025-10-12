@@ -348,7 +348,7 @@ v1: {
         : '/api/challenges/1v1/import';
 
       const payload = activeTab === 'solo' ? {
-        mode: importMode,
+        mode: 'fixbugs',
         language: importLanguage,
         difficulty: importDifficulty,
         items: importItems,
@@ -493,7 +493,6 @@ const meta = [
         <div class="md:col-span-7 space-y-3">
           ${c.buggy_code ? codeBlock('Buggy Code', c.buggy_code) : ''}
           ${c.fixed_code ? codeBlock('Fixed Code', c.fixed_code) : ''}
-          ${c.hint ? codeBlock('Hint', c.hint) : ''}
         </div>
       </div>
     </div>
@@ -560,14 +559,6 @@ const openEditModal = (c: any, type: 'solo' | '1v1') => {
                 <option value="hard" ${c.difficulty==='hard'?'selected':''}>Hard</option>
               </select>
             </div>
-            ${modeSolo ? `
-            <div>
-              <label for="f_mode" class="block text-[10px] uppercase tracking-wide opacity-70 mb-1">Mode</label>
-              <select id="f_mode" class="w-full bg-slate-950/70 border border-white/15 rounded-lg text-slate-100 px-3 py-2">
-                <option value="fixbugs" ${c.mode==='fixbugs'?'selected':''}>Fix Bugs</option>
-              </select>
-            </div>
-            <div>` : ''}
           </div>
         </div>
       </div>
@@ -581,10 +572,6 @@ const openEditModal = (c: any, type: 'solo' | '1v1') => {
         <div class="rounded-lg border border-white/10 bg-white/5 p-3">
           <label for="f_fix" class="block text-[10px] uppercase tracking-wide opacity-70 mb-1">Fixed Code</label>
           <textarea id="f_fix" rows="7" class="w-full bg-slate-950/70 border border-white/15 rounded-lg text-slate-100 px-3 py-2 font-mono text-[12px] leading-[1.35]">${esc(c.fixed_code ?? '')}</textarea>
-
-          ${modeSolo ? `
-          <label for="f_hint" class="block text-[10px] uppercase tracking-wide mt-3 mb-1 opacity-70">Hint</label>
-          <textarea id="f_hint" rows="2" class="w-full bg-slate-950/70 border border-white/15 rounded-lg text-slate-100 px-3 py-2">${esc(c.hint ?? '')}</textarea>` : ''}
         </div>
       </div>
     </div>
@@ -619,8 +606,8 @@ const openEditModal = (c: any, type: 'solo' | '1v1') => {
         fixed_code: val('f_fix'),
       };
        if (modeSolo) {
-        payload.mode = val('f_mode') || 'fixbugs';
-        payload.hint = val('f_hint');
+        payload.mode = 'fixbugs';
+        payload.hint = null;
         // No reward_xp from UI; backend will recompute if difficulty changed
       }
 
@@ -666,13 +653,6 @@ const openCreateModal = (type: 'solo' | '1v1') => {
                 <option value="hard">Hard</option>
               </select>
             </div>
-            ${modeSolo ? `
-            <div>
-              <label for="c_mode" class="block text-[10px] uppercase tracking-wide opacity-70 mb-1">Mode</label>
-              <select id="c_mode" class="w-full bg-slate-950/70 border border-white/15 rounded-lg text-slate-100 px-3 py-2">
-                <option value="fixbugs">Fix Bugs</option>
-              </select>
-            </div>` : ''}
           </div>
         </div>
       </div>
@@ -686,10 +666,6 @@ const openCreateModal = (type: 'solo' | '1v1') => {
         <div class="rounded-lg border border-white/10 bg-white/5 p-3">
           <label for="c_fix" class="block text-[10px] uppercase tracking-wide opacity-70 mb-1">Fixed Code</label>
           <textarea id="c_fix" rows="7" placeholder="// fixed snippet here" class="w-full bg-slate-950/70 border border-white/15 rounded-lg text-slate-100 px-3 py-2 font-mono text-[12px] leading-[1.35]"></textarea>
-
-          ${modeSolo ? `
-          <label for="c_hint" class="block text-[10px] uppercase tracking-wide mt-3 mb-1 opacity-70">Hint</label>
-          <textarea id="c_hint" rows="2" placeholder="Small hint (optional)" class="w-full bg-slate-950/70 border border-white/15 rounded-lg text-slate-100 px-3 py-2"></textarea>` : ''}
         </div>
       </div>
     </div>
@@ -723,10 +699,10 @@ const openCreateModal = (type: 'solo' | '1v1') => {
         fixed_code: val('c_fix'),
       };
      if (modeSolo) {
-  payload.mode = val('c_mode') || 'fixbugs';
-  payload.hint = val('c_hint');
-  // No reward_xp from UI; backend will compute from difficulty
-}
+      payload.mode = 'fixbugs';
+      payload.hint = null;
+      // No reward_xp from UI; backend will compute from difficulty
+    }
 
       if (!payload.title) { Swal.showValidationMessage('Title is required'); return false as any; }
       return payload;
@@ -1292,18 +1268,6 @@ const openCreateModal = (type: 'solo' | '1v1') => {
 
               <form onSubmit={handleImportSubmit} className="p-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {activeTab === 'solo' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Mode</label>
-              <select
-                value={importMode}
-                onChange={(e) => setImportMode(e.target.value as any)}
-                className="w-full px-3 py-2 bg-gray-900 border border-gray-600 text-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500"
-              >
-                <option value="fixbugs">Fix Bugs</option>
-              </select>
-            </div>
-          )}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Language</label>
             <select

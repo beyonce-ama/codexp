@@ -236,8 +236,8 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {chip(`Success ${successRate}`, 'green')}
-                {chip(`${stats?.pending_duels ?? 0} Active Duels`, 'purple')}
+                {/* {chip(`Success ${successRate}`, 'green')}
+                {chip(`${stats?.pending_duels ?? 0} Active Duels`, 'purple')} */}
                 <button
                   onClick={() => fetchDashboardData(true)}
                   disabled={refreshing}
