@@ -112,7 +112,8 @@ class ChallengeSoloController extends Controller
             ]);
 
             // ENFORCE fixed reward by difficulty
-            $data['reward_xp']   = $this->rewardFor($data['difficulty']);
+           $data['hint']         = null; // enforce null hint
+            $data['reward_xp']    = $this->rewardFor($data['difficulty']);
             $data['payload_json'] = json_encode($data);
             $data['source_file']  = 'manual_create';
 
@@ -208,4 +209,36 @@ class ChallengeSoloController extends Controller
             'reward_xp','created_at','updated_at'
         ]));
     }
+    public function generateAI(Request $request)
+{
+    $data = $request->validate([
+        'language'   => 'required|in:python,java,cpp',
+        'difficulty' => 'required|in:easy,medium,hard',
+        'topic'      => 'nullable|string|max:120',
+    ]);
+
+    /** @var \App\Services\AzureOpenAIService $svc */
+    $svc = app(\App\Services\AzureOpenAIService::class);
+
+    try {
+        $challenge = $svc->generateChallenge($data['language'], $data['difficulty'], $data['topic'] ?? null);
+
+        // Hard-guard fields we support (ignore AI hint since you want null on save)
+        $out = [
+            'title'       => (string)($challenge['title'] ?? ''),
+            'description' => (string)($challenge['description'] ?? ''),
+            'buggy_code'  => (string)($challenge['buggy_code'] ?? ''),
+            'fixed_code'  => (string)($challenge['fixed_code'] ?? ''),
+            // 'hint' is intentionally omitted here for UI; we save null later
+        ];
+
+        return response()->json(['success' => true, 'data' => $out]);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], 422);
+    }
+}
+
 }
