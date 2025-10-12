@@ -317,10 +317,15 @@ const flattenAchievements = (root: any): SoloAchievementItem[] => {
     ? lbRes.data.data
     : [];
 
-  // ✅ capture season name if provided by backend
-  if (lbRes.data?.season?.name) {
-    setSeasonName(lbRes.data.season.name);
-  }
+// ✅ Extract and set the current season name from backend
+const seasonMeta =
+  (lbRes as any)?.season ??
+  (lbRes as any)?.data?.season ??
+  null;
+
+if (seasonMeta?.name) {
+  setSeasonName(seasonMeta.name);
+}
 
   const list = raw
     .map((u) => {
