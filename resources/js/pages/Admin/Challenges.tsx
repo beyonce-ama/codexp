@@ -710,6 +710,140 @@ const openCreateModal = (type: 'solo' | '1v1') => {
   })).then(r => { if (r.isConfirmed) submitCreate(r.value, serverActiveType || type); });
 
 };
+// --- AI Generate Solo ---
+const openGenerateModal = () => {
+  const body = `
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+      <div class="md:col-span-12 space-y-3">
+        <div class="rounded-lg border border-white/10 bg-white/5 p-3">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label for="g_lang" class="block text-[10px] uppercase tracking-wide opacity-70 mb-1">Language</label>
+              <select id="g_lang" class="w-full bg-slate-950/70 border border-white/15 rounded-lg text-slate-100 px-3 py-2">
+                <option value="python">Python</option>
+                <option value="java">Java</option>
+                <option value="cpp">C++</option>
+              </select>
+            </div>
+            <div>
+              <label for="g_diff" class="block text-[10px] uppercase tracking-wide opacity-70 mb-1">Difficulty</label>
+              <select id="g_diff" class="w-full bg-slate-950/70 border border-white/15 rounded-lg text-slate-100 px-3 py-2">
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+            </div>
+            <div>
+              <label for="g_topic" class="block text-[10px] uppercase tracking-wide opacity-70 mb-1">Topic (optional)</label>
+              <input id="g_topic" placeholder="e.g., arrays, file handling, STL" class="w-full bg-slate-950/70 border border-white/15 rounded-lg text-slate-100 px-3 py-2" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  Swal.fire(withTheme({
+    width: 720,
+    html: modalShell({
+      icon: '🤖',
+      title: 'Generate Solo Challenge',
+      subtitle: 'Pick parameters, then preview before saving',
+      bodyHTML: body,
+    }),
+    showCancelButton: true,
+    confirmButtonText: 'Generate',
+    customClass: {
+      popup: 'rounded-2xl !p-0 backdrop-blur-sm',
+      confirmButton: 'swal2-confirm !bg-indigo-600 hover:!bg-indigo-500 !rounded-lg !px-4 !py-2',
+      cancelButton: 'swal2-cancel !bg-white/10 hover:!bg-white/20 !text-white !rounded-lg !px-4 !py-2',
+      actions: '!px-5 !pb-4',
+    },
+    focusConfirm: false,
+    preConfirm: () => {
+      const val = (id: string) =>
+        (document.getElementById(id) as HTMLInputElement | HTMLSelectElement)?.value?.trim() ?? '';
+      const language = val('g_lang');
+      const difficulty = val('g_diff');
+      const topic = val('g_topic');
+      if (!language || !difficulty) { Swal.showValidationMessage('Language and difficulty are required'); return false as any; }
+      return { language, difficulty, topic: topic || null };
+    }
+  })).then(async r => {
+    if (!r.isConfirmed) return;
+    const { language, difficulty, topic } = r.value;
+
+    // Call backend to generate
+    const genRes = await apiClient.post('/api/challenges/solo/generate', { language, difficulty, topic });
+    if (!genRes?.success) {
+      Swal.fire('Error', genRes?.message || 'Failed to generate challenge', 'error');
+      return;
+    }
+    const g = genRes.data || {};
+
+    // Preview modal (note: we do NOT save "hint"; we’ll store null)
+    const preview = `
+      <div class="space-y-4">
+        <div class="flex flex-wrap gap-2">
+          ${pill('Language', displayLanguage(language))}
+          ${pill('Difficulty', String(difficulty).toUpperCase())}
+          ${pill('Mode', 'fixbugs')}
+          ${pill('Reward', String(difficulty === 'easy' ? 1 : difficulty === 'medium' ? 2 : 3))}
+        </div>
+        <div class="rounded-lg border border-white/10 bg-white/5 p-3">
+          <div class="text-[10px] uppercase tracking-wide opacity-70 mb-1">Title</div>
+          <div class="text-sm font-semibold">${esc(g.title ?? '')}</div>
+        </div>
+        <div class="rounded-lg border border-white/10 bg-white/5 p-3">
+          <div class="text-[10px] uppercase tracking-wide opacity-70 mb-1">Description</div>
+          <div class="text-sm leading-relaxed">${esc(g.description ?? '')}</div>
+        </div>
+        ${g.buggy_code ? codeBlock('Buggy Code', g.buggy_code) : ''}
+        ${g.fixed_code ? codeBlock('Fixed Code', g.fixed_code) : ''}
+      </div>
+    `;
+
+    Swal.fire(withTheme({
+      width: 960,
+      html: modalShell({
+        icon: '🧪',
+        title: 'Preview Generated Challenge',
+        subtitle: 'Review before saving to Solo',
+        bodyHTML: preview,
+      }),
+      showCancelButton: true,
+      confirmButtonText: 'Save to Solo',
+      customClass: {
+        popup: 'rounded-2xl !p-0 backdrop-blur-sm',
+        confirmButton: 'swal2-confirm !bg-emerald-600 hover:!bg-emerald-500 !rounded-lg !px-4 !py-2',
+        cancelButton: 'swal2-cancel !bg-white/10 hover:!bg-white/20 !text-white !rounded-lg !px-4 !py-2',
+        actions: '!px-5 !pb-4',
+      },
+    })).then(async rr => {
+      if (!rr.isConfirmed) return;
+
+      // Save using existing create endpoint
+      const payload = {
+        title: g.title ?? '',
+        description: g.description ?? '',
+        language,
+        difficulty,
+        buggy_code: g.buggy_code ?? '',
+        fixed_code: g.fixed_code ?? '',
+        mode: 'fixbugs',
+        hint: null, // per your rule: always null
+      };
+
+      const saveRes = await apiClient.post('/admin/challenges/api/challenges/solo', payload);
+      if (saveRes?.success) {
+        Swal.fire('Saved!', 'AI-generated challenge added.', 'success');
+        fetchChallenges();
+      } else {
+        Swal.fire('Error', saveRes?.message || 'Failed to save challenge', 'error');
+      }
+    });
+  });
+};
 
 
   const submitEdit = async (id: number, payload: any, type: 'solo' | '1v1') => {
@@ -806,23 +940,31 @@ const openCreateModal = (type: 'solo' | '1v1') => {
         </>
       }
       right={
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowImportModal(true)}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-cyan-600 text-white hover:bg-cyan-500"
-          >
-            <Upload className="h-4 w-4" />
-            <span>Import Solo</span>
-          </button>
-          <button
-            onClick={() => handleCreate()}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Create Solo</span>
-          </button>
-        </div>
-      }
+    <div className="flex gap-2">
+      <button
+        onClick={() => setShowImportModal(true)}
+        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-cyan-600 text-white hover:bg-cyan-500"
+      >
+        <Upload className="h-4 w-4" />
+        <span>Import Solo</span>
+      </button>
+      <button
+        onClick={() => openGenerateModal()}
+        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"
+      >
+        <Zap className="h-4 w-4" />
+        <span>Generate Solo</span>
+      </button>
+      <button
+        onClick={() => handleCreate()}
+        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500"
+      >
+        <Plus className="h-4 w-4" />
+        <span>Create Solo</span>
+      </button>
+    </div>
+  }
+
     />
 
     {/* SOLO STATS */}
