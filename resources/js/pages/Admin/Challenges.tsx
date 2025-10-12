@@ -830,7 +830,7 @@ const openCreateModal = (type: 'solo' | '1v1') => {
       title={
         <>
           <Target className="h-5 w-5 text-blue-400" />
-          <span className="text-white font-semibold">Solo Challenges</span>
+          <span className="text-white font-semibold">Training Challenges</span>
         </>
       }
       right={

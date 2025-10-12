@@ -194,7 +194,7 @@ const handleLogout = async () => {
     }
     return [
       { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
-      { title: 'Solo Challenge', href: '/play/solo', icon: Target },
+      { title: 'Training Challenge', href: '/play/solo', icon: Target },
       { title: 'AI Challenges', href: '/play/ai-challenges', icon: Brain },
       { title: 'Practice', href: '/play/practice', icon: BookOpen },
       { title: 'Invite Duel', href: '/play/duel', icon: Swords },

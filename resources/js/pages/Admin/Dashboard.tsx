@@ -303,11 +303,10 @@ export default function AdminDashboard() {
             }
           >
             {showPlatform && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 <StatTile icon={Target} label="Solo Attempts" value={stats?.total_solo_attempts ?? 0} tone="blue" />
                 <StatTile icon={CheckCircle} label="Success Rate" value={successRate} tone="green" />
                 <StatTile icon={GamepadIcon} label="Active Duels" value={stats?.pending_duels ?? 0} tone="purple" />
-                <StatTile icon={MessageSquare} label="Open Feedback" value={stats?.open_feedbacks ?? 0} tone="yellow" />
               </div>
             )}
           </Section>
@@ -400,7 +399,7 @@ export default function AdminDashboard() {
     <div className="space-y-8">
       {/* SOLO */}
       <div>
-        <h3 className="text-sm font-semibold text-white/70 mb-2">Solo Challenges</h3>
+        <h3 className="text-sm font-semibold text-white/70 mb-2">Training Challenges</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           <StatTile icon={BookOpen} label="Total Solo" value={stats?.total_solo_challenges ?? 0} tone="slate" />
           <StatTile icon={Code} label="Python" value={stats?.solo_python_challenges ?? 0} tone="blue" />

@@ -108,7 +108,7 @@ Route::get('/dashboard/stats', function () {
                 'participant_users' => $safeCountWhere('users', 'role', 'participant'),
                 'new_users_today'   => $safeCountWhereDate('users', 'created_at', today()),
 
-                // --- Solo Challenge Stats ---
+                // --- Training Challenge Stats ---
                 'total_solo_challenges'   => $safeCount('challenges_solo'),
                 'solo_python_challenges'  => $safeCountWhere('challenges_solo', 'language', 'python'),
                 'solo_java_challenges'    => $safeCountWhere('challenges_solo', 'language', 'java'),
@@ -271,7 +271,7 @@ Route::get('/dashboard/stats', function () {
                 // Import routes (ADMIN ONLY)
                 Route::post('/solo/import', [ChallengeSoloController::class, 'import']);
                 Route::post('/1v1/import', [Challenge1v1Controller::class, 'import']);
-                // SOLO challenge create + update
+                // Training Challenge create + update
                 Route::post('/solo', [ChallengeSoloController::class, 'store']);
                 Route::put('/solo/{id}', [ChallengeSoloController::class, 'update'])->whereNumber('id');
 

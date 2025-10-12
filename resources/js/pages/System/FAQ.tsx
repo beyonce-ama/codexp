@@ -24,15 +24,15 @@ interface FAQItem {
 const faqData: FAQItem[] = [
     {
         id: 1,
-        question: "How do I start a solo challenge?",
-        answer: "Navigate to 'Practice' > 'Solo Challenge' from the sidebar. Choose your preferred language, difficulty, and mode (Fix Bugs or Random), then click 'Start Challenge' on any available challenge.",
-        category: "Solo Challenges"
+        question: "How do I start a Training Challenge?",
+        answer: "Navigate to 'Practice' > 'Training Challenge' from the sidebar. Choose your preferred language, difficulty, and mode (Fix Bugs or Random), then click 'Start Challenge' on any available challenge.",
+        category: "Training Challenges"
     },
     {
         id: 2,
         question: "What's the difference between Fix Bugs and Random modes?",
         answer: "Fix Bugs mode presents you with buggy code that you need to debug and fix. Random mode gives you fresh coding problems to solve from scratch. Fix Bugs mode rewards 2.0 XP while Random mode rewards 3.5 XP.",
-        category: "Solo Challenges"
+        category: "Training Challenges"
     },
     {
         id: 3,
@@ -110,7 +110,7 @@ export default function FAQ() {
 
     const getCategoryIcon = (category: string) => {
         switch (category) {
-            case 'Solo Challenges': return Target;
+            case 'Training Challenges': return Target;
             case 'Duels': return Swords;
             case 'Scoring': return Star;
             case 'Technical': return Code;
@@ -123,7 +123,7 @@ export default function FAQ() {
 
     const getCategoryColor = (category: string) => {
         switch (category) {
-            case 'Solo Challenges': return 'text-cyan-400';
+            case 'Training Challenges': return 'text-cyan-400';
             case 'Duels': return 'text-red-400';
             case 'Scoring': return 'text-yellow-400';
             case 'Technical': return 'text-purple-400';

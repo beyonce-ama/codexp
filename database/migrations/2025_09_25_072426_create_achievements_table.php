@@ -10,7 +10,7 @@ return new class extends Migration {
             $t->id();
             $t->string('code')->unique();                 // e.g. SOLO_10
             $t->string('name');                           // e.g. "Solo Rookie"
-            $t->string('description')->nullable();        // e.g. "Complete 10 solo challenges"
+            $t->string('description')->nullable();        // e.g. "Complete 10 Training challenges"
             $t->enum('scope', ['SOLO','AI','PVP','LANG'])->default('SOLO');
             $t->unsignedInteger('threshold')->default(0); // e.g. 10
             $t->string('icon_key', 64)->nullable();       // e.g. "trophy-bronze"

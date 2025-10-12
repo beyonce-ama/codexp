@@ -149,7 +149,7 @@ export function AppSidebar() {
                 icon: BookOpen,
                 submenu: [
                     {
-                        title: 'Solo Challenge',
+                        title: 'Training Challenge',
                         href: '/play/solo',
                         icon: Target,
                     },

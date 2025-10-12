@@ -232,7 +232,7 @@ export default function AdminReports() {
                                 <h2 className="text-lg font-semibold text-gray-200 mb-4">Challenge Management</h2>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                     <StatCard
-                                        title="Solo Challenges"
+                                        title="Training Challenges"
                                         value={stats.total_solo_challenges}
                                         icon={BookOpen}
                                         color="blue"

@@ -19,7 +19,7 @@ import AnimatedBackground from '@/components/AnimatedBackground';
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Home', href: '/dashboard' },
     { title: 'Practice', href: '#' },
-    { title: 'Solo Challenge', href: '/play/solo' }
+    { title: 'Training Challenge', href: '/play/solo' }
 ];
 // === Design tokens that map to app.css (with safe fallbacks) ===
 const ui = {
@@ -270,27 +270,46 @@ useEffect(() => {
     }
     };
 
-    const fetchChallenges = async () => {
-        try {
-            setLoading(true);
-            const params: any = {};
-            if (modeFilter !== 'all') params.mode = modeFilter;
-            if (languageFilter !== 'all') params.language = languageFilter;
-            if (difficultyFilter !== 'all') params.difficulty = difficultyFilter;
-            if (searchTerm.trim()) params.search = searchTerm.trim();
+const fetchChallenges = async () => {
+  try {
+    setLoading(true);
 
-            const response = await apiClient.get('/api/challenges/solo', params);
-            if (response.success) {
-                const challengeData = response.data.data || response.data || [];
-                setChallenges(challengeData);
-            }
-        } catch (error) {
-            console.error('Error fetching challenges:', error);
-            setChallenges([]);
-        } finally {
-            setLoading(false);
-        }
+    // Always send explicit filter values (backend may relys on "all")
+    const params: any = {
+      mode: modeFilter || 'all',
+      language: languageFilter || 'all',
+      difficulty: difficultyFilter || 'all',
+      search: (searchTerm || '').trim(),
     };
+
+    const response = await apiClient.get('/api/challenges/solo', params);
+
+    if (response?.success) {
+      const raw = response.data?.data || response.data || [];
+
+      // Client-side fallback filter to guarantee correctness even if server ignores "all"
+      const filtered = raw.filter((c: any) => {
+        const langOk = languageFilter === 'all' || c.language === languageFilter;
+        const diffOk = difficultyFilter === 'all' || c.difficulty === difficultyFilter;
+        const modeOk = modeFilter === 'all' || c.mode === modeFilter;
+        const searchOk =
+          !searchTerm.trim() ||
+          (c.title || '').toLowerCase().includes(searchTerm.trim().toLowerCase());
+        return langOk && diffOk && modeOk && searchOk;
+      });
+
+      setChallenges(filtered);
+    } else {
+      setChallenges([]);
+    }
+  } catch (err) {
+    console.error('Error fetching challenges:', err);
+    setChallenges([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
     const fetchUserStats = async () => {
         try {
@@ -1119,7 +1138,7 @@ const showCodeModal = (title: string, code: string) => {
             )}
 
             <AppLayout breadcrumbs={breadcrumbs}>
-                <Head title="Solo Challenge" />
+                <Head title="Training Challenge" />
                 <div className={`flex flex-col gap-6 p-4 relative z-10 ${isShaking ? 'animate-shake' : ''}`}>
                     {/* Enhanced Header */}
                     <div className="flex items-center justify-between">
@@ -1127,7 +1146,7 @@ const showCodeModal = (title: string, code: string) => {
                             <Target className={`h-8 w-8 text-cyan-400 ${celebrationActive ? 'animate-spin' : ''} transition-all duration-300`} />
                             <div>
                                 <h1 className="text-2xl font-bold" >
-                                    SOLO CHALLENGE
+                                    Training Challenge
                                 </h1>
                                 <p className="text-gray-400 text-sm">Master coding challenges and level up your skills</p>
                             </div>

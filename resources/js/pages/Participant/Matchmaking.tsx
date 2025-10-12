@@ -64,6 +64,41 @@ type PollResponse =
   opponent: { id: number | null; name: string };
 };
 
+// Lightweight inline logos so we don't pull extra libs
+const LangIcon = ({ lang, className = "w-4 h-4" }: { lang: Lang; className?: string }) => {
+  switch (lang) {
+    case 'python':
+      return (
+        <svg viewBox="0 0 256 255" className={className} aria-hidden="true">
+          <path fill="#3776AB" d="M126.9 0c-15.8 0-28.7 13-28.7 28.7v23.3h57.6v11.6c0 15.8-12.9 28.7-28.7 28.7h-57c-15.8 0-28.7 12.9-28.7 28.7v43.7C41.4 202.6 62.8 224 89 224h19.5v-23.7c0-15.8 12.9-28.7 28.7-28.7h57c15.8 0 28.7-12.9 28.7-28.7V56.4C223 25.3 197.7 0 166.6 0h-39.7z"/>
+          <path fill="#FFD43B" d="M129.1 255.3c15.8 0 28.7-12.9 28.7-28.7v-23.3h-57.6v-11.6c0-15.8 12.9-28.7 28.7-28.7h57c15.8 0 28.7-12.9 28.7-28.7V90.7c0-33.9-21.4-55.3-47.6-55.3h-19.5v23.7c0 15.8-12.9 28.7-28.7 28.7h-57c-15.8 0-28.7 12.9-28.7 28.7v86.9c0 31.1 25.3 56.4 56.4 56.4h39.6z"/>
+        </svg>
+      );
+    case 'java':
+      return (
+        <svg viewBox="0 0 256 256" className={className} aria-hidden="true">
+          <path fill="#5382A1" d="M91 200s-8.3 4.8 5.9 6.4c17.1 2 25.8 1.7 44.7-1.9 0 0 5 3.1 12 5.8-42.9 18.4-97.1-1.1-62.6-10.3z"/>
+          <path fill="#E76F00" d="M81.6 176.6s-9.3 6.9 4.9 8.3c18.3 1.9 32.7 2 57.7-2.8 0 0 3.5 3.6 9.1 5.6-52.1 15.3-110.2 1.2-71.7-11.1z"/>
+          <path fill="#5382A1" d="M140.7 121.8c10.5 12-2.8 22.8-2.8 22.8s26.8-13.8 14.5-31c-11.5-16.2-20.4-24.2 27.5-51.8 0 0-75.1 18.7-39.2 60z"/>
+          <path fill="#E76F00" d="M199.9 213.6s6.1 5-6.7 8.8c-24.4 7.4-101.8 9.7-123.3 0-7.7-3.4 6.8-8.1 11.3-9.1 4.7-1.1 7.4-.9 7.4-.9-8.5-6-55.1 11.8-23.6 16.9 85.6 13.1 156-5.9 134.9-15.7z"/>
+          <path fill="#5382A1" d="M98.2 152.9s-39.1 9.3-13.8 12.7c10.6 1.4 31.7 1.1 51.5-.6 16.2-1.4 32.5-4.4 32.5-4.4s-5.7 2.4-9.8 5.1c-39.6 10.4-116.3 5.5-94.2-5 18.7-8.9 33.8-7.8 33.8-7.8z"/>
+        </svg>
+      );
+    case 'cpp':
+      return (
+        <svg viewBox="0 0 256 256" className={className} aria-hidden="true">
+          <path fill="#00599C" d="M128 0 14 64v128l114 64 114-64V64L128 0z"/>
+          <path fill="#004482" d="M128 0v256l114-64V64L128 0z"/>
+          <path fill="#659AD2" d="M14 64 128 0v256L14 192V64z"/>
+          <path fill="#FFF" d="M128 50a78 78 0 1 0 78 78h-28a50 50 0 1 1-50-50V50z"/>
+          <path fill="#FFF" d="M186 126h14v14h-14v14h-14v-14h-14v-14h14v-14h14v14zM214 126h14v14h-14v14h-14v-14h-14v-14h14v-14h14v14z"/>
+        </svg>
+      );
+    default:
+      return null;
+  }
+};
+
 const formatSecs = (s: number | null | undefined) => {
   if (!s && s !== 0) return '—';
   const m = Math.floor(s / 60);
@@ -303,8 +338,9 @@ const openHistory = async () => {
                         ].join(' ')}
                         aria-pressed={active}
                       >
-                        <Code2 className="w-4 h-4" />
+                        <LangIcon lang={opt.value} className="w-4 h-4" />
                         <span className="font-medium">{opt.label}</span>
+
                       </button>
                     );
                   })}
