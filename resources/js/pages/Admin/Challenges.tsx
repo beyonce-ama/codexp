@@ -774,7 +774,8 @@ const openGenerateModal = () => {
     const { language, difficulty, topic } = r.value;
 
     // Call backend to generate
-    const genRes = await apiClient.post('/api/challenges/solo/generate', { language, difficulty, topic });
+    const genRes = await apiClient.post('/admin/api/challenges/solo/generate', { language, difficulty, topic });
+
     if (!genRes?.success) {
       Swal.fire('Error', genRes?.message || 'Failed to generate challenge', 'error');
       return;
