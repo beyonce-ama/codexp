@@ -43,7 +43,7 @@ class User extends Authenticatable implements MustVerifyEmail // 👈 implement 
         'total_xp'          => 'decimal:2',
 
         // Seasonal
-        'season_xp'         => 'integer',
+        'season_xp'         => 'decimal:2', 
         'season_stars'      => 'integer',
         'crowns'            => 'integer',
         'last_season_id'    => 'integer',

@@ -180,15 +180,27 @@ class AchievementController extends Controller
         }
 
         DB::transaction(function () use ($uid, $ua, $ach) {
-            // credit rewards now
+            // Use decimal for XP (season_xp / total_xp are DECIMAL(10,2))
+            $xp = (float) ($ach->xp_reward ?? 0);
+            $xpDec = number_format($xp, 2, '.', ''); // e.g. "3.00"
+            $stars = (int) ($ach->stars_reward ?? 0);
+
             DB::table('users')->where('id', $uid)->update([
-                'stars'    => DB::raw('COALESCE(stars,0) + ' . (int) $ach->stars_reward),
-                'total_xp' => DB::raw('COALESCE(total_xp,0) + ' . (int) $ach->xp_reward),
+                // Lifetime
+                'total_xp'     => DB::raw('COALESCE(total_xp,0) + '.$xpDec),
+                'stars'        => DB::raw('COALESCE(stars,0) + '.$stars),
+
+                // Seasonal mirrors
+                'season_xp'    => DB::raw('COALESCE(season_xp,0) + '.$xpDec),
+                'season_stars' => DB::raw('COALESCE(season_stars,0) + '.$stars),
+
+                'updated_at'   => now(),
             ]);
 
             $ua->claimed_at = now();
             $ua->save();
         });
+
 
         return response()->json([
             'success' => true,

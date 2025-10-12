@@ -436,11 +436,18 @@ class DuelController extends Controller
             $winner = User::lockForUpdate()->find($duel->winner_id);
             if (!$winner) return;
 
+            // Lifetime XP (decimal) + Stars (int)
             $winner->total_xp = bcadd((string)$winner->total_xp, (string)$duel->winner_xp, 2);
             $winner->stars    = (int)$winner->stars + (int)$duel->winner_stars;
+
+            // SEASONAL: mirror the same awards
+            $winner->season_xp    = bcadd((string)$winner->season_xp, (string)$duel->winner_xp, 2);
+            $winner->season_stars = (float)$winner->season_stars + (int)$duel->winner_stars;
+
             $winner->save();
         });
     }
+
 
     private function bumpWinLoss(int $userId, string $language, bool $won): void
     {
@@ -461,9 +468,10 @@ class DuelController extends Controller
             : (int)$duel->challenger_id;
 
         if ($loserId > 0) {
-            User::whereKey($loserId)->update([
-                'stars' => DB::raw('GREATEST(COALESCE(stars,0) - 1, 0)')
-            ]);
+           User::whereKey($loserId)->update([
+    'stars'         => DB::raw('GREATEST(COALESCE(stars,0) - 1, 0)'),
+    'season_stars'  => DB::raw('GREATEST(COALESCE(season_stars,0) - 1, 0)'),
+]);
         }
     }
 

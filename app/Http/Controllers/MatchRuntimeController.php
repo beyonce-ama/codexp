@@ -360,19 +360,29 @@ class MatchRuntimeController extends Controller
             $xp    = (int) ($xpMap[strtolower((string)$m->difficulty)] ?? 3);
             $winnerStars = 1;
 
-            // Winner +XP, +1⭐; Loser −1⭐ (floored at 0)
-            DB::table('users')->where('id', $winnerId)->update([
-                'total_xp'   => DB::raw('COALESCE(total_xp,0) + '.$xp),
-                'stars'      => DB::raw('GREATEST(COALESCE(stars,0) + 1, 0)'),
-                'updated_at' => now(),
-            ]);
+            // format XP as decimal (e.g., 3.00) to play nice with DECIMAL(10,2)
+                $xpDec = number_format($xp, 2, '.', '');
 
-            if ($loserId) {
-                DB::table('users')->where('id', $loserId)->update([
-                    'stars'      => DB::raw('GREATEST(COALESCE(stars,0) - 1, 0)'),
-                    'updated_at' => now(),
+                // Winner: lifetime + seasonal
+                DB::table('users')->where('id', $winnerId)->update([
+                    // lifetime
+                    'total_xp'     => DB::raw('COALESCE(total_xp,0) + '.$xpDec),
+                    'stars'        => DB::raw('GREATEST(COALESCE(stars,0) + 1, 0)'),
+                    // seasonal
+                    'season_xp'    => DB::raw('COALESCE(season_xp,0) + '.$xpDec),
+                    'season_stars' => DB::raw('GREATEST(COALESCE(season_stars,0) + 1, 0)'),
+                    'updated_at'   => now(),
                 ]);
-            }
+
+                // Loser: lifetime + seasonal star penalty
+                if ($loserId) {
+                    DB::table('users')->where('id', $loserId)->update([
+                        'stars'        => DB::raw('GREATEST(COALESCE(stars,0) - 1, 0)'),
+                        'season_stars' => DB::raw('GREATEST(COALESCE(season_stars,0) - 1, 0)'),
+                        'updated_at'   => now(),
+                    ]);
+                }
+
 
             // user_language_stats (upsert + winrate)
             $this->updateLanguageStats($winnerId, $m->language, true);

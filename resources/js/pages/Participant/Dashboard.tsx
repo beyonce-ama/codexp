@@ -134,6 +134,7 @@ export default function ParticipantDashboard() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [soloAchievements, setSoloAchievements] = useState<SoloAchievementItem[]>([]);
   const [soloCompletedCount, setSoloCompletedCount] = useState<number>(0);
+  const [seasonName, setSeasonName] = useState<string>('Current Season');
 
 
 const scopeChipClass = (scope: string) => {
@@ -309,48 +310,45 @@ const flattenAchievements = (root: any): SoloAchievementItem[] => {
         setLastUpdated(new Date());
       }
 
-      // Map participants → leaderboard (compute level + rank)
-      if (lbRes?.success && Array.isArray(lbRes.data)) {
-        const raw = lbRes.data as Array<{
-          id: number;
-          name: string;
-          email: string;
-          // stars from USERS TABLE (preferred); API may flatten or nest—support both
-          stars?: number;
-          user?: { stars?: number };
-          total_xp?: number;
-          profile?: { username?: string; avatar?: string | null };
-          avatar?: string | null;
-        }>;
+     if (lbRes?.success) {
+  const raw = Array.isArray(lbRes.data)
+    ? lbRes.data
+    : Array.isArray(lbRes.data?.data)
+    ? lbRes.data.data
+    : [];
 
-const list = raw
-  .map((u) => {
-    const sxp   = Number((u as any).season_xp ?? 0);
-    const sstar = Number((u as any).season_stars ?? 0);
-    const crowns = Number((u as any).crowns ?? 0);
-    const lastRank = (u as any).last_season_rank ?? null;
+  // ✅ capture season name if provided by backend
+  if (lbRes.data?.season?.name) {
+    setSeasonName(lbRes.data.season.name);
+  }
 
-    const avatar = normalizeAvatar((u as any).avatar ?? u.profile?.avatar ?? null);
+  const list = raw
+    .map((u) => {
+      const sxp   = Number((u as any).total_xp ?? (u as any).season_xp ?? 0);
+      const sstar = Number((u as any).stars ?? (u as any).season_stars ?? 0);
+      const crowns = Number((u as any).crowns ?? 0);
+      const lastRank = (u as any).last_season_rank ?? null;
 
-    return {
-      id: u.id,
-      name: u.name,
-      email: u.email,
-      avatar,
-      // seasonal first-class citizens
-      total_xp: sxp,
-      stars: sstar,
-      level: Math.floor(sxp / 10) + 1,
-      crowns,
-      last_season_rank: lastRank,
-    };
-  })
-  .sort((a, b) => (b.total_xp - a.total_xp) || (b.stars - a.stars))
-  .map((u, i) => ({ ...u, rank: i + 1 }));
+      const avatar = normalizeAvatar((u as any).avatar ?? u.profile?.avatar ?? null);
 
+      return {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        avatar,
+        total_xp: sxp,
+        stars: sstar,
+        level: Math.floor(sxp / 10) + 1,
+        crowns,
+        last_season_rank: lastRank,
+      };
+    })
+    .sort((a, b) => (b.total_xp - a.total_xp) || (b.stars - a.stars))
+    .map((u, i) => ({ ...u, rank: i + 1 }));
 
-        setLeaderboard(list);
-      }
+  setLeaderboard(list);
+}
+
     } catch (err) {
       console.error('Error fetching dashboard/leaderboard:', err);
     } finally {
@@ -942,13 +940,17 @@ const handleClaim = async (achievementId: number) => {
 <div className="xl:col-span-1">
 
   {/* Leaderboard FIRST (sticky) */}
-  <Section
-    title={
+ <Section
+  title={
+    <div className="flex flex-col">
       <div className="flex items-center gap-2">
         <Trophy className="h-5 w-5 text-yellow-400" />
         <span>Leaderboard</span>
       </div>
-    }
+      <span className="text-xs text-slate-400 mt-1">{seasonName}</span>
+    </div>
+  }
+
     right={<span className="text-xs text-slate-400">XP • Stars</span>}
     className="xl:sticky xl:top-4 xl:self-start"
   >
