@@ -323,30 +323,31 @@ const flattenAchievements = (root: any): SoloAchievementItem[] => {
           avatar?: string | null;
         }>;
 
-       const list = raw
+const list = raw
   .map((u) => {
-    const xp = Number(u.total_xp ?? 0);
-    const starsFromUsers = u.user?.stars;
-    const starsFlat = u.stars;
-    const stars = Number(starsFromUsers ?? starsFlat ?? 0);
+    const sxp   = Number((u as any).season_xp ?? 0);
+    const sstar = Number((u as any).season_stars ?? 0);
+    const crowns = Number((u as any).crowns ?? 0);
+    const lastRank = (u as any).last_season_rank ?? null;
 
-    // prefer top-level users.avatar, then profile.avatar; don't use *_url here
-    const avatar = normalizeAvatar(
-      (u as any).avatar ?? u.profile?.avatar ?? null
-    );
+    const avatar = normalizeAvatar((u as any).avatar ?? u.profile?.avatar ?? null);
 
     return {
       id: u.id,
       name: u.name,
       email: u.email,
-      avatar, // <- store as 'avatar'
-      total_xp: xp,
-      stars,
-      level: Math.floor(xp / 10) + 1, // Level 1 starts at 0 XP
+      avatar,
+      // seasonal first-class citizens
+      total_xp: sxp,
+      stars: sstar,
+      level: Math.floor(sxp / 10) + 1,
+      crowns,
+      last_season_rank: lastRank,
     };
   })
   .sort((a, b) => (b.total_xp - a.total_xp) || (b.stars - a.stars))
   .map((u, i) => ({ ...u, rank: i + 1 }));
+
 
         setLeaderboard(list);
       }

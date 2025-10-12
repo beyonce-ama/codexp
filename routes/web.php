@@ -21,9 +21,8 @@ use App\Http\Controllers\AIChallengeController;
 use App\Http\Controllers\MatchmakingController;
 use App\Http\Controllers\MatchRuntimeController;
 use App\Http\Controllers\SoloUsageController;
-
-use App\Http\Controllers\Auth\RegisteredUserController;
-use App\Http\Controllers\PracticeController;
+use App\Models\Season;
+use App\Models\UserSeason;
 
 
 // Home (Welcome) Page
@@ -361,44 +360,89 @@ Route::get('/api/test-challenges', [\App\Http\Controllers\Challenge1v1Controller
     Route::post('/api/ai-challenges/submit-attempt', [AIChallengeController::class, 'submitAttempt']);
     Route::post('/api/ai-challenges/surrender',       [AIChallengeController::class, 'surrenderAttempt']);
     // Get participants for duels (accessible to all authenticated users)
-   Route::get('/api/users/participants', function () {
-    try {
-        $participants = User::where('role', 'participant')
-            ->orderByDesc('total_xp')
-            ->orderByDesc('stars')
-            ->get(['id','name','email','stars','total_xp','avatar']); // <-- include avatar
 
-        $data = $participants->map(function (User $u) {
-            // Normalize to a browser-usable URL
-            $avatar = $u->avatar; // e.g. 'avatars/girl1.png'
-            if ($avatar) {
-                if (preg_match('#^(https?://|data:)#i', $avatar)) {
-                    // already absolute
-                } else {
-                    // If stored under public/avatars/* => asset('avatars/..')
-                    // If stored under storage/app/public/avatars/* => asset('storage/avatars/..') + run "php artisan storage:link"
-                    $avatar = asset($avatar); // adjust to asset('storage/'.$avatar) if needed
-                }
-            } else {
-                $avatar = null;
+Route::get('/api/users/participants', function (Request $request) {
+    try {
+        $which = strtolower((string)$request->query('season', 'current')); // 'current' | 'last'
+
+        // Helper: normalize avatar to a usable URL
+        $normalizeAvatar = function (?string $avatar) {
+            if (!$avatar) return null;
+            if (preg_match('#^(https?://|data:)#i', $avatar)) {
+                return $avatar; // already absolute
+            }
+            // If stored under public/* just use asset($avatar)
+            // If stored under storage/app/public/* store path like "storage/avatars/.."
+            return asset($avatar);
+        };
+
+        if ($which === 'last') {
+            // Use the most recent *finished* season
+            $lastSeasonId = Season::where('is_active', false)->max('season_id');
+            if (!$lastSeasonId) {
+                return response()->json(['success' => true, 'data' => []]);
             }
 
+            // Read snapshot from user_seasons
+            $rows = UserSeason::with(['user:id,name,email,avatar,crowns,last_season_rank'])
+                ->where('season_id', $lastSeasonId)
+                ->get();
+
+            // Sort by snapshot season_xp desc, then season_stars desc
+            $rows = $rows->sortBy(function ($r) {
+                return sprintf(
+                    '%010d-%010d-%010d',
+                    9999999999 - (int)$r->season_xp,
+                    9999999999 - (int)$r->season_stars,
+                    (int)$r->user_id
+                );
+            })->values();
+
+            $data = $rows->map(function (UserSeason $us, $i) use ($normalizeAvatar) {
+                $u = $us->user;
+                return [
+                    'id'                => $u->id,
+                    'name'              => $u->name,
+                    'email'             => $u->email,
+                    'avatar'            => $normalizeAvatar($u->avatar ?? null),
+                    // expose snapshot fields under the same keys your frontend expects
+                    'total_xp'          => (int)$us->season_xp,
+                    'stars'             => (int)$us->season_stars,
+                    'rank'              => (int)($us->final_rank ?? ($i + 1)),
+                    'crowns'            => (int)($u->crowns ?? 0),
+                    'last_season_rank'  => (int)($u->last_season_rank ?? null),
+                ];
+            });
+
+            return response()->json(['success' => true, 'data' => $data]);
+        }
+
+        // === CURRENT SEASON (live counters from users table) ===
+        $participants = User::where('role', 'participant')
+            ->orderByDesc('season_xp')
+            ->orderByDesc('season_stars')
+            ->get(['id','name','email','avatar','season_xp','season_stars','crowns','last_season_rank']);
+
+        $data = $participants->map(function (User $u) use ($normalizeAvatar) {
             return [
-                'id'       => $u->id,
-                'name'     => $u->name,
-                'email'    => $u->email,
-                'stars'    => (int)($u->stars ?? 0),
-                'total_xp' => (float)($u->total_xp ?? 0),
-                'avatar'   => $avatar, // <-- RETURN IT
+                'id'               => $u->id,
+                'name'             => $u->name,
+                'email'            => $u->email,
+                'avatar'           => $normalizeAvatar($u->avatar ?? null),
+                'total_xp'         => (int)($u->season_xp ?? 0),     // seasonal XP
+                'stars'            => (int)($u->season_stars ?? 0),  // seasonal Stars
+                'crowns'           => (int)($u->crowns ?? 0),        // lifetime crowns
+                'last_season_rank' => $u->last_season_rank,          // for crown badge
             ];
         });
 
         return response()->json(['success' => true, 'data' => $data]);
     } catch (\Throwable $e) {
-        Log::error('participants error', ['ex' => $e->getMessage()]);
+        Log::error('participants error', ['ex' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
         return response()->json(['success' => false, 'message' => 'Error fetching participants'], 500);
     }
 });
+
 // Solo tracking routes
 
     /**

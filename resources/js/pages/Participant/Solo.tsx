@@ -279,7 +279,9 @@ const fetchChallenges = async () => {
     if (languageFilter && languageFilter !== 'all') params.language = languageFilter;
     if (difficultyFilter && difficultyFilter !== 'all') params.difficulty = difficultyFilter;
     if (searchTerm?.trim()) params.search = searchTerm.trim();
-
+    if (languageFilter === 'all' && difficultyFilter !== 'all') {
+    params.per_page = 500;          
+    }
     const response = await apiClient.get('/api/challenges/solo', params);
 
     if (response?.success) {
@@ -1133,7 +1135,7 @@ const showCodeModal = (title: string, code: string) => {
                             <Target className={`h-8 w-8 text-cyan-400 ${celebrationActive ? 'animate-spin' : ''} transition-all duration-300`} />
                             <div>
                                 <h1 className="text-2xl font-bold" >
-                                    Training Challenge
+                                    TRAINING CHALLENGES
                                 </h1>
                                 <p className="text-gray-400 text-sm">Master coding challenges and level up your skills</p>
                             </div>
