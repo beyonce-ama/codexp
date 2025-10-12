@@ -468,13 +468,9 @@ const modalShell = (opts: {
  
 
  const openViewModal = (c: any) => {
-const fixedByDiff = (d: string) => (d === 'easy' ? 1 : d === 'medium' ? 2 : d === 'hard' ? 3 : 0);
-const rewardVal = (c.reward_xp ?? fixedByDiff(String(c.difficulty || '')));
 const meta = [
   c.language ? pill('Language', displayLanguage(String(c.language))) : '',
   c.difficulty ? pill('Difficulty', String(c.difficulty).toUpperCase()) : '',
-  c.mode ? pill('Mode', String(c.mode)) : '',
-  pill('Reward', String(rewardVal)),
 ].filter(Boolean).join(' ');
 
 

@@ -292,6 +292,7 @@ class MatchRuntimeController extends Controller
         ], $payload));
     }
 
+    
     /**
      * POST /api/match/{match}/surrender
      */
@@ -305,8 +306,7 @@ class MatchRuntimeController extends Controller
         // Finish + set winner in service
         $svc->surrender(matchId: (int)$match->id, userId: (int)$userId);
 
-        // Auto-award now that we have a winner
-        $this->awardInternal((int)$match->id);
+        $this->awardSurrenderLight((int)$match->id);
 
         // Cache message
         Cache::put("match:{$match->id}:last_attempt", [
@@ -317,6 +317,76 @@ class MatchRuntimeController extends Controller
         ], now()->addMinutes(10));
 
         return response()->json(['ok' => true]);
+    }
+
+
+
+    /**
+     * Lightweight award used for surrenders:
+     * - Winner gets only 1 XP (lifetime + seasonal)
+     * - Loser loses 1 star (lifetime + seasonal)
+     * - Updates language stats, duels_taken, and achievements similarly to full award
+     * - Marks match.payload.awarded = true to keep idempotency
+     */
+    private function awardSurrenderLight(int $match): array
+    {
+        return DB::transaction(function () use ($match) {
+            /** @var \App\Models\MatchModel $m */
+            $m = MatchModel::lockForUpdate()->findOrFail($match);
+
+            if ($m->status !== 'finished' || empty($m->winner_user_id)) {
+                return ['ok' => false, 'reason' => 'not_finished'];
+            }
+
+            $meta = is_array($m->payload ?? null) ? $m->payload : [];
+            if (!empty($meta['awarded'])) {
+                return ['ok' => true, 'already' => true];
+            }
+
+            // Participants
+            $p = DB::table('match_participants')->where('match_id', $m->id)->pluck('user_id')->all();
+            $winnerId = (int) $m->winner_user_id;
+            $loserId  = (int) collect($p)->first(fn ($id) => (int)$id !== $winnerId);
+
+            // Surrender-specific tiny reward
+            $xp = 1;
+            $xpDec = number_format($xp, 2, '.', ''); // e.g. "1.00"
+
+            // Winner: give only +1 XP (lifetime + seasonal), no star increment
+            DB::table('users')->where('id', $winnerId)->update([
+                'total_xp'     => DB::raw('COALESCE(total_xp,0) + '.$xpDec),
+                'season_xp'    => DB::raw('COALESCE(season_xp,0) + '.$xpDec),
+                'updated_at'   => now(),
+            ]);
+
+            // Loser: -1 star (lifetime + seasonal)
+            if ($loserId) {
+                DB::table('users')->where('id', $loserId)->update([
+                    'stars'        => DB::raw('GREATEST(COALESCE(stars,0) - 1, 0)'),
+                    'season_stars' => DB::raw('GREATEST(COALESCE(season_stars,0) - 1, 0)'),
+                    'updated_at'   => now(),
+                ]);
+            }
+
+            // user_language_stats (upsert + winrate)
+            $this->updateLanguageStats($winnerId, $m->language, true);
+            if ($loserId) $this->updateLanguageStats($loserId, $m->language, false);
+
+            // duels_taken rows for LIVE — set xp_earned to 1 for winner, stars_earned = 0
+            $this->markLiveFinishedRows($m, $winnerId, $loserId, $xp, 0);
+
+            // Mark awarded for idempotency
+            $meta['awarded'] = true;
+            $meta['surrender_light_awarded'] = true;
+            $m->payload = $meta;
+            $m->save();
+
+            // PVP achievements (invite + live combined)
+            $this->checkPvpAchievementsFor($winnerId);
+            if ($loserId) $this->checkPvpAchievementsFor($loserId);
+
+            return ['ok' => true, 'xp' => $xp, 'surrender' => true];
+        });
     }
 
     /**
