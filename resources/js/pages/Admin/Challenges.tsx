@@ -1073,7 +1073,7 @@ const openGenerateModal = (type: 'solo' | '1v1' = 'solo') => {
                       <th className="px-6 py-3 text-left text-xs font-bold text-cyan-400 uppercase">Challenge</th>
                       <th className="px-6 py-3 text-left text-xs font-bold text-cyan-400 uppercase">Language</th>
                       <th className="px-6 py-3 text-left text-xs font-bold text-cyan-400 uppercase">Difficulty</th>
-                      {activeTab === 'solo' && <th className="px-6 py-3 text-left text-xs font-bold text-cyan-400 uppercase">Mode</th>}
+                      {/* {activeTab === 'solo' && <th className="px-6 py-3 text-left text-xs font-bold text-cyan-400 uppercase">Mode</th>} */}
                       <th className="px-6 py-3 text-left text-xs font-bold text-cyan-400 uppercase">Created</th>
                       <th className="px-6 py-3 text-right text-xs font-bold text-cyan-400 uppercase">Actions</th>
                     </tr>
