@@ -468,12 +468,15 @@ const modalShell = (opts: {
  
 
  const openViewModal = (c: any) => {
-  const meta = [
-   c.language ? pill('Language', displayLanguage(String(c.language))) : '',
-    c.difficulty ? pill('Difficulty', String(c.difficulty).toUpperCase()) : '',
-    c.mode ? pill('Mode', String(c.mode)) : '',
-    c.reward_xp != null ? pill('Reward', String(c.reward_xp)) : '',
-  ].filter(Boolean).join(' ');
+const fixedByDiff = (d: string) => (d === 'easy' ? 1 : d === 'medium' ? 2 : d === 'hard' ? 3 : 0);
+const rewardVal = (c.reward_xp ?? fixedByDiff(String(c.difficulty || '')));
+const meta = [
+  c.language ? pill('Language', displayLanguage(String(c.language))) : '',
+  c.difficulty ? pill('Difficulty', String(c.difficulty).toUpperCase()) : '',
+  c.mode ? pill('Mode', String(c.mode)) : '',
+  pill('Reward', String(rewardVal)),
+].filter(Boolean).join(' ');
+
 
   const body = `
     <div class="space-y-4">
@@ -564,10 +567,7 @@ const openEditModal = (c: any, type: 'solo' | '1v1') => {
                 <option value="fixbugs" ${c.mode==='fixbugs'?'selected':''}>Fix Bugs</option>
               </select>
             </div>
-            <div>
-              <label for="f_reward" class="block text-[10px] uppercase tracking-wide opacity-70 mb-1">Reward XP</label>
-              <input id="f_reward" type="number" step="1" min="0" class="w-full bg-slate-950/70 border border-white/15 rounded-lg text-slate-100 px-3 py-2" value="${esc(c.reward_xp ?? 0)}" />
-            </div>` : ''}
+            <div>` : ''}
           </div>
         </div>
       </div>
@@ -618,12 +618,12 @@ const openEditModal = (c: any, type: 'solo' | '1v1') => {
         buggy_code: val('f_bug'),
         fixed_code: val('f_fix'),
       };
-      if (modeSolo) {
+       if (modeSolo) {
         payload.mode = val('f_mode') || 'fixbugs';
         payload.hint = val('f_hint');
-        const xp = Number((document.getElementById('f_reward') as HTMLInputElement)?.value || '0');
-        payload.reward_xp = Number.isFinite(xp) && xp >= 0 ? Math.floor(xp) : 0;
+        // No reward_xp from UI; backend will recompute if difficulty changed
       }
+
       if (!payload.title) { Swal.showValidationMessage('Title is required'); return false as any; }
       return payload;
     }
@@ -672,10 +672,6 @@ const openCreateModal = (type: 'solo' | '1v1') => {
               <select id="c_mode" class="w-full bg-slate-950/70 border border-white/15 rounded-lg text-slate-100 px-3 py-2">
                 <option value="fixbugs">Fix Bugs</option>
               </select>
-            </div>
-            <div>
-              <label for="c_reward" class="block text-[10px] uppercase tracking-wide opacity-70 mb-1">Reward XP</label>
-              <input id="c_reward" type="number" step="1" min="0" value="0" class="w-full bg-slate-950/70 border border-white/15 rounded-lg text-slate-100 px-3 py-2" />
             </div>` : ''}
           </div>
         </div>
@@ -726,12 +722,12 @@ const openCreateModal = (type: 'solo' | '1v1') => {
         buggy_code: val('c_bug'),
         fixed_code: val('c_fix'),
       };
-      if (modeSolo) {
-        payload.mode = val('c_mode') || 'fixbugs';
-        payload.hint = val('c_hint');
-        const xp = Number((document.getElementById('c_reward') as HTMLInputElement)?.value || '0');
-        payload.reward_xp = Number.isFinite(xp) && xp >= 0 ? Math.floor(xp) : 0;
-      }
+     if (modeSolo) {
+  payload.mode = val('c_mode') || 'fixbugs';
+  payload.hint = val('c_hint');
+  // No reward_xp from UI; backend will compute from difficulty
+}
+
       if (!payload.title) { Swal.showValidationMessage('Title is required'); return false as any; }
       return payload;
     }

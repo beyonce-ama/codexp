@@ -7,65 +7,75 @@ use App\Models\ChallengeSolo;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
-
 class ChallengeSoloController extends Controller
 {
     public function index(Request $request)
-{
-    $q = ChallengeSolo::query();
+    {
+        $q = ChallengeSolo::query();
 
-   if ($request->filled('mode') && $request->mode !== 'all') {
-    $q->where('mode', $request->mode);
-}
-if ($request->filled('language') && $request->language !== 'all') {
-    $q->where('language', $request->language);
-}
-if ($request->filled('difficulty') && $request->difficulty !== 'all') {
-    $q->where('difficulty', $request->difficulty);
-}
+        if ($request->filled('mode') && $request->mode !== 'all') {
+            $q->where('mode', $request->mode);
+        }
+        if ($request->filled('language') && $request->language !== 'all') {
+            $q->where('language', $request->language);
+        }
+        if ($request->filled('difficulty') && $request->difficulty !== 'all') {
+            $q->where('difficulty', $request->difficulty);
+        }
 
+        // search by title or description
+        if ($request->filled('search')) {
+            $term = trim($request->input('search'));
+            $q->where(function($qq) use ($term) {
+                $qq->where('title', 'LIKE', "%{$term}%")
+                   ->orWhere('description', 'LIKE', "%{$term}%");
+            });
+        }
 
-    // NEW: search by title or description
-    if ($request->filled('search')) {
-        $term = trim($request->input('search'));
-        $q->where(function($qq) use ($term) {
-            $qq->where('title', 'LIKE', "%{$term}%")
-               ->orWhere('description', 'LIKE', "%{$term}%");
-        });
+        // Determine if any real filters/search are applied (excluding "all")
+        $hasFilters =
+            ($request->filled('mode') && $request->mode !== 'all') ||
+            ($request->filled('language') && $request->language !== 'all') ||
+            ($request->filled('difficulty') && $request->difficulty !== 'all') ||
+            $request->filled('search');
+
+        if ($hasFilters) {
+            // keep pagination for filtered/search results
+            $perPage = (int) $request->input('per_page', 20);
+            $data = $q->latest()->paginate($perPage);
+        } else {
+            // when ALL filters, return the entire list (no pagination)
+            $data = $q->latest()->get();
+        }
+
+        return response()->json(['success' => true, 'data' => $data]);
     }
 
-   // Determine if any real filters/search are applied (excluding "all")
-$hasFilters =
-    ($request->filled('mode') && $request->mode !== 'all') ||
-    ($request->filled('language') && $request->language !== 'all') ||
-    ($request->filled('difficulty') && $request->difficulty !== 'all') ||
-    $request->filled('search');
-
-if ($hasFilters) {
-    // keep pagination for filtered/search results
-    $perPage = (int) $request->input('per_page', 20);
-    $data = $q->latest()->paginate($perPage);
-} else {
-    // when ALL filters, return the entire list (no pagination)
-    $data = $q->latest()->get();
-}
-
-return response()->json(['success' => true, 'data' => $data]);
-
-}
+    /** Fixed reward mapping */
+    private function rewardFor(string $difficulty): int
+    {
+        return match ($difficulty) {
+            'easy'   => 1,
+            'medium' => 2,
+            'hard'   => 3,
+            default  => 0,
+        };
+    }
 
     // Admin JSON import (array of items)
     public function import(Request $request)
     {
         $data = $request->validate([
             'mode'        => 'required|in:fixbugs,random',
-            'language'    => 'required|in:python,java,cpp', 
+            'language'    => 'required|in:python,java,cpp',
             'difficulty'  => 'required|in:easy,medium,hard',
             'source_file' => 'nullable|string',
             'items'       => 'required|array'
         ]);
 
         $created = [];
+        $fixedReward = $this->rewardFor($data['difficulty']);
+
         foreach ($data['items'] as $item) {
             $created[] = ChallengeSolo::create([
                 'mode'        => $data['mode'],
@@ -76,95 +86,97 @@ return response()->json(['success' => true, 'data' => $data]);
                 'buggy_code'  => $item['buggy_code'] ?? null,
                 'fixed_code'  => $item['fixed_code'] ?? null,
                 'hint'        => $item['hint'] ?? null,
-                'payload_json'=> $item,
+                'payload_json'=> json_encode($item),
                 'source_file' => $data['source_file'] ?? null,
-                'reward_xp'   => ($data['mode']==='random') ? 3.50 : 2.00,
+                // ENFORCE fixed reward by difficulty (ignore any reward in input)
+                'reward_xp'   => $fixedReward,
             ]);
         }
 
         return response()->json(['success'=>true,'count'=>count($created),'data'=>$created], 201);
     }
-    
 
-public function store(Request $request)
-{
-    try {
-        $data = $request->validate([
-            'language' => 'required|string',
-            'difficulty' => 'required|string',
-            'title' => 'required|string',
-            'description' => 'nullable|string',
-            'buggy_code' => 'nullable|string',
-            'fixed_code' => 'nullable|string',
-            'hint' => 'nullable|string',
-            'mode' => 'nullable|string',
-            'reward_xp' => 'nullable|integer',
-        ]);
+    public function store(Request $request)
+    {
+        try {
+            $data = $request->validate([
+                'language'    => 'required|in:python,java,cpp',
+                'difficulty'  => 'required|in:easy,medium,hard',
+                'title'       => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'buggy_code'  => 'nullable|string',
+                'fixed_code'  => 'nullable|string',
+                'hint'        => 'nullable|string',
+                'mode'        => 'nullable|in:fixbugs,random',
+                // 'reward_xp'  => (ignored on purpose)
+            ]);
 
-        $challenge = \App\Models\ChallengeSolo::create([
-            ...$data,
-            'reward_xp' => $data['reward_xp'] ?? 0,
-            'payload_json' => json_encode($data),
-            'source_file' => 'manual_create',
-        ]);
+            // ENFORCE fixed reward by difficulty
+            $data['reward_xp']   = $this->rewardFor($data['difficulty']);
+            $data['payload_json'] = json_encode($data);
+            $data['source_file']  = 'manual_create';
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Challenge created successfully',
-            'data' => $challenge,
-        ]);
-    } catch (\Throwable $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to create challenge: ' . $e->getMessage(),
-        ], 500);
+            $challenge = ChallengeSolo::create($data);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Challenge created successfully',
+                'data'    => $challenge,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create challenge: ' . $e->getMessage(),
+            ], 500);
+        }
     }
-}
 
+    public function update(Request $request, $id)
+    {
+        $challenge = ChallengeSolo::findOrFail($id);
 
-public function update(Request $request, $id)
-{
-    $challenge = \App\Models\ChallengeSolo::findOrFail($id);
+        $data = $request->validate([
+            'title'       => 'sometimes|string|max:255',
+            'description' => 'nullable|string',
+            'language'    => 'sometimes|in:python,java,cpp',
+            'difficulty'  => 'sometimes|in:easy,medium,hard',
+            'buggy_code'  => 'nullable|string',
+            'fixed_code'  => 'nullable|string',
+            'mode'        => 'sometimes|in:fixbugs,random',
+            'hint'        => 'nullable|string',
+            // 'reward_xp' => (ignored)
+        ]);
 
-    $data = $request->validate([
-        'title' => 'sometimes|string|max:255',
-        'description' => 'nullable|string',
-        'language' => 'sometimes|in:python,java,cpp',
-        'difficulty' => 'sometimes|in:easy,medium,hard',
-        'buggy_code' => 'nullable|string',
-        'fixed_code' => 'nullable|string',
-        'mode' => 'sometimes|in:fixbugs',
-        'hint' => 'nullable|string',
-        'reward_xp' => 'nullable|numeric',
-    ]);
+        // If difficulty provided, recompute reward_xp; otherwise keep the old one
+        if (array_key_exists('difficulty', $data)) {
+            $data['reward_xp'] = $this->rewardFor($data['difficulty']);
+        }
 
-    $challenge->update($data);
+        $challenge->update($data);
 
-    return response()->json(['success' => true, 'data' => $challenge]);
-}
-
+        return response()->json(['success' => true, 'data' => $challenge]);
+    }
 
     public function destroy(int $id)
     {
         ChallengeSolo::findOrFail($id)->delete();
         return response()->json(['success'=>true]);
     }
+
     public function create()
     {
         return Inertia::render('Admin/Challenges', [
             'adminMode'  => 'create',
             'activeType' => 'solo',
-            // you can pass dropdown meta if you’ll use it:
-           'meta' => [
-                'languages' => ['python','java','cpp'], // ← added cpp
+            'meta' => [
+                'languages'    => ['python','java','cpp'],
                 'difficulties' => ['easy','medium','hard'],
-                'modes' => ['fixbugs'],
+                'modes'        => ['fixbugs','random'],
             ],
-
         ]);
     }
 
-    public function show(\App\Models\ChallengeSolo $challenge)
+    public function show(ChallengeSolo $challenge)
     {
         return Inertia::render('Admin/Challenges', [
             'adminMode'  => 'view',
@@ -173,22 +185,22 @@ public function update(Request $request, $id)
         ]);
     }
 
-    public function edit(\App\Models\ChallengeSolo $challenge)
+    public function edit(ChallengeSolo $challenge)
     {
         return Inertia::render('Admin/Challenges', [
             'adminMode'  => 'edit',
             'activeType' => 'solo',
             'challenge'  => $challenge,
             'meta' => [
-                'languages' => ['python','java','cpp'],
+                'languages'    => ['python','java','cpp'],
                 'difficulties' => ['easy','medium','hard'],
-                'modes' => ['fixbugs'],
+                'modes'        => ['fixbugs','random'],
             ],
         ]);
     }
 
-// optional for Download button
-    public function export(\App\Models\ChallengeSolo $challenge)
+    // optional for Download button
+    public function export(ChallengeSolo $challenge)
     {
         return response()->json($challenge->only([
             'id','mode','language','difficulty','title','description',
@@ -196,5 +208,4 @@ public function update(Request $request, $id)
             'reward_xp','created_at','updated_at'
         ]));
     }
-
 }

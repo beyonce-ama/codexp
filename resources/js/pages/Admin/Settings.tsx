@@ -263,7 +263,7 @@ export default function AdminSettings() {
                         type="email"
                         value={settings.admin_email}
                         onChange={(value) => setSettings(prev => ({ ...prev, admin_email: value }))}
-                        placeholder="admin@example.com"
+                        placeholder="you@example.com"
                     />
                     <div className="md:col-span-2">
                         <InputField
