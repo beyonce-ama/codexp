@@ -34,7 +34,24 @@ if ($request->filled('difficulty') && $request->difficulty !== 'all') {
         });
     }
 
-    return response()->json(['success'=>true,'data'=>$q->latest()->paginate(20)]);
+   // Determine if any real filters/search are applied (excluding "all")
+$hasFilters =
+    ($request->filled('mode') && $request->mode !== 'all') ||
+    ($request->filled('language') && $request->language !== 'all') ||
+    ($request->filled('difficulty') && $request->difficulty !== 'all') ||
+    $request->filled('search');
+
+if ($hasFilters) {
+    // keep pagination for filtered/search results
+    $perPage = (int) $request->input('per_page', 20);
+    $data = $q->latest()->paginate($perPage);
+} else {
+    // when ALL filters, return the entire list (no pagination)
+    $data = $q->latest()->get();
+}
+
+return response()->json(['success' => true, 'data' => $data]);
+
 }
 
     // Admin JSON import (array of items)
