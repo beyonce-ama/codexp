@@ -596,9 +596,24 @@ const handleClaim = async (achievementId: number) => {
               </p>
             </div>
             <div className="flex items-center gap-3">
-            {myRank != null && <StatPill icon={Medal} label="Rank" value={`#${myRank}`} />}
-            <StatPill icon={Star} label="Stars" value={myStars} />
-            <StatPill icon={Zap} label="Total XP" value={stats?.totals?.xp ?? 0} />
+            {/* === Current Season Stats === */}
+<div className="flex flex-col items-start">
+  <p className="text-[11px] uppercase tracking-wide text-slate-400 mb-1">{seasonName?.toUpperCase() || 'CURRENT SEASON'}</p>
+  <div className="flex items-center gap-3 flex-wrap">
+    {myRank != null && <StatPill icon={Medal} label="Rank" value={`#${myRank}`} />}
+    <StatPill
+      icon={Star}
+      label="Season Stars"
+      value={leaderboard.find((p) => p.id === user?.id)?.stars ?? 0}
+    />
+    <StatPill
+      icon={Zap}
+      label="Season XP"
+      value={leaderboard.find((p) => p.id === user?.id)?.total_xp ?? 0}
+    />
+  </div>
+</div>
+
 {/* Achievements dropdown trigger + panel */}
 <div ref={achBtnRef} className="relative">
   <button
@@ -797,12 +812,12 @@ const handleClaim = async (achievementId: number) => {
                   <span className="text-white text-lg font-semibold">Level {myLevel}</span>
                   <span className="text-xs text-slate-400">({myCurrentXP}/10 XP)</span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full md:w-auto">
+                {/* <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full md:w-auto">
                   <StatPill icon={Target} label="Attempts" value={(stats?.solo_stats?.total_attempts || 0) + (stats?.ai_stats?.ai_attempts || 0)} />
                   <StatPill icon={CheckCircle} label="Success" value={`${overallSuccessRate}%`} />
                   <StatPill icon={Swords} label="Duels" value={pvpPlayed} />
                   <StatPill icon={Trophy} label="Wins" value={pvpWon} />
-                </div>
+                </div> */}
               </div>
               <ProgressBar value={Math.round(myProgress)} />
               <div className="flex justify-between text-xs text-slate-400 mt-2">
