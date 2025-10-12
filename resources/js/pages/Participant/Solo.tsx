@@ -269,36 +269,23 @@ useEffect(() => {
         setTakenById({});
     }
     };
-
 const fetchChallenges = async () => {
   try {
     setLoading(true);
 
-    // Always send explicit filter values (backend may relys on "all")
-    const params: any = {
-      mode: modeFilter || 'all',
-      language: languageFilter || 'all',
-      difficulty: difficultyFilter || 'all',
-      search: (searchTerm || '').trim(),
-    };
+    // Only include params that are not "all" and have actual value
+    const params: any = {};
+    if (modeFilter && modeFilter !== 'all') params.mode = modeFilter;
+    if (languageFilter && languageFilter !== 'all') params.language = languageFilter;
+    if (difficultyFilter && difficultyFilter !== 'all') params.difficulty = difficultyFilter;
+    if (searchTerm?.trim()) params.search = searchTerm.trim();
 
     const response = await apiClient.get('/api/challenges/solo', params);
 
     if (response?.success) {
-      const raw = response.data?.data || response.data || [];
-
-      // Client-side fallback filter to guarantee correctness even if server ignores "all"
-      const filtered = raw.filter((c: any) => {
-        const langOk = languageFilter === 'all' || c.language === languageFilter;
-        const diffOk = difficultyFilter === 'all' || c.difficulty === difficultyFilter;
-        const modeOk = modeFilter === 'all' || c.mode === modeFilter;
-        const searchOk =
-          !searchTerm.trim() ||
-          (c.title || '').toLowerCase().includes(searchTerm.trim().toLowerCase());
-        return langOk && diffOk && modeOk && searchOk;
-      });
-
-      setChallenges(filtered);
+      // API already paginates under data.data
+      const challengeData = response.data?.data || response.data || [];
+      setChallenges(challengeData);
     } else {
       setChallenges([]);
     }

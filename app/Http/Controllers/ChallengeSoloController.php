@@ -14,9 +14,16 @@ class ChallengeSoloController extends Controller
 {
     $q = ChallengeSolo::query();
 
-    if ($request->filled('mode')) $q->where('mode', $request->mode);
-    if ($request->filled('language')) $q->where('language', $request->language);
-    if ($request->filled('difficulty')) $q->where('difficulty', $request->difficulty);
+   if ($request->filled('mode') && $request->mode !== 'all') {
+    $q->where('mode', $request->mode);
+}
+if ($request->filled('language') && $request->language !== 'all') {
+    $q->where('language', $request->language);
+}
+if ($request->filled('difficulty') && $request->difficulty !== 'all') {
+    $q->where('difficulty', $request->difficulty);
+}
+
 
     // NEW: search by title or description
     if ($request->filled('search')) {
