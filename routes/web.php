@@ -406,18 +406,29 @@ Route::get('/api/users/participants', function (Request $request) {
                     'email'             => $u->email,
                     'avatar'            => $normalizeAvatar($u->avatar ?? null),
                     // expose snapshot fields under the same keys your frontend expects
-                    'total_xp'          => (int)$us->season_xp,
-                    'stars'             => (int)$us->season_stars,
+                    'total_xp'          => (float)$us->season_xp,
+                    'stars'             => (float)$us->season_stars,
                     'rank'              => (int)($us->final_rank ?? ($i + 1)),
                     'crowns'            => (int)($u->crowns ?? 0),
                     'last_season_rank'  => (int)($u->last_season_rank ?? null),
                 ];
             });
 
-            return response()->json(['success' => true, 'data' => $data]);
+            $season = Season::find($lastSeasonId);
+            return response()->json([
+                'success' => true,
+                'data'    => $data,
+                'season'  => [
+                    'name' => $season?->name ?? 'Last Season',
+                    'code' => $season?->code ?? 'S?',
+                    'is_active' => false,
+                ],
+            ]);
         }
 
         // === CURRENT SEASON (live counters from users table) ===
+        $season = Season::where('is_active', true)->first();
+
         $participants = User::where('role', 'participant')
             ->orderByDesc('season_xp')
             ->orderByDesc('season_stars')
@@ -429,14 +440,22 @@ Route::get('/api/users/participants', function (Request $request) {
                 'name'             => $u->name,
                 'email'            => $u->email,
                 'avatar'           => $normalizeAvatar($u->avatar ?? null),
-                'total_xp'         => (int)($u->season_xp ?? 0),     // seasonal XP
-                'stars'            => (int)($u->season_stars ?? 0),  // seasonal Stars
-                'crowns'           => (int)($u->crowns ?? 0),        // lifetime crowns
-                'last_season_rank' => $u->last_season_rank,          // for crown badge
+                'total_xp'         => (float)($u->season_xp ?? 0),     // seasonal XP
+                'stars'            => (float)($u->season_stars ?? 0),  // seasonal Stars
+                'crowns'           => (int)($u->crowns ?? 0),          // lifetime crowns
+                'last_season_rank' => $u->last_season_rank,            // for crown badge
             ];
         });
 
-        return response()->json(['success' => true, 'data' => $data]);
+        return response()->json([
+            'success' => true,
+            'data'    => $data,
+            'season'  => [
+                'name'      => $season?->name ?? 'Season 1',
+                'code'      => $season?->code ?? 'S1',
+                'is_active' => true,
+            ],
+        ]);
     } catch (\Throwable $e) {
         Log::error('participants error', ['ex' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
         return response()->json(['success' => false, 'message' => 'Error fetching participants'], 500);
