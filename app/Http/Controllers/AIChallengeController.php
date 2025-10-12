@@ -85,6 +85,7 @@ class AIChallengeController extends Controller
             if ($data['is_correct'] && $xp > 0) {
                 $user->increment('ai_successful_attempts', 1);
                 $user->increment('total_xp', $xp);
+                $user->increment('season_xp', $xp);
             }
         });
 

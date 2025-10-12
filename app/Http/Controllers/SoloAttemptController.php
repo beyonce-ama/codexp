@@ -94,6 +94,7 @@ class SoloAttemptController extends Controller
 
             // Avoid float drift: handle XP as strings/decimals
             $user->total_xp = bcadd((string)$user->total_xp, (string)$xp, 2);
+            $user->season_xp = bcadd((string)$user->total_xp, (string)$xp, 2);
             $user->stars    = (int)$user->stars + (int)$stars;
             $user->save();
         });
