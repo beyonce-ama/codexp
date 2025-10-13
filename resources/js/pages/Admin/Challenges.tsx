@@ -774,7 +774,33 @@ const openGenerateModal = (type: 'solo' | '1v1' = 'solo') => {
       ? '/admin/api/challenges/solo/generate'
       : '/admin/api/challenges/1v1/generate';
 
-    const genRes = await apiClient.post(genEndpoint, { language, difficulty, topic });
+    // Show loading / generating screen
+      Swal.fire({
+        title: '',
+        html: `
+          <div class="flex flex-col items-center justify-center space-y-3 py-6">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-cyan-400 border-opacity-70"></div>
+            <p class="text-white text-sm font-medium">Generating challenge…</p>
+            <p class="text-xs text-gray-400">This may take a few seconds</p>
+          </div>
+        `,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        background: '#0f172a',
+        showConfirmButton: false,
+        customClass: {
+          popup: 'rounded-2xl border border-cyan-500/20 backdrop-blur-md',
+        },
+      });
+
+      // Send request
+      let genRes;
+      try {
+        genRes = await apiClient.post(genEndpoint, { language, difficulty, topic });
+      } finally {
+        Swal.close(); // hide loading modal when done
+      }
+
 
     if (!genRes?.success) {
       Swal.fire('Error', genRes?.message || 'Failed to generate challenge', 'error');
@@ -783,73 +809,88 @@ const openGenerateModal = (type: 'solo' | '1v1' = 'solo') => {
     const g = genRes.data || {};
 
 
-    // Preview modal (note: we do NOT save "hint"; we’ll store null)
-    const preview = `
-      <div class="space-y-4">
-        <div class="flex flex-wrap gap-2">
-          ${pill('Language', displayLanguage(language))}
-          ${pill('Difficulty', String(difficulty).toUpperCase())}
-          ${pill('Mode', 'fixbugs')}
-          ${pill('Reward', String(difficulty === 'easy' ? 1 : difficulty === 'medium' ? 2 : 3))}
-        </div>
-        <div class="rounded-lg border border-white/10 bg-white/5 p-3">
-          <div class="text-[10px] uppercase tracking-wide opacity-70 mb-1">Title</div>
-          <div class="text-sm font-semibold">${esc(g.title ?? '')}</div>
-        </div>
-        <div class="rounded-lg border border-white/10 bg-white/5 p-3">
-          <div class="text-[10px] uppercase tracking-wide opacity-70 mb-1">Description</div>
-          <div class="text-sm leading-relaxed">${esc(g.description ?? '')}</div>
-        </div>
-        ${g.buggy_code ? codeBlock('Buggy Code', g.buggy_code) : ''}
-        ${g.fixed_code ? codeBlock('Fixed Code', g.fixed_code) : ''}
-      </div>
-    `;
+ // Editable Preview Modal
+const previewEditable = `
+  <div class="space-y-4">
+    <div class="flex flex-wrap gap-2">
+      ${pill('Language', displayLanguage(language))}
+      ${pill('Difficulty', String(difficulty).toUpperCase())}
+      ${pill('Mode', 'fixbugs')}
+    </div>
 
-    Swal.fire(withTheme({
-      width: 960,
-      html: modalShell({
-        icon: '🧪',
-        title: 'Preview Generated Challenge',
-        subtitle: 'Review before saving to Solo',
-        bodyHTML: preview,
-      }),
-      showCancelButton: true,
-      confirmButtonText: `Save to ${type === 'solo' ? 'Solo' : '1v1'}`,
-      customClass: {
-        popup: 'rounded-2xl !p-0 backdrop-blur-sm',
-        confirmButton: 'swal2-confirm !bg-emerald-600 hover:!bg-emerald-500 !rounded-lg !px-4 !py-2',
-        cancelButton: 'swal2-cancel !bg-white/10 hover:!bg-white/20 !text-white !rounded-lg !px-4 !py-2',
-        actions: '!px-5 !pb-4',
-      },
-    })).then(async rr => {
-      if (!rr.isConfirmed) return;
+    <div class="rounded-lg border border-white/10 bg-white/5 p-3">
+      <label class="block text-[10px] uppercase tracking-wide opacity-70 mb-1">Title</label>
+      <input id="edit_title" value="${esc(g.title ?? '')}" class="w-full bg-slate-950/70 border border-white/15 rounded-lg text-slate-100 px-3 py-2" />
+    </div>
 
-      // Save using existing create endpoint for each type
-      const saveEndpoint = type === 'solo'
-        ? '/admin/challenges/api/challenges/solo'
-        : '/admin/challenges/api/challenges/1v1';
+    <div class="rounded-lg border border-white/10 bg-white/5 p-3">
+      <label class="block text-[10px] uppercase tracking-wide opacity-70 mb-1">Description</label>
+      <textarea id="edit_desc" rows="3" class="w-full bg-slate-950/70 border border-white/15 rounded-lg text-slate-100 px-3 py-2">${esc(g.description ?? '')}</textarea>
+    </div>
 
-      const payload: any = {
-        title: g.title ?? '',
-        description: g.description ?? '',
-        language,
-        difficulty,
-        buggy_code: g.buggy_code ?? '',
-        fixed_code: g.fixed_code ?? '',
-        hint: null, // your rule: always null
-      };
+    <div class="rounded-lg border border-white/10 bg-white/5 p-3">
+      <label class="block text-[10px] uppercase tracking-wide opacity-70 mb-1">Buggy Code</label>
+      <textarea id="edit_buggy" rows="8" class="w-full font-mono bg-slate-950/70 border border-white/15 rounded-lg text-slate-100 px-3 py-2 leading-tight">${esc(g.buggy_code ?? '')}</textarea>
+    </div>
 
-      // For solo we also include mode, but for 1v1 keep it out (create() handles mode for solo)
-      if (type === 'solo') payload.mode = 'fixbugs';
+    <div class="rounded-lg border border-white/10 bg-white/5 p-3">
+      <label class="block text-[10px] uppercase tracking-wide opacity-70 mb-1">Fixed Code</label>
+      <textarea id="edit_fixed" rows="8" class="w-full font-mono bg-slate-950/70 border border-white/15 rounded-lg text-slate-100 px-3 py-2 leading-tight">${esc(g.fixed_code ?? '')}</textarea>
+    </div>
+  </div>
+`;
 
-      const saveRes = await apiClient.post(saveEndpoint, payload);
-      if (saveRes?.success) {
-        Swal.fire('Saved!', `AI-generated challenge added to ${type === 'solo' ? 'Solo' : '1v1'}.`, 'success');
-        fetchChallenges();
-      } else {
-        Swal.fire('Error', saveRes?.message || 'Failed to save challenge', 'error');
-      }
-    });
+Swal.fire(withTheme({
+  width: 960,
+  html: modalShell({
+    icon: '🧪',
+    title: 'Edit & Save Generated Challenge',
+    subtitle: 'You can modify before saving',
+    bodyHTML: previewEditable,
+  }),
+  showCancelButton: true,
+  confirmButtonText: `Save to ${type === 'solo' ? 'Solo' : '1v1'}`,
+  focusConfirm: false,
+  customClass: {
+    popup: 'rounded-2xl !p-0 backdrop-blur-sm',
+    confirmButton: 'swal2-confirm !bg-emerald-600 hover:!bg-emerald-500 !rounded-lg !px-4 !py-2',
+    cancelButton: 'swal2-cancel !bg-white/10 hover:!bg-white/20 !text-white !rounded-lg !px-4 !py-2',
+    actions: '!px-5 !pb-4',
+  },
+  preConfirm: () => {
+    const val = (id: string) => (document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement)?.value?.trim() ?? '';
+    return {
+      title: val('edit_title'),
+      description: val('edit_desc'),
+      buggy_code: val('edit_buggy'),
+      fixed_code: val('edit_fixed'),
+    };
+  }
+})).then(async rr => {
+  if (!rr.isConfirmed) return;
+  
+  const edited = rr.value;
+  const saveEndpoint = type === 'solo'
+    ? '/admin/challenges/api/challenges/solo'
+    : '/admin/challenges/api/challenges/1v1';
+
+  const payload: any = {
+    ...edited,
+    language,
+    difficulty,
+    hint: null,
+  };
+  if (type === 'solo') payload.mode = 'fixbugs';
+
+  const saveRes = await apiClient.post(saveEndpoint, payload);
+  if (saveRes?.success) {
+    Swal.fire('Saved!', `AI-generated challenge saved to ${type === 'solo' ? 'Solo' : '1v1'}.`, 'success');
+    fetchChallenges();
+  } else {
+    Swal.fire('Error', saveRes?.message || 'Failed to save challenge', 'error');
+  }
+});
+
   });
 };
 
@@ -1117,14 +1158,14 @@ const openGenerateModal = (type: 'solo' | '1v1' = 'solo') => {
                                 {challenge.difficulty.toUpperCase()}
                               </span>
                             </td>
-                            {activeTab === 'solo' && (
+                            {/* {activeTab === 'solo' && (
                               <td className="px-6 py-4">
                                 <div className="flex items-center gap-1 text-sm text-gray-300">
                                   <ModeIcon className="h-4 w-4 text-gray-400" />
                                   <span className="capitalize">{challenge.mode}</span>
                                 </div>
                               </td>
-                            )}
+                            )} */}
                             <td className="px-6 py-4 text-sm text-gray-400">
                               {new Date(challenge.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                             </td>
@@ -1310,7 +1351,7 @@ const openGenerateModal = (type: 'solo' | '1v1' = 'solo') => {
                       <th className="px-6 py-3 text-left text-xs font-bold text-cyan-400 uppercase">Challenge</th>
                       <th className="px-6 py-3 text-left text-xs font-bold text-cyan-400 uppercase">Language</th>
                       <th className="px-6 py-3 text-left text-xs font-bold text-cyan-400 uppercase">Difficulty</th>
-                      {activeTab === 'solo' && <th className="px-6 py-3 text-left text-xs font-bold text-cyan-400 uppercase">Mode</th>}
+                      {/* {activeTab === 'solo' && <th className="px-6 py-3 text-left text-xs font-bold text-cyan-400 uppercase">Mode</th>} */}
                       <th className="px-6 py-3 text-left text-xs font-bold text-cyan-400 uppercase">Created</th>
                       <th className="px-6 py-3 text-right text-xs font-bold text-cyan-400 uppercase">Actions</th>
                     </tr>
@@ -1354,14 +1395,14 @@ const openGenerateModal = (type: 'solo' | '1v1' = 'solo') => {
                                 {challenge.difficulty.toUpperCase()}
                               </span>
                             </td>
-                            {activeTab === 'solo' && (
+                            {/* {activeTab === 'solo' && (
                               <td className="px-6 py-4">
                                 <div className="flex items-center gap-1 text-sm text-gray-300">
                                   <ModeIcon className="h-4 w-4 text-gray-400" />
                                   <span className="capitalize">{challenge.mode}</span>
                                 </div>
                               </td>
-                            )}
+                            )} */}
                             <td className="px-6 py-4 text-sm text-gray-400">
                               {new Date(challenge.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                             </td>
@@ -1483,7 +1524,6 @@ const openGenerateModal = (type: 'solo' | '1v1' = 'solo') => {
                           "description": "The program should take two integers as input and print their sum.",
                           "buggy_code": "a = 5\\nb = 7\\nprint('Sum is:', a + b",
                           "fixed_code": "a = 5\\nb = 7\\nprint('Sum is:', a + b)",
-                          "hint": "Check the missing parenthesis in print statement"
                         }
                       ]`}
                           </pre>
