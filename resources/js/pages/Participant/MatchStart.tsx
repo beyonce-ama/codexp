@@ -923,7 +923,7 @@ useEffect(() => {
                       Submit Solution
                     </button>
 
-                    {correctedCode && (
+                    {/* {correctedCode && (
                       <button
                         onClick={() => setShowCorrected(!showCorrected)}
                         className="px-3 py-2 rounded-lg border border-slate-700/60 text-xs flex items-center gap-1 hover:bg-slate-800/40 transition-colors"
@@ -931,7 +931,7 @@ useEffect(() => {
                         <Eye className="w-4 h-4" />
                         {showCorrected ? 'Hide Solution' : 'FOR DEMO ONLY'}
                       </button>
-                    )}
+                    )} */}
                   </div>
                 </div>
 

@@ -594,13 +594,13 @@ export default function AdminUsers() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="inline-flex items-center gap-1.5">
-                        <button
+                        {/* <button
                           title="View Player"
                           className="p-2 text-blue-300 hover:text-white hover:bg-blue-500/20 rounded-lg transition"
                           onClick={() => Swal.fire({ icon: 'info', title: 'View', text: 'Hook up view route/action if needed.' })}
                         >
                           <Eye className="h-4 w-4" />
-                        </button>
+                        </button> */}
                         <button
                           title="Edit Player"
                           onClick={() => openEditModal(u)}

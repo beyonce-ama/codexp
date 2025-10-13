@@ -1055,7 +1055,7 @@ const showCodeModal = (title: string, code: string) => {
                                     
                                     <div className="flex items-center justify-between mt-4">
                                         <div className="flex items-center space-x-2">
-                                            {hasSubmitted && !lastSubmissionResult?.isCorrect && (
+                                            {/* {hasSubmitted && !lastSubmissionResult?.isCorrect && (
                                                 <button
                                                     onClick={showCorrectAnswerHandler}
                                                     disabled={submitting}
@@ -1065,7 +1065,7 @@ const showCodeModal = (title: string, code: string) => {
                                                     <BookOpen className="h-4 w-4" />
                                                     <span>FOR DEMO ONLY</span>
                                                 </button>
-                                            )}
+                                            )} */}
                                             {hasSubmitted && lastSubmissionResult && (
                                                 <div className="text-sm text-gray-400">
                                                     {lastSubmissionResult.isCorrect ? (
