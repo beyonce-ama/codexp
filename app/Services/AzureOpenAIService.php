@@ -200,7 +200,8 @@ Make sure:
 3. The description explains the intended functionality and the chosen real-world scenario
 4. The hint guides students without giving away the answer
 5. All JSON strings are properly escaped
-6. Code is realistic, runnable, and educational";
+6. Code is realistic, runnable, and educational
+7. Do NOT include any comments or explanations inside the buggy_code or fixed_code";
     }
 
     /**
@@ -431,7 +432,8 @@ Guidelines (SHORT):
   \"hint\": \"OPTIONAL short hint (one line)\"  // hint can be omitted
 }
 
-Make sure strings are properly escaped. Keep answers concise and focused.";
+Make sure strings are properly escaped. Keep answers concise and focused. Do NOT include any comments or explanations inside the buggy_code or fixed_code.
+";
 }
 
 
