@@ -504,13 +504,13 @@ export default function AdminUsers() {
 
               <div className="pt-1 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <button
+                  {/* <button
                     className="px-2 py-1.5 rounded-md text-blue-300 hover:text-white hover:bg-blue-500/20 transition inline-flex items-center gap-1"
                     title="View"
                     onClick={() => Swal.fire({ icon: 'info', title: 'View', text: 'Hook up view route/action if needed.' })}
                   >
                     <Eye className="h-4 w-4" /> View
-                  </button>
+                  </button> */}
                   <button
                     className="px-2 py-1.5 rounded-md text-emerald-300 hover:text-white hover:bg-emerald-500/20 transition inline-flex items-center gap-1"
                     title="Edit"
