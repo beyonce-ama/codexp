@@ -21,6 +21,7 @@ use App\Http\Controllers\AIChallengeController;
 use App\Http\Controllers\MatchmakingController;
 use App\Http\Controllers\MatchRuntimeController;
 use App\Http\Controllers\SoloUsageController;
+use App\Http\Controllers\PracticeController;
 use App\Models\Season;
 use App\Models\UserSeason;
 
