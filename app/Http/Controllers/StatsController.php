@@ -227,112 +227,57 @@ class StatsController extends Controller
             ->values()
             ->toArray();
 
-        // -------------------------
-        // LANGUAGE STATS
-        // -------------------------
-        $langRows = UserLanguageStat::where('user_id', $user->id)->get();
+// -------------------------
+// LANGUAGE STATS (using duels_taken + solo_taken only)
+// -------------------------
 
-        // Derive classic duels per language (wins / nonwins)
-        $duelFinishedStatuses = ['completed','won','lost','draw','finished'];
-        $duelLangAgg = Duel::select('language',
-                DB::raw('SUM(CASE WHEN winner_id = '.$user->id.' THEN 1 ELSE 0 END) as wins'),
-                DB::raw('SUM(CASE WHEN (challenger_id = '.$user->id.' OR opponent_id = '.$user->id.') AND (winner_id IS NULL OR winner_id <> '.$user->id.') THEN 1 ELSE 0 END) as nonwins')
-            )
-            ->where(function($q) use ($user) {
-                $q->where('challenger_id', $user->id)->orWhere('opponent_id', $user->id);
-            })
-            ->whereIn('status', $duelFinishedStatuses)
-            ->groupBy('language')
-            ->get()
-            ->keyBy(function($r){ return $r->language ?? 'unknown'; });
+// Aggregate from duels_taken (includes both invite & live sources)
+$duelLangAgg = DB::table('duels_taken')
+    ->select('language',
+        DB::raw('SUM(CASE WHEN is_winner = 1 THEN 1 ELSE 0 END) as wins'),
+        DB::raw('SUM(CASE WHEN is_winner = 0 THEN 1 ELSE 0 END) as nonwins')
+    )
+    ->where('user_id', $user->id)
+    ->whereIn('status', ['finished', 'completed', 'won', 'lost'])
+    ->groupBy('language')
+    ->get()
+    ->keyBy(fn($r) => $r->language ?? 'unknown');
 
-        // Derive solo completed per language
-       $soloLangAgg = SoloTaken::select('language', DB::raw('SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END) as solo_completed'))
-        ->where('user_id', $user->id)
-        ->groupBy('language')
-        ->get()
-        ->keyBy(function($r){ return $r->language ?? 'unknown'; });
+// Aggregate from solo_taken (completed solo challenges per language)
+$soloLangAgg = DB::table('solo_taken')
+    ->select('language',
+        DB::raw('SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END) as solo_completed')
+    )
+    ->where('user_id', $user->id)
+    ->groupBy('language')
+    ->get()
+    ->keyBy(fn($r) => $r->language ?? 'unknown');
 
+// Collect all languages that appear in either source
+$allLangKeys = collect(array_unique(array_merge(
+    $duelLangAgg->keys()->all(),
+    $soloLangAgg->keys()->all()
+)));
 
-        // OPTIONALLY blend live matches into language wins/losses
-        $matchFinishedStatuses = ['finished','completed','resolved','won','lost','timeout'];
-        $liveLangAgg = DB::table('matches as m')
-            ->join('match_participants as mp', 'mp.match_id', '=', 'm.id')
-            ->select('m.language',
-                DB::raw('SUM(CASE WHEN m.winner_user_id = '.$user->id.' THEN 1 ELSE 0 END) as wins'),
-                DB::raw('SUM(CASE WHEN mp.user_id = '.$user->id.' AND (m.winner_user_id IS NULL OR m.winner_user_id <> '.$user->id.') THEN 1 ELSE 0 END) as nonwins')
-            )
-            ->where('mp.user_id', $user->id)
-            ->where(function ($q) use ($matchFinishedStatuses) {
-                $q->whereNotNull('m.finished_at')
-                  ->orWhereIn('m.status', $matchFinishedStatuses);
-            })
-            ->groupBy('m.language')
-            ->get()
-            ->keyBy(function($r){ return $r->language ?? 'unknown'; });
+// Build unified language proficiency data
+$languageStats = $allLangKeys->map(function ($lang) use ($duelLangAgg, $soloLangAgg) {
+    $wins   = (int) (optional($duelLangAgg->get($lang))->wins ?? 0);
+    $losses = (int) (optional($duelLangAgg->get($lang))->nonwins ?? 0);
+    $games  = $wins + $losses;
+    $solo   = (int) (optional($soloLangAgg->get($lang))->solo_completed ?? 0);
+    $winrate = $games > 0 ? round(($wins / max(1, $games)) * 100) : 0;
 
-        // Normalize language rows to a single shape expected by Dashboard/Profile
-        $languageStats = $langRows->map(function($r) use ($duelLangAgg, $soloLangAgg, $liveLangAgg) {
-            $language = $r->language ?? 'unknown';
+    return [
+        'id'             => 0,
+        'language'       => (string) $lang,
+        'games_played'   => (int) $games,
+        'wins'           => (int) $wins,
+        'losses'         => (int) $losses,
+        'winrate'        => (int) $winrate,
+        'solo_completed' => (int) $solo,
+    ];
+})->values();
 
-            // classic + live
-            $winsClassic   = (int) (optional($duelLangAgg->get($language))->wins ?? 0);
-            $nonwinsClassic= (int) (optional($duelLangAgg->get($language))->nonwins ?? 0);
-            $winsLive      = (int) (optional($liveLangAgg->get($language))->wins ?? 0);
-            $nonwinsLive   = (int) (optional($liveLangAgg->get($language))->nonwins ?? 0);
-
-            $wins   = (int) (($r->wins ?? 0) ?: ($winsClassic + $winsLive));
-            $losses = (int) (($r->losses ?? 0) ?: ($nonwinsClassic + $nonwinsLive));
-            $games  = (int) (($r->games_played ?? 0) ?: ($wins + $losses));
-
-            $solo   = (int) ($r->solo_completed ?? optional($soloLangAgg->get($language))->solo_completed ?? 0);
-
-            // winrate may be stored as 0..1 or 0..100; normalize to percent (int)
-            if (isset($r->winrate) && $r->winrate !== null) {
-                $wr = is_numeric($r->winrate) ? (float) $r->winrate : 0.0;
-                $wr = $wr <= 1 ? $wr * 100 : $wr;
-            } else {
-                $wr = $games > 0 ? ($wins / max(1, $games)) * 100 : 0;
-            }
-
-            return [
-                'id'             => (int) ($r->id ?? 0),
-                'language'       => (string) $language,
-                'games_played'   => (int) $games,
-                'wins'           => (int) $wins,
-                'losses'         => (int) $losses,
-                'winrate'        => (int) round($wr),
-                'solo_completed' => (int) $solo,
-            ];
-        })->values();
-
-        // Include languages present only in derived sources
-        $allLangKeys = collect(array_unique(array_merge(
-            $languageStats->pluck('language')->all(),
-            $duelLangAgg->keys()->all(),
-            $liveLangAgg->keys()->all(),
-            $soloLangAgg->keys()->all(),
-        )));
-        $languageStats = $allLangKeys->map(function($lang) use ($languageStats, $duelLangAgg, $liveLangAgg, $soloLangAgg) {
-            $existing = $languageStats->firstWhere('language', $lang);
-            if ($existing) return $existing;
-
-            $wins   = (int) ((optional($duelLangAgg->get($lang))->wins ?? 0) + (optional($liveLangAgg->get($lang))->wins ?? 0));
-            $nonwin = (int) ((optional($duelLangAgg->get($lang))->nonwins ?? 0) + (optional($liveLangAgg->get($lang))->nonwins ?? 0));
-            $games  = $wins + $nonwin;
-            $solo   = (int) (optional($soloLangAgg->get($lang))->solo_completed ?? 0);
-            $wr     = $games > 0 ? ($wins / max(1, $games)) * 100 : 0;
-
-            return [
-                'id'             => 0,
-                'language'       => (string) ($lang ?? 'unknown'),
-                'games_played'   => (int) $games,
-                'wins'           => (int) $wins,
-                'losses'         => (int) $nonwin,
-                'winrate'        => (int) round($wr),
-                'solo_completed' => (int) $solo,
-            ];
-        })->values();
 
         // -------------------------
         // RESPONSE
