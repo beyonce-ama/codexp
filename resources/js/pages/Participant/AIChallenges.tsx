@@ -97,6 +97,17 @@ export default function ParticipantAIChallenges() {
     // NEW: Modal state
     const [showChallengeModal, setShowChallengeModal] = useState(false);
 
+    useEffect(() => {
+      audio.registerSfx('success', '/sounds/correct.mp3');
+      audio.registerSfx('failure', '/sounds/failure.mp3');
+      audio.registerSfx('levelup', '/sounds/levelup.mp3');
+      audio.registerSfx('click', '/sounds/click.mp3');
+      audio.registerSfx('hover', '/sounds/hover.mp3');
+      audio.registerSfx('victory', '/sounds/victory.mp3');
+      audio.registerSfx('streak', '/sounds/streak.mp3');
+      audio.registerSfx('typing', '/sounds/typing.mp3');
+    }, []);
+
 // Fullscreen helpers (must be called synchronously in click handler BEFORE any await)
 const tryEnterFullscreen = () => {
   const el = document.documentElement as any;
@@ -947,8 +958,8 @@ const showCodeModal = (title: string, code: string) => {
 
             {/* Challenge Modal */}
             {showChallengeModal && currentChallenge && (
-               <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-0 animate-fadeIn">
-                 <div className="ai-modal bg-gray-900/95 border border-gray-700/50 w-full h-full max-w-none max-h-none overflow-y-auto rounded-none">
+               <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-0 animate-fadeIn">
+                    <div className="ai-modal bg-gray-900/90 border border-gray-700/50 w-full h-full max-w-none max-h-none overflow-y-auto rounded-none">
 
                         {/* Modal Header */}
                         <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-t-2xl p-6">
