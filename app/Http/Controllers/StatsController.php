@@ -265,16 +265,23 @@ $languageStats = $allLangKeys->map(function ($lang) use ($duelLangAgg, $soloLang
     $losses = (int) (optional($duelLangAgg->get($lang))->nonwins ?? 0);
     $duelGames = $wins + $losses;
 
-    $soloAttempts = (int) (optional($soloLangAgg->get($lang))->solo_attempts ?? 0);
+    $soloAttempts  = (int) (optional($soloLangAgg->get($lang))->solo_attempts ?? 0);
     $soloCompleted = (int) (optional($soloLangAgg->get($lang))->solo_completed ?? 0);
 
     $games = $duelGames + $soloAttempts;
-    $winrate = $duelGames > 0 ? round(($wins / max(1, $duelGames)) * 100) : 0;
+
+    if ($duelGames > 0) {
+        $winrate = round(($wins / max(1, $duelGames)) * 100);
+    } elseif ($soloAttempts > 0) {
+        $winrate = round(($soloCompleted / max(1, $soloAttempts)) * 100);
+    } else {
+        $winrate = 0;
+    }
 
     return [
         'id'             => 0,
         'language'       => (string) $lang,
-        'games_played'   => (int) $games,          // duel + solo attempts combined
+        'games_played'   => (int) $games,
         'wins'           => (int) $wins,
         'losses'         => (int) $losses,
         'winrate'        => (int) $winrate,
