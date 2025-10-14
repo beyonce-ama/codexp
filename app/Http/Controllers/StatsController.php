@@ -231,21 +231,22 @@ class StatsController extends Controller
 // LANGUAGE STATS (using duels_taken + solo_taken only)
 // -------------------------
 
-// Aggregate from duels_taken (includes both invite & live sources)
 $duelLangAgg = DB::table('duels_taken')
     ->select('language',
         DB::raw('SUM(CASE WHEN is_winner = 1 THEN 1 ELSE 0 END) as wins'),
         DB::raw('SUM(CASE WHEN is_winner = 0 THEN 1 ELSE 0 END) as nonwins')
     )
     ->where('user_id', $user->id)
-    ->whereIn('status', ['finished', 'completed', 'won', 'lost'])
+    ->whereIn('status', ['started', 'finished', 'surrendered', 'declined', 'cancelled'])
     ->groupBy('language')
     ->get()
     ->keyBy(fn($r) => $r->language ?? 'unknown');
 
-// Aggregate from solo_taken (completed solo challenges per language)
+
+// Aggregate from solo_taken — include all statuses per language
 $soloLangAgg = DB::table('solo_taken')
     ->select('language',
+        DB::raw('COUNT(*) as solo_attempts'),
         DB::raw('SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END) as solo_completed')
     )
     ->where('user_id', $user->id)
@@ -259,22 +260,25 @@ $allLangKeys = collect(array_unique(array_merge(
     $soloLangAgg->keys()->all()
 )));
 
-// Build unified language proficiency data
 $languageStats = $allLangKeys->map(function ($lang) use ($duelLangAgg, $soloLangAgg) {
     $wins   = (int) (optional($duelLangAgg->get($lang))->wins ?? 0);
     $losses = (int) (optional($duelLangAgg->get($lang))->nonwins ?? 0);
-    $games  = $wins + $losses;
-    $solo   = (int) (optional($soloLangAgg->get($lang))->solo_completed ?? 0);
-    $winrate = $games > 0 ? round(($wins / max(1, $games)) * 100) : 0;
+    $duelGames = $wins + $losses;
+
+    $soloAttempts = (int) (optional($soloLangAgg->get($lang))->solo_attempts ?? 0);
+    $soloCompleted = (int) (optional($soloLangAgg->get($lang))->solo_completed ?? 0);
+
+    $games = $duelGames + $soloAttempts;
+    $winrate = $duelGames > 0 ? round(($wins / max(1, $duelGames)) * 100) : 0;
 
     return [
         'id'             => 0,
         'language'       => (string) $lang,
-        'games_played'   => (int) $games,
+        'games_played'   => (int) $games,          // duel + solo attempts combined
         'wins'           => (int) $wins,
         'losses'         => (int) $losses,
         'winrate'        => (int) $winrate,
-        'solo_completed' => (int) $solo,
+        'solo_completed' => (int) $soloCompleted,
     ];
 })->values();
 
