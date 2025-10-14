@@ -231,6 +231,20 @@ class StatsController extends Controller
 // LANGUAGE STATS (using duels_taken + solo_taken only)
 // -------------------------
 
+// -------------------------
+// LANGUAGE STATS (accurate — includes all solo + duel attempts)
+// -------------------------
+
+// 1️⃣ Aggregate from duels_taken — all attempts per language
+$duelAttemptsAgg = DB::table('duels_taken')
+    ->select('language', DB::raw('COUNT(*) as duel_attempts'))
+    ->where('user_id', $user->id)
+    ->whereIn('status', ['started', 'finished', 'surrendered', 'declined', 'cancelled'])
+    ->groupBy('language')
+    ->get()
+    ->keyBy(fn($r) => $r->language ?? 'unknown');
+
+// 2️⃣ Aggregate duel wins/losses (for winrate)
 $duelLangAgg = DB::table('duels_taken')
     ->select('language',
         DB::raw('SUM(CASE WHEN is_winner = 1 THEN 1 ELSE 0 END) as wins'),
@@ -242,8 +256,7 @@ $duelLangAgg = DB::table('duels_taken')
     ->get()
     ->keyBy(fn($r) => $r->language ?? 'unknown');
 
-
-// Aggregate from solo_taken — include all statuses per language
+// 3️⃣ Aggregate from solo_taken — all attempts per language
 $soloLangAgg = DB::table('solo_taken')
     ->select('language',
         DB::raw('COUNT(*) as solo_attempts'),
@@ -254,24 +267,28 @@ $soloLangAgg = DB::table('solo_taken')
     ->get()
     ->keyBy(fn($r) => $r->language ?? 'unknown');
 
-// Collect all languages that appear in either source
+// 4️⃣ Merge all languages
 $allLangKeys = collect(array_unique(array_merge(
+    $duelAttemptsAgg->keys()->all(),
     $duelLangAgg->keys()->all(),
     $soloLangAgg->keys()->all()
 )));
 
-$languageStats = $allLangKeys->map(function ($lang) use ($duelLangAgg, $soloLangAgg) {
-    $wins   = (int) (optional($duelLangAgg->get($lang))->wins ?? 0);
-    $losses = (int) (optional($duelLangAgg->get($lang))->nonwins ?? 0);
-    $duelGames = $wins + $losses;
+// 5️⃣ Build unified stats
+$languageStats = $allLangKeys->map(function ($lang) use ($duelAttemptsAgg, $duelLangAgg, $soloLangAgg) {
+    $wins          = (int) (optional($duelLangAgg->get($lang))->wins ?? 0);
+    $losses        = (int) (optional($duelLangAgg->get($lang))->nonwins ?? 0);
+    $duelAttempts  = (int) (optional($duelAttemptsAgg->get($lang))->duel_attempts ?? 0);
 
     $soloAttempts  = (int) (optional($soloLangAgg->get($lang))->solo_attempts ?? 0);
     $soloCompleted = (int) (optional($soloLangAgg->get($lang))->solo_completed ?? 0);
 
-    $games = $duelGames + $soloAttempts;
+    // Total attempts = every duel + every solo attempt
+    $games = $duelAttempts + $soloAttempts;
 
-    if ($duelGames > 0) {
-        $winrate = round(($wins / max(1, $duelGames)) * 100);
+    // Winrate hybrid logic
+    if ($wins + $losses > 0) {
+        $winrate = round(($wins / max(1, $wins + $losses)) * 100);
     } elseif ($soloAttempts > 0) {
         $winrate = round(($soloCompleted / max(1, $soloAttempts)) * 100);
     } else {
@@ -281,7 +298,7 @@ $languageStats = $allLangKeys->map(function ($lang) use ($duelLangAgg, $soloLang
     return [
         'id'             => 0,
         'language'       => (string) $lang,
-        'games_played'   => (int) $games,
+        'games_played'   => (int) $games, // includes all duels + all solos
         'wins'           => (int) $wins,
         'losses'         => (int) $losses,
         'winrate'        => (int) $winrate,
