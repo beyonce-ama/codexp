@@ -2540,7 +2540,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                 <Flag className="h-4 w-4" />
                                                 <span>Surrender</span>
                                             </button>
-{/*                                             
+                                            
                                             {hasSubmitted && !lastSubmissionResult?.isCorrect && activeDuel.challenge.fixed_code && (
                                                 <button
                                                     onClick={showCorrectAnswerHandler}
@@ -2551,7 +2551,7 @@ const handleOpponentSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =
                                                     <BookOpen className="h-4 w-4" />
                                                     <span>FOR DEMO ONLY </span>
                                                 </button>
-                                            )} */}
+                                            )}
                                         </div>
                                         
                                         <div className="flex items-center space-x-3">
