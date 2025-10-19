@@ -593,6 +593,7 @@ const exitFullscreen = () => {
             const attemptData = {
                 challenge_id: selectedChallenge.id,
                 language: selectedChallenge.language,
+                difficulty: selectedChallenge.difficulty, 
                 mode: selectedChallenge.mode,
                 time_spent_sec: timeSpent,
                 is_correct: isCorrect,
