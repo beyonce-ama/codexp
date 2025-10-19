@@ -34,56 +34,66 @@ class SoloCompletedController extends Controller
         }
     }
 
-    // ✅ POST /api/solo/retake
-    public function retake(Request $request)
-    {
-        try {
-            $validated = $request->validate([
-                'challenge_id'   => 'required|integer',
-                'language'       => 'required|string|max:20',
-                'difficulty'     => 'required|string|max:20',
-                'mode'           => 'required|string|max:20',
-                'is_correct'     => 'required|boolean',
-                'code_submitted' => 'required|string',
-                'time_spent_sec' => 'nullable|integer|min:0',
-            ]);
+   public function retake(Request $request)
+{
+    try {
+        $validated = $request->validate([
+            'challenge_id'   => 'required|integer',
+            'language'       => 'required|string|max:20',
+            'difficulty'     => 'required|string|max:20',
+            'mode'           => 'required|string|max:20',
+            'is_correct'     => 'required|boolean',
+            'code_submitted' => 'required|string',
+            'time_spent_sec' => 'nullable|integer|min:0',
+        ]);
 
-            $userId = Auth::id();
+        $userId = Auth::id();
 
+        // ✅ Try to find existing record first
+        $retake = SoloTaken::where('user_id', $userId)
+            ->where('challenge_id', $validated['challenge_id'])
+            ->first();
+
+        if (!$retake) {
+            // create new if none exists
             $retake = new SoloTaken();
             $retake->user_id = $userId;
             $retake->challenge_id = $validated['challenge_id'];
-            $retake->language = $validated['language'];
-            $retake->difficulty = $validated['difficulty'];
-            $retake->mode = $validated['mode'];
-            $retake->code_submitted = $validated['code_submitted'];
-            $retake->time_spent_sec = $validated['time_spent_sec'] ?? 0;
-            $retake->started_at = now();
-
-            if ($validated['is_correct']) {
-                $retake->status = 'completed';
-                $retake->earned_xp = 0; // ✅ No XP for retakes
-                $retake->ended_at = now();
-            } else {
-                $retake->status = 'submitted_incorrect';
-                $retake->earned_xp = 0;
-            }
-
-            $retake->save();
-
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'status' => $retake->status,
-                    'earned_xp' => 0,
-                ],
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error saving retake attempt',
-                'error' => $e->getMessage(),
-            ], 500);
         }
+
+        // ✅ Always update with new attempt data
+        $retake->language = $validated['language'];
+        $retake->difficulty = $validated['difficulty'];
+        $retake->mode = $validated['mode'];
+        $retake->code_submitted = $validated['code_submitted'];
+        $retake->time_spent_sec = $validated['time_spent_sec'] ?? 0;
+        $retake->started_at = now();
+
+        if ($validated['is_correct']) {
+            $retake->status = 'completed'; // ✅ Retaken but still marked completed
+            $retake->earned_xp = 0; // ✅ No XP for retakes
+            $retake->ended_at = now();
+        } else {
+            $retake->status = 'submitted_incorrect';
+            $retake->earned_xp = 0;
+        }
+
+        $retake->save();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'status' => $retake->status,
+                'earned_xp' => 0,
+            ],
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error saving retake attempt',
+            'error' => $e->getMessage(),
+        ], 500);
     }
+}
+
 }
