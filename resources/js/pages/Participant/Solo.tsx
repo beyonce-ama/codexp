@@ -1371,8 +1371,16 @@ const showCodeModal = (title: string, code: string) => {
                 {/* Completed Challenges Modal */}
                 {showCompletedList && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[10000] p-4">
-                    <div className="relative bg-gray-800/95 border border-gray-700/50 rounded-xl w-full max-w-5xl max-h-[80vh] overflow-y-auto shadow-2xl animate-fadeIn">
-                    <div className="flex items-center justify-between bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-4">
+                    <div
+                        className="relative rounded-2xl border border-green-400/30 w-full max-w-5xl max-h-[80vh] overflow-y-auto shadow-[0_0_25px_rgba(0,255,128,0.2)] animate-fadeIn"
+                        style={{
+                        background:
+                            'linear-gradient(145deg, rgba(22,163,74,0.95) 0%, rgba(234,179,8,0.85) 100%)', // gradient green → gold
+                        backdropFilter: 'blur(12px)',
+                        WebkitBackdropFilter: 'blur(12px)',
+                        }}
+                    >
+                    <div className="flex items-center justify-between bg-gradient-to-r from-emerald-600 via-green-500 to-yellow-500 px-6 py-4 shadow-md">
                         <h3 className="text-xl font-bold text-white flex items-center gap-2">
                         <CheckCircle className="h-5 w-5" />
                         Completed & Abandoned Challenges
@@ -2036,6 +2044,16 @@ const showCodeModal = (title: string, code: string) => {
                 /* Optional: also ignore clicks on the site header while modal is open */
                 body.modal-open header {
                 pointer-events: none !important;
+                }
+
+                /* Hide scrollbar in completed modal but still allow scrolling */
+                .max-h-\[80vh\]::-webkit-scrollbar {
+                display: none;
+                }
+
+                .max-h-\[80vh\] {
+                -ms-overflow-style: none; /* IE and Edge */
+                scrollbar-width: none;    /* Firefox */
                 }
 
             `}</style>
