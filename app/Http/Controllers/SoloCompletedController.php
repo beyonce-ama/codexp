@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SoloTaken;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 
 class SoloCompletedController extends Controller
 {

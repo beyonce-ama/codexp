@@ -1503,8 +1503,11 @@ const showCodeModal = (title: string, code: string) => {
                                             <div className="text-lg font-bold text-white capitalize">{selectedChallenge.difficulty}</div>
                                         </div>
                                         <div className="bg-gray-900/50 rounded-lg p-4">
-                                            <div className="text-sm text-gray-400">Reward</div>
-                                            <div className="text-lg font-bold text-yellow-400">{selectedChallenge.reward_xp} XP</div>
+                                           <div className="text-sm text-gray-400">Reward</div>
+                                            <div className="text-lg font-bold text-yellow-400">
+                                            {isRetakeMode ? 'No XP' : `${selectedChallenge.reward_xp} XP`}
+                                            </div>
+
                                         </div>
                                     </div>
 
