@@ -1371,8 +1371,9 @@ const showCodeModal = (title: string, code: string) => {
                 {/* Completed Challenges Modal */}
                 {showCompletedList && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[10000] p-4">
-                    <div
-                        className="relative rounded-2xl border border-green-400/30 w-full max-w-5xl max-h-[80vh] overflow-y-auto shadow-[0_0_25px_rgba(0,255,128,0.2)] animate-fadeIn"
+                   <div
+                        className="relative rounded-2xl border border-green-400/30 w-full max-w-5xl max-h-[80vh] overflow-y-auto shadow-[0_0_25px_rgba(0,255,128,0.2)] animate-fadeIn completed-modal"
+
                         style={{
                         background:
                             'linear-gradient(145deg, rgba(22,163,74,0.95) 0%, rgba(234,179,8,0.85) 100%)', // gradient green → gold
@@ -1380,7 +1381,8 @@ const showCodeModal = (title: string, code: string) => {
                         WebkitBackdropFilter: 'blur(12px)',
                         }}
                     >
-                    <div className="flex items-center justify-between bg-gradient-to-r from-emerald-600 via-green-500 to-yellow-500 px-6 py-4 shadow-md">
+
+                    <div className="flex items-center justify-between bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-4">
                         <h3 className="text-xl font-bold text-white flex items-center gap-2">
                         <CheckCircle className="h-5 w-5" />
                         Completed & Abandoned Challenges
@@ -2046,15 +2048,20 @@ const showCodeModal = (title: string, code: string) => {
                 pointer-events: none !important;
                 }
 
-                /* Hide scrollbar in completed modal but still allow scrolling */
-                .max-h-\[80vh\]::-webkit-scrollbar {
-                display: none;
-                }
+/* Hide scrollbar for the Completed Modal (still scrollable) */
+.completed-modal::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
 
-                .max-h-\[80vh\] {
-                -ms-overflow-style: none; /* IE and Edge */
-                scrollbar-width: none;    /* Firefox */
-                }
+.completed-modal {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.completed-modal::-webkit-scrollbar-thumb {
+  background: transparent;
+}
 
             `}</style>
         </div>
