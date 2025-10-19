@@ -40,6 +40,8 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
 
         Route::post('/solo/attempts',   [SoloUsageController::class, 'storeAttempt']);
         Route::post('/solo/mark-taken', [SoloUsageController::class, 'markTaken']);
+        Route::post('/solo/retake', [SoloRetakeController::class, 'retakeAttempt']);
+
         Route::get('/solo/taken',       [SoloUsageController::class, 'listTaken']);
 
         Route::get('/achievements/progress', [\App\Http\Controllers\AchievementController::class, 'progress']);

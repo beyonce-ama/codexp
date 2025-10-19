@@ -148,6 +148,9 @@ export default function ParticipantSolo() {
     const [hasSubmitted, setHasSubmitted] = useState(false);
     const [lastSubmissionResult, setLastSubmissionResult] = useState<{ isCorrect: boolean; similarity?: number } | null>(null);
     const [showCorrectAnswer, setShowCorrectAnswer] = useState(false);
+const [showCompletedList, setShowCompletedList] = useState(false);
+const [completedChallenges, setCompletedChallenges] = useState<any[]>([]);
+const [loadingCompleted, setLoadingCompleted] = useState(false);
 
     // Animation states
     const [particles, setParticles] = useState<Particle[]>([]);
@@ -269,6 +272,28 @@ useEffect(() => {
         setTakenById({});
     }
     };
+
+    
+const fetchCompletedChallenges = async () => {
+  try {
+    setLoadingCompleted(true);
+    const res = await apiClient.get('/api/solo/taken');
+    if (res.success && Array.isArray(res.data)) {
+      const filtered = res.data.filter(
+        (row: any) => ['completed', 'abandoned'].includes(row.status)
+      );
+      setCompletedChallenges(filtered);
+    } else {
+      setCompletedChallenges([]);
+    }
+  } catch (err) {
+    console.error('Error fetching completed challenges:', err);
+    setCompletedChallenges([]);
+  } finally {
+    setLoadingCompleted(false);
+  }
+};
+
 const fetchChallenges = async () => {
   try {
     setLoading(true);
@@ -1243,6 +1268,19 @@ const showCodeModal = (title: string, code: string) => {
                                     <option value="medium">Medium</option>
                                     <option value="hard">Hard</option>
                                 </select>
+                                <button
+                                    onClick={() => {
+                                        audio.play('click');
+                                        fetchCompletedChallenges();
+                                        setShowCompletedList(true);
+                                    }}
+                                    className="flex items-center gap-2 px-4 py-3 rounded-lg bg-green-600/70 border border-green-500/50 text-white hover:bg-green-700 transition-all duration-300"
+                                    onMouseEnter={() => audio.play('hover')}
+                                    >
+                                    <CheckCircle className="h-4 w-4" />
+                                    <span>Completed</span>
+                                </button>
+
                             </div>
                         </div>
                     </div>
@@ -1327,6 +1365,93 @@ const showCodeModal = (title: string, code: string) => {
                             })
                         )}
                     </div>
+                {/* Completed Challenges Modal */}
+                {showCompletedList && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[10000] p-4">
+                    <div className="relative bg-gray-800/95 border border-gray-700/50 rounded-xl w-full max-w-5xl max-h-[80vh] overflow-y-auto shadow-2xl animate-fadeIn">
+                    <div className="flex items-center justify-between bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-4">
+                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5" />
+                        Completed & Abandoned Challenges
+                        </h3>
+                        <button
+                        onClick={() => {
+                            audio.play('click');
+                            setShowCompletedList(false);
+                        }}
+                        className="text-white hover:text-red-300 transition"
+                        >
+                        ✖
+                        </button>
+                    </div>
+
+                    <div className="p-6 space-y-4">
+                        {loadingCompleted ? (
+                        <div className="flex justify-center py-8">
+                            <RefreshCw className="h-6 w-6 text-green-400 animate-spin" />
+                        </div>
+                        ) : completedChallenges.length === 0 ? (
+                        <div className="text-center py-10 text-gray-300">
+                            <p>No completed or abandoned challenges yet.</p>
+                        </div>
+                        ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                            {completedChallenges.map((item: any) => (
+                            <div
+                                key={item.id}
+                                className={`p-5 rounded-xl border backdrop-blur-sm transition-all duration-300 ${
+                                item.status === 'completed'
+                                    ? 'bg-green-800/30 border-green-500/40 hover:bg-green-700/40'
+                                    : 'bg-yellow-800/30 border-yellow-500/40 hover:bg-yellow-700/40'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between mb-2">
+                                <span
+                                    className={`text-xs font-bold uppercase ${
+                                    item.status === 'completed'
+                                        ? 'text-green-400'
+                                        : 'text-yellow-400'
+                                    }`}
+                                >
+                                    {item.status}
+                                </span>
+                                <span className="text-xs text-gray-400">
+                                    {displayLanguage(item.language)} • {item.difficulty}
+                                </span>
+                                </div>
+                                <h4 className="font-bold text-white mb-1">{item.challenge?.title || 'Untitled Challenge'}</h4>
+                                <p className="text-gray-300 text-sm line-clamp-2 mb-3">
+                                {item.challenge?.description || 'No description available'}
+                                </p>
+                                <div className="flex justify-between items-center">
+                                {item.status === 'abandoned' ? (
+                                    <button
+                                    onClick={() => {
+                                        audio.play('click');
+                                        const challenge = challenges.find(c => c.id === item.challenge_id);
+                                        if (challenge) startChallenge(challenge);
+                                        else Swal.fire('Challenge not found', '', 'error');
+                                    }}
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-yellow-600/70 border border-yellow-400/50 text-white text-sm hover:bg-yellow-700/80 transition-all"
+                                    >
+                                    <RefreshCw className="h-4 w-4" />
+                                    Retake (No XP)
+                                    </button>
+                                ) : (
+                                    <span className="text-green-400 text-sm font-semibold flex items-center gap-1">
+                                    <Trophy className="h-4 w-4" />
+                                    Completed
+                                    </span>
+                                )}
+                                </div>
+                            </div>
+                            ))}
+                        </div>
+                        )}
+                    </div>
+                    </div>
+                </div>
+                )}
 
                     {/* Challenge Modal */}
                     {showChallengeModal && selectedChallenge && (

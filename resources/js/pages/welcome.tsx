@@ -72,11 +72,11 @@ const faqs = [
 // Replace with your actual filenames.
 const AVATARS = [
   { key: 'default.png', label: 'Neo' },
-  { key: 'boy2.png', label: 'Volt' },
-  { key: 'girl1.png', label: 'Ivy' },
-  { key: 'girl2.png', label: 'Kairo' },
-  { key: 'girl3.png', label: 'Nova' },
-  { key: 'boy5.png', label: 'Vega' },
+  { key: 'boy2.png', label: 'Jomel' },
+  { key: 'girl1.png', label: 'Zelle' },
+  { key: 'girl3.png', label: 'Bei' },
+  { key: 'girl2.png', label: 'Nova' },
+  { key: 'boy3.png', label: 'Vega' },
 ];
 
 export default function CodexpLandingPage() {

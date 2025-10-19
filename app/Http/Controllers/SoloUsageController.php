@@ -82,6 +82,55 @@ class SoloUsageController extends Controller
         ]);
     }
 
+     public function retakeAttempt(Request $req)
+    {
+        $rules = [
+            'challenge_id'    => ['required', 'integer'],
+            'language'        => ['required', Rule::in(['python','java','cpp'])],
+            'difficulty'      => ['required', Rule::in(['easy','medium','hard'])],
+            'mode'            => ['required', Rule::in(['fixbugs','random','aigenerated'])],
+            'is_correct'      => ['required', 'boolean'],
+            'code_submitted'  => ['required', 'string'],
+            'time_spent_sec'  => ['nullable', 'integer', 'min:0'],
+            'earned_xp'       => ['nullable', 'integer', 'min:0'],
+        ];
+
+        $data = $req->validate($rules);
+
+        $userId = Auth::id();
+
+        // Always create a new record (no reuse)
+        $taken = new SoloTaken();
+        $taken->user_id = $userId;
+        $taken->challenge_id = $data['challenge_id'];
+        $taken->language = $data['language'];
+        $taken->difficulty = $data['difficulty'];
+        $taken->mode = $data['mode'];
+        $taken->code_submitted = $data['code_submitted'];
+        $taken->time_spent_sec = $data['time_spent_sec'] ?? 0;
+
+        // If attempt is correct → mark as completed
+        if ($data['is_correct']) {
+            $taken->status = 'completed';
+            $taken->earned_xp = $data['earned_xp'] ?? 0;
+            $taken->ended_at = now();
+        } else {
+            $taken->status = 'submitted_incorrect';
+        }
+
+        $taken->started_at = now();
+        $taken->save();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'status'      => $taken->status,
+                'earned_xp'   => (int)($taken->earned_xp ?? 0),
+                'challenge_id'=> $taken->challenge_id,
+            ]
+        ]);
+    }
+
     // POST /api/solo/attempts
     public function storeAttempt(Request $req)
     {
