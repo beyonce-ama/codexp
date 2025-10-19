@@ -277,12 +277,9 @@ useEffect(() => {
 const fetchCompletedChallenges = async () => {
   try {
     setLoadingCompleted(true);
-    const res = await apiClient.get('/api/solo/taken');
+    const res = await apiClient.get('/api/solo/completed');
     if (res.success && Array.isArray(res.data)) {
-      const filtered = res.data.filter(
-        (row: any) => ['completed', 'abandoned'].includes(row.status)
-      );
-      setCompletedChallenges(filtered);
+      setCompletedChallenges(res.data);
     } else {
       setCompletedChallenges([]);
     }
@@ -293,6 +290,7 @@ const fetchCompletedChallenges = async () => {
     setLoadingCompleted(false);
   }
 };
+
 
 const fetchChallenges = async () => {
   try {
