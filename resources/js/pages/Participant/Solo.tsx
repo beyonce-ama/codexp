@@ -151,6 +151,7 @@ export default function ParticipantSolo() {
 const [showCompletedList, setShowCompletedList] = useState(false);
 const [completedChallenges, setCompletedChallenges] = useState<any[]>([]);
 const [loadingCompleted, setLoadingCompleted] = useState(false);
+const [isRetakeMode, setIsRetakeMode] = useState(false);
 
     // Animation states
     const [particles, setParticles] = useState<Particle[]>([]);
@@ -601,7 +602,10 @@ const exitFullscreen = () => {
                     : `Incorrect. Your solution has ${Math.round(similarity * 100)}% similarity with the expected answer. You need 100% match to pass. Try again or view the correct answer.`,
             };
 
-            const response = await apiClient.post('/api/solo/attempts', attemptData);
+           const response = isRetakeMode
+                ? await apiClient.post('/api/solo/retake', attemptData)
+                : await apiClient.post('/api/solo/attempts', attemptData);
+
             
             if (response.success) {
                 const xpEarned = response.data?.xp_earned || (isCorrect ? selectedChallenge.reward_xp : 0);
@@ -1423,13 +1427,19 @@ const showCodeModal = (title: string, code: string) => {
                                 </p>
                                 <div className="flex justify-between items-center">
                                 {item.status === 'abandoned' ? (
-                                    <button
-                                    onClick={() => {
-                                        audio.play('click');
-                                        const challenge = challenges.find(c => c.id === item.challenge_id);
-                                        if (challenge) startChallenge(challenge);
-                                        else Swal.fire('Challenge not found', '', 'error');
+                                  <button
+                                  onClick={() => {
+                                    audio.play('click');
+                                    const challenge = challenges.find(c => c.id === item.challenge_id);
+                                    if (challenge) {
+                                        setIsRetakeMode(true);
+                                        startChallenge(challenge);
+                                    } else {
+                                        Swal.fire('Challenge not found', '', 'error');
+                                    }
                                     }}
+
+
                                     className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-yellow-600/70 border border-yellow-400/50 text-white text-sm hover:bg-yellow-700/80 transition-all"
                                     >
                                     <RefreshCw className="h-4 w-4" />
